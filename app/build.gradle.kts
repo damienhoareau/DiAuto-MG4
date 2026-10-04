@@ -82,9 +82,10 @@ android {
         // This is scanned at build time from values-XX directories
         buildConfigField("String", "AVAILABLE_LOCALES", "\"${availableLocales.joinToString(",")}\"")
 
-        // MG4 HU + modern phones: single ABI so Studio has no Active ABI picker.
+        // MG4 firmware variants use either a 32-bit or 64-bit Android userspace.
+        // Ship both ARM ABIs, matching the working DiPlay package.
         ndk {
-            abiFilters += listOf("arm64-v8a")
+            abiFilters += listOf("armeabi-v7a", "arm64-v8a")
         }
 
         externalNativeBuild {
