@@ -77,18 +77,10 @@ class SettingsFragment : Fragment() {
         "staticBSSID", "appLanguage", "autoStartSettings", "autoConnectSettings", "resolution",
         "dpiPixelDensity", "viewMode", "fpsLimit", "musicViaBluetooth", "enableAudioSink", "micSettings", "audioVolumeOffsets",
         "keymap", "version", "about",
-        "batteryForGoogleMaps", "batteryNetCapacityKwh", "batteryStateOfHealthPercent", "batteryEffectiveCapacity",
-        "batteryDemoMode", "batteryDemoPercent", "batteryDemoRangeKm",
     )
 
     // Local state to hold changes before saving
     private var pendingUseGps: Boolean? = null
-    private var pendingBatteryForGoogleMaps: Boolean? = null
-    private var pendingBatteryDemoMode: Boolean? = null
-    private var pendingBatteryDemoPercent: Int? = null
-    private var pendingBatteryDemoRangeKm: Int? = null
-    private var pendingBatteryNetCapacityKwh: Float? = null
-    private var pendingBatteryStateOfHealthPercent: Int? = null
     private var pendingBydNavigationEnabled: Boolean? = null
     private var pendingShowNavigationNotifications: Boolean? = null
     private var pendingSyncMediaSessionAaMetadata: Boolean? = null
@@ -215,12 +207,6 @@ class SettingsFragment : Fragment() {
 
         // Initialize local state with current values
         pendingUseGps = settings.useGpsForNavigation
-        pendingBatteryForGoogleMaps = settings.batteryForGoogleMaps
-        pendingBatteryDemoMode = settings.batteryDemoMode
-        pendingBatteryDemoPercent = settings.batteryDemoPercent
-        pendingBatteryDemoRangeKm = settings.batteryDemoRangeKm
-        pendingBatteryNetCapacityKwh = settings.batteryNetCapacityKwh
-        pendingBatteryStateOfHealthPercent = settings.batteryStateOfHealthPercent
         pendingBydNavigationEnabled = settings.bydNavigationEnabled
         pendingShowNavigationNotifications = settings.showNavigationNotifications
         pendingSyncMediaSessionAaMetadata = settings.syncMediaSessionWithAaMetadata
@@ -336,12 +322,6 @@ class SettingsFragment : Fragment() {
 
     private fun reloadPendingStateFromSettings() {
         pendingUseGps = settings.useGpsForNavigation
-        pendingBatteryForGoogleMaps = settings.batteryForGoogleMaps
-        pendingBatteryDemoMode = settings.batteryDemoMode
-        pendingBatteryDemoPercent = settings.batteryDemoPercent
-        pendingBatteryDemoRangeKm = settings.batteryDemoRangeKm
-        pendingBatteryNetCapacityKwh = settings.batteryNetCapacityKwh
-        pendingBatteryStateOfHealthPercent = settings.batteryStateOfHealthPercent
         pendingBydNavigationEnabled = settings.bydNavigationEnabled
         pendingShowNavigationNotifications = settings.showNavigationNotifications
         pendingSyncMediaSessionAaMetadata = settings.syncMediaSessionWithAaMetadata
@@ -464,16 +444,6 @@ class SettingsFragment : Fragment() {
         val languageChanged = pendingAppLanguage != settings.appLanguage
 
         pendingUseGps?.let { settings.useGpsForNavigation = it }
-        pendingBatteryForGoogleMaps?.let { settings.batteryForGoogleMaps = it }
-        pendingBatteryDemoMode?.let { settings.batteryDemoMode = it }
-        pendingBatteryDemoPercent?.let { settings.batteryDemoPercent = it }
-        pendingBatteryDemoRangeKm?.let { settings.batteryDemoRangeKm = it }
-        pendingBatteryNetCapacityKwh?.let { settings.batteryNetCapacityKwh = it }
-        pendingBatteryStateOfHealthPercent?.let { settings.batteryStateOfHealthPercent = it }
-        if (settings.batteryForGoogleMaps) {
-            com.andrerinas.openheadunit.vehicle.Mg4EnergyProvider.start(requireContext())
-            com.andrerinas.openheadunit.vehicle.Mg4EnergyProvider.refresh()
-        }
         pendingBydNavigationEnabled?.let { settings.bydNavigationEnabled = it }
         pendingShowNavigationNotifications?.let { settings.showNavigationNotifications = it }
         pendingSyncMediaSessionAaMetadata?.let { settings.syncMediaSessionWithAaMetadata = it }
@@ -597,12 +567,6 @@ class SettingsFragment : Fragment() {
     private fun checkChanges() {
         // Check for any changes
         val anyChange = pendingUseGps != settings.useGpsForNavigation ||
-                        pendingBatteryForGoogleMaps != settings.batteryForGoogleMaps ||
-                        pendingBatteryDemoMode != settings.batteryDemoMode ||
-                        pendingBatteryDemoPercent != settings.batteryDemoPercent ||
-                        pendingBatteryDemoRangeKm != settings.batteryDemoRangeKm ||
-                        pendingBatteryNetCapacityKwh != settings.batteryNetCapacityKwh ||
-                        pendingBatteryStateOfHealthPercent != settings.batteryStateOfHealthPercent ||
                         pendingBydNavigationEnabled != settings.bydNavigationEnabled ||
                         pendingShowNavigationNotifications != settings.showNavigationNotifications ||
                         pendingSyncMediaSessionAaMetadata != settings.syncMediaSessionWithAaMetadata ||
@@ -1212,115 +1176,6 @@ class SettingsFragment : Fragment() {
                     updateSettingsList()
                 }
             ))
-        }
-
-        items.add(SettingItem.ToggleSettingEntry(
-            stableId = "batteryForGoogleMaps",
-            nameResId = R.string.battery_for_google_maps,
-            descriptionResId = R.string.battery_for_google_maps_description,
-            isChecked = pendingBatteryForGoogleMaps ?: true,
-            onCheckedChanged = { enabled ->
-                pendingBatteryForGoogleMaps = enabled
-                checkChanges()
-                updateSettingsList()
-            }
-        ))
-
-        if (pendingBatteryForGoogleMaps == true) {
-            val netCap = pendingBatteryNetCapacityKwh ?: 61.7f
-            val soh = pendingBatteryStateOfHealthPercent ?: 100
-            val effective = (netCap * soh / 100f).coerceIn(1f, 200f)
-
-            items.add(SettingItem.SettingEntry(
-                stableId = "batteryNetCapacityKwh",
-                nameResId = R.string.battery_net_capacity_kwh,
-                value = "%.1f kWh".format(netCap),
-                searchKeywords = "net usable capacity soh pack kwh mg4",
-                onClick = {
-                    showDecimalInputDialog(
-                        title = getString(R.string.battery_net_capacity_kwh),
-                        message = getString(R.string.battery_net_capacity_description),
-                        initialValue = netCap,
-                    ) { kwh ->
-                        pendingBatteryNetCapacityKwh = kwh.coerceIn(1f, 200f)
-                        checkChanges()
-                        updateSettingsList()
-                    }
-                }
-            ))
-            items.add(SettingItem.SliderSettingEntry(
-                stableId = "batteryStateOfHealthPercent",
-                nameResId = R.string.battery_soh_percent,
-                value = "$soh%",
-                sliderValue = soh.toFloat(),
-                valueFrom = 1f,
-                valueTo = 100f,
-                stepSize = 1f,
-                onValueChanged = { value ->
-                    pendingBatteryStateOfHealthPercent = value.toInt()
-                    checkChanges()
-                    updateSettingsList()
-                }
-            ))
-            items.add(SettingItem.SettingEntry(
-                stableId = "batteryEffectiveCapacity",
-                nameResId = R.string.battery_effective_capacity,
-                value = "%.1f kWh (= net × SOH)".format(effective),
-                searchKeywords = "effective usable soh net capacity",
-                onClick = {
-                    // Informational only — change net capacity or SOH above.
-                    MaterialAlertDialogBuilder(requireContext(), R.style.DarkAlertDialog)
-                        .setTitle(R.string.battery_effective_capacity)
-                        .setMessage(R.string.battery_soh_description)
-                        .setPositiveButton(android.R.string.ok, null)
-                        .show()
-                }
-            ))
-
-            items.add(SettingItem.ToggleSettingEntry(
-                stableId = "batteryDemoMode",
-                nameResId = R.string.battery_demo_mode,
-                descriptionResId = R.string.battery_demo_mode_description,
-                isChecked = pendingBatteryDemoMode ?: false,
-                onCheckedChanged = { enabled ->
-                    pendingBatteryDemoMode = enabled
-                    checkChanges()
-                    updateSettingsList()
-                }
-            ))
-
-            if (pendingBatteryDemoMode == true) {
-                items.add(SettingItem.SliderSettingEntry(
-                    stableId = "batteryDemoPercent",
-                    nameResId = R.string.battery_demo_percent,
-                    value = "${pendingBatteryDemoPercent ?: 72}%",
-                    sliderValue = (pendingBatteryDemoPercent ?: 72).toFloat(),
-                    valueFrom = 1f,
-                    valueTo = 100f,
-                    stepSize = 1f,
-                    onValueChanged = { value ->
-                        pendingBatteryDemoPercent = value.toInt()
-                        checkChanges()
-                        updateSettingsList()
-                    }
-                ))
-                items.add(SettingItem.SettingEntry(
-                    stableId = "batteryDemoRangeKm",
-                    nameResId = R.string.battery_demo_range_km,
-                    value = "${pendingBatteryDemoRangeKm ?: 280} km",
-                    onClick = {
-                        showNumericInputDialog(
-                            title = getString(R.string.battery_demo_enter_range),
-                            message = null,
-                            initialValue = pendingBatteryDemoRangeKm ?: 280,
-                        ) { km ->
-                            pendingBatteryDemoRangeKm = km.coerceAtLeast(1)
-                            checkChanges()
-                            updateSettingsList()
-                        }
-                    }
-                ))
-            }
         }
 
         if (com.andrerinas.openheadunit.hud.BydNavigationOutputs.available(requireContext())) {
@@ -3597,45 +3452,6 @@ class SettingsFragment : Fragment() {
         dialog.window?.clearFlags(
             android.view.WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
             android.view.WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM
-        )
-        dialog.show()
-        editView.requestFocus()
-    }
-
-    private fun showDecimalInputDialog(
-        title: String,
-        message: String?,
-        initialValue: Float,
-        onConfirm: (Float) -> Unit
-    ) {
-        val context = requireContext()
-        val editView = EditText(context).apply {
-            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
-            setText("%.1f".format(initialValue))
-        }
-        val container = android.widget.FrameLayout(context)
-        val params = android.widget.FrameLayout.LayoutParams(
-            android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
-            android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
-        )
-        val margin = (24 * context.resources.displayMetrics.density).toInt()
-        params.setMargins(margin, 8, margin, 8)
-        container.addView(editView, params)
-
-        val dialog = MaterialAlertDialogBuilder(context, R.style.DarkAlertDialog)
-            .setTitle(title)
-            .apply { if (message != null) setMessage(message) }
-            .setView(container)
-            .setPositiveButton(android.R.string.ok) { d, _ ->
-                val newVal = editView.text.toString().replace(',', '.').toFloatOrNull() ?: initialValue
-                onConfirm(newVal)
-                d.dismiss()
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .create()
-        dialog.window?.clearFlags(
-            android.view.WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                android.view.WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM
         )
         dialog.show()
         editView.requestFocus()

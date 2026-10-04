@@ -231,6 +231,8 @@
     <string name="gles_required_message">Monochrome mode needs GLES rendering to apply a grayscale filter on the video output. Enable GLES?</string>
     <string name="enable_gles">Enable GLES</string>
     <string name="category_navigation">Navigation</string>
+    <string name="category_charging_info">Charging info</string>
+    <string name="da_charging_info_hint">Battery capacity, SOH and Google Maps EV settings.</string>
     <string name="category_wireless">Wireless Connection</string>
 
     <string name="reconnection_required_title">Reconnection Required</string>
@@ -257,6 +259,13 @@
     <string name="battery_demo_percent">Demo SoC</string>
     <string name="battery_demo_range_km">Demo range (km)</string>
     <string name="battery_demo_enter_range">Enter demo range in km</string>
+    <string name="battery_live_from_car">From the car</string>
+    <string name="battery_live_soc">Live SoC</string>
+    <string name="battery_live_range">Live range</string>
+    <string name="battery_live_energy">Live energy</string>
+    <string name="battery_live_waiting">Waiting for car data…</string>
+    <string name="battery_live_unavailable">Not available (need MG4 car install / SWI68–69)</string>
+    <string name="battery_live_refresh">Refresh from car</string>
     <string name="enabled">Enabled</string>
     <string name="disabled">Disabled</string>
     <string name="resolution">Resolution</string>

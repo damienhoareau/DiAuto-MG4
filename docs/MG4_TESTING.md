@@ -30,7 +30,7 @@ EVHardware is vendored at `evhardware/` (no git submodule).
 
 ## Battery → Google Maps (VehicleEnergyModel)
 
-1. Settings → Navigation → **Battery for Google Maps** ON (default).
+1. Settings → **Şarj bilgileri** (above Diagnostics) → **Battery for Google Maps** ON (default).
 2. Optional desk test: enable **Demo battery values**, set SoC / range / capacity, Save.
    Demo skips EVHardware (works off the car). Still needs a real AA session for Maps.
 3. Logcat filter: `DiAuto-MG4`

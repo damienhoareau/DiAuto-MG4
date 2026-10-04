@@ -43,11 +43,14 @@ object Mg4EnergyProvider {
     fun available(context: Context): Boolean {
         val settings = App.provide(context).settings
         if (settings.batteryDemoMode) return true
-        return runCatching {
-            FirmwareInfo.getGeneration() == FirmwareInfo.Gen.SWI69 ||
-                FirmwareInfo.getGeneration() == FirmwareInfo.Gen.SWI68
-        }.getOrDefault(false)
+        return carHardwarePresent()
     }
+
+    /** True on MG4 SWI68/69 — independent of demo mode. */
+    fun carHardwarePresent(): Boolean = runCatching {
+        FirmwareInfo.getGeneration() == FirmwareInfo.Gen.SWI69 ||
+            FirmwareInfo.getGeneration() == FirmwareInfo.Gen.SWI68
+    }.getOrDefault(false)
 
     @Synchronized
     fun start(context: Context) {
@@ -101,6 +104,39 @@ object Mg4EnergyProvider {
 
     fun snapshot(): EnergySnapshot? =
         latest?.takeIf { SystemClock.elapsedRealtime() - latestMillis <= STALE_MS }
+
+    /**
+     * One-shot car SoC/range for the Charging info screen, ignoring demo mode.
+     * Capacity Wh uses [netCapacityKwh] × [sohPercent] (pending UI values OK).
+     */
+    fun readCarSnapshot(
+        context: Context,
+        netCapacityKwh: Float,
+        sohPercent: Int,
+    ): EnergySnapshot? {
+        return runCatching {
+            val gen = FirmwareInfo.getGeneration()
+            if (gen != FirmwareInfo.Gen.SWI69 && gen != FirmwareInfo.Gen.SWI68) return null
+            if (!initialized) {
+                EVHardware.init(context.applicationContext)
+                initialized = true
+            }
+            val percent = EVHardware.getVendorBatterySocPercent()?.toDouble() ?: return null
+            val rangeKm = (EVHardware.getVendorRangeKm()
+                ?: EVHardware.getStandardRangeKm()?.roundToInt()) ?: return null
+            if (rangeKm <= 0) return null
+            val capacityKwh = (netCapacityKwh * sohPercent / 100f).toDouble().coerceIn(1.0, 200.0)
+            val fraction = (percent / 100.0).coerceIn(0.01, 1.0)
+            EnergySnapshot(
+                capacityWh = (capacityKwh * 1000).roundToInt().coerceAtLeast(1),
+                currentWh = (capacityKwh * fraction * 1000).roundToInt().coerceAtLeast(1),
+                rangeMeters = (rangeKm * 1000).coerceAtLeast(1),
+                batteryPercent = percent,
+                rangeKm = rangeKm,
+                demo = false,
+            )
+        }.getOrNull()
+    }
 
     private fun poll() {
         try {

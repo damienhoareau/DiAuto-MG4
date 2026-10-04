@@ -59,6 +59,15 @@
     <string name="gles_required_message">Siyah-beyaz mod, video çıkışına gri tonlamalı filtre uygulamak için GLES işlemeye ihtiyaç duyar. GLES etkinleştirilsin mi?</string>
     <string name="enable_gles">GLES Etkinleştir</string>
     <string name="category_navigation">Navigasyon</string>
+    <string name="category_charging_info">Şarj bilgileri</string>
+    <string name="da_charging_info_hint">Pil kapasitesi, SOH ve Google Maps EV ayarları.</string>
+    <string name="battery_live_from_car">Araçtan</string>
+    <string name="battery_live_soc">Canlı SoC</string>
+    <string name="battery_live_range">Canlı menzil</string>
+    <string name="battery_live_energy">Canlı enerji</string>
+    <string name="battery_live_waiting">Araç verisi bekleniyor…</string>
+    <string name="battery_live_unavailable">Yok (MG4 araç kurulumu / SWI68–69 gerekli)</string>
+    <string name="battery_live_refresh">Araçtan yenile</string>
     <string name="category_wireless">Kablosuz Bağlantı</string>
 
     <string name="reconnection_required_title">Yeniden Bağlantı Gerekli</string>
