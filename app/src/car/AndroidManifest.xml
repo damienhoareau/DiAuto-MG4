@@ -1,4 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- MG4 / system UID — must be platform-signed (see scripts/build_mg4.ps1). -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    android:sharedUserId="android.uid.system" />
+    xmlns:tools="http://schemas.android.com/tools"
+    android:sharedUserId="android.uid.system">
+
+    <!-- Match the working DiPlay MG4 package: the platform-signed car build must
+         be able to claim/manage the projection phone on the head unit USB bus. -->
+    <uses-permission
+        android:name="android.permission.MANAGE_USB"
+        tools:ignore="ProtectedPermissions" />
+</manifest>
