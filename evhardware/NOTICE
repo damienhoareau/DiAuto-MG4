@@ -1,0 +1,10 @@
+EVHardware (vendored)
+=====================
+
+Source: https://github.com/fatihdonmezdev/MG4ABRP (EVHardware/lib)
+Upstream project also publishes as com.evsuite:evhardware.
+
+Only the Android library sources under this directory are included in DiAuto-MG4.
+The rest of the MG4ABRP monorepo is intentionally not vendored.
+
+See the upstream repository for its LICENSE terms. DiAuto-MG4 remains AGPL-3.0.
