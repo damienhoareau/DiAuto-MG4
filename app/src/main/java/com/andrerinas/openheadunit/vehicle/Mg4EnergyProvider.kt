@@ -57,12 +57,19 @@ object Mg4EnergyProvider {
             return
         }
         started = true
+        val settings = App.provide(context.applicationContext).settings
+        // Demo: publish immediately on the caller thread so Service Discovery can see a snapshot.
+        if (settings.batteryDemoMode) {
+            initialized = true
+            publishFromPercent(
+                settings = settings,
+                percent = settings.batteryDemoPercent.toDouble().coerceIn(1.0, 100.0),
+                rangeKm = settings.batteryDemoRangeKm.coerceAtLeast(1),
+                demo = true,
+            )
+        }
         executor.execute {
-            val settings = App.provide(context.applicationContext).settings
-            if (settings.batteryDemoMode) {
-                initialized = true
-                poll()
-            } else {
+            if (!settings.batteryDemoMode) {
                 try {
                     EVHardware.init(context.applicationContext)
                     initialized = true
@@ -70,6 +77,8 @@ object Mg4EnergyProvider {
                 } catch (error: Throwable) {
                     AppLog.e("$TAG EVHardware init failed; EV energy disabled: ${error.message}")
                 }
+            } else {
+                poll()
             }
             if (pollFuture == null) {
                 pollFuture = executor.scheduleWithFixedDelay(

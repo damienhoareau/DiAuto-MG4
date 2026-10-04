@@ -40,9 +40,11 @@ class ServiceDiscoveryResponse(private val context: Context)
                     sources.addSensors(makeSensorType(Sensors.SensorType.NIGHT))
                     AppLog.i("[ServiceDiscovery] Announcing NIGHT sensor support. Strategy: ${settings.nightMode}")
 
+                    // Announce EV even before the first SoC poll. If we wait for snapshot(),
+                    // AA often finishes Service Discovery first and Maps never enables EV routing.
+                    // VEM bytes are sent later when Mg4EnergyReporter gets sensor 23/25 + a snapshot.
                     val announceEv = settings.batteryForGoogleMaps &&
-                        Mg4EnergyProvider.available(context) &&
-                        Mg4EnergyProvider.snapshot() != null
+                        Mg4EnergyProvider.available(context)
                     if (announceEv) {
                         sources.addSensors(makeSensorType(Sensors.SensorType.VEHICLE_ENERGY_MODEL))
                         sources.addSensors(makeSensorType(Sensors.SensorType.RAW_VEHICLE_ENERGY_MODEL))
@@ -63,13 +65,16 @@ class ServiceDiscoveryResponse(private val context: Context)
                                 )
                                 .build(),
                         )
-                        AppLog.i("[ServiceDiscovery] Announcing EV energy sensors (23/25/26) + ELECTRIC fuel type")
+                        val snap = Mg4EnergyProvider.snapshot()
+                        AppLog.i(
+                            "[ServiceDiscovery] Announcing EV energy sensors (23/25/26) + ELECTRIC " +
+                                "(snapshot=${if (snap != null) "${snap.batteryPercent.toInt()}%" else "pending"})",
+                        )
                     } else if (settings.batteryForGoogleMaps) {
-                        val why = when {
-                            settings.batteryDemoMode -> "demo on but no snapshot yet — wait a second and reconnect"
-                            else -> "no MG4 battery reading yet"
-                        }
-                        AppLog.i("[ServiceDiscovery] EV energy not announced ($why)")
+                        AppLog.i(
+                            "[ServiceDiscovery] EV energy not announced " +
+                                "(demo=${settings.batteryDemoMode}, available=${Mg4EnergyProvider.available(context)})",
+                        )
                     }
                 }.build()
             }.build()

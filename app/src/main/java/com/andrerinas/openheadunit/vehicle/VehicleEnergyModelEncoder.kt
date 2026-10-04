@@ -4,21 +4,28 @@ import com.google.protobuf.CodedOutputStream
 import java.io.ByteArrayOutputStream
 
 /**
- * Minimal wire encoder for Android Auto VehicleEnergyModel (sensor type 23/25).
- * Field numbers follow OpenAutoLink's reconstructed schema used by Google Maps.
+ * Wire encoder for Android Auto VehicleEnergyModel (sensor type 23/25).
  *
- * Maps SoC = min_usable_capacity.Wh / max_capacity.Wh
- * (min_usable_capacity carries the *current* energy, not a static floor).
+ * Field layout follows the audited *external* Maps schema (current/capacity Wh +
+ * road-load coefficients), not the older internal reconstruction that treated
+ * field 2 as Wh/km + Cd. Sending Wh/km (~150) and Cd (~0.36) as A/B/C made Maps
+ * burn most of the pack over short routes (e.g. 53 km → ~14% remaining).
+ *
+ * Maps SoC = current_Wh / capacity_Wh.
  */
 object VehicleEnergyModelEncoder {
+
+    private const val MIN_WH_PER_KM = 100f
+    private const val MAX_WH_PER_KM = 220f
+    private const val DEFAULT_WH_PER_KM = 160f // typical MG4 Long Range ballpark
 
     data class Snapshot(
         val capacityWh: Int,
         val currentWh: Int,
         val rangeMeters: Int,
         val batteryPercent: Double = 0.0,
-        val maxChargePowerW: Int = 150_000,
-        val maxDischargePowerW: Int = 150_000,
+        val maxChargePowerW: Int = 140_000,
+        val peakMotorPowerW: Int = 150_000,
     )
 
     fun encode(snapshot: Snapshot): ByteArray {
@@ -26,97 +33,104 @@ object VehicleEnergyModelEncoder {
         require(snapshot.currentWh > 0)
         require(snapshot.rangeMeters > 0)
 
-        val percent = if (snapshot.batteryPercent > 0) {
-            snapshot.batteryPercent.toFloat()
+        val whPerKm = derivedWhPerKm(snapshot)
+        // F ≈ (Wh/km · v_kmh) / v_ms = Wh/km · 3.6 at any speed; at REF_SPEED that is
+        // the constant force that yields [whPerKm] with B=C=0.
+        val constantForceN = (whPerKm * 3.6f).coerceIn(200f, 900f)
+
+        val out = ByteArrayOutputStream()
+        val cos = CodedOutputStream.newInstance(out)
+        cos.writeByteArray(1, encodeBattery(snapshot))
+        cos.writeByteArray(2, encodeRoadLoad(constantForceN))
+        cos.writeByteArray(4, encodeVehicleSpecs())
+        cos.flush()
+        return out.toByteArray()
+    }
+
+    private fun derivedWhPerKm(snapshot: Snapshot): Float {
+        val fromRange = snapshot.currentWh.toFloat() / snapshot.rangeMeters.toFloat() * 1000f
+        return if (fromRange.isFinite() && fromRange > 0f) {
+            fromRange.coerceIn(MIN_WH_PER_KM, MAX_WH_PER_KM)
         } else {
-            (100f * snapshot.currentWh / snapshot.capacityWh).coerceIn(1f, 100f)
+            DEFAULT_WH_PER_KM
         }
-        val whPerKm = snapshot.currentWh.toFloat() / snapshot.rangeMeters.toFloat() * 1000f
-        val battery = encodeBattery(snapshot, percent)
-        val consumption = encodeConsumption(whPerKm)
-        val specs = encodeVehicleSpecs()
-        val prefs = encodeChargingPrefs()
+    }
 
+    private fun encodeBattery(snapshot: Snapshot): ByteArray {
         val out = ByteArrayOutputStream()
         val cos = CodedOutputStream.newInstance(out)
-        cos.writeByteArray(1, battery) // battery
-        cos.writeByteArray(2, consumption) // consumption
-        cos.writeByteArray(4, specs) // vehicle specs (ELECTRIC)
-        cos.writeByteArray(12, prefs) // charging_prefs
+        // External: 3 = current Wh, 4 = capacity Wh. Float child is uncertainty — omit it.
+        cos.writeByteArray(3, encodeWattHours(snapshot.currentWh))
+        cos.writeByteArray(4, encodeWattHours(snapshot.capacityWh))
+        // 9 = peak motor power W, 10 = max charging rate W (not discharge).
+        cos.writeUInt32(9, snapshot.peakMotorPowerW.coerceAtLeast(1))
+        cos.writeUInt32(10, snapshot.maxChargePowerW.coerceAtLeast(1))
         cos.flush()
         return out.toByteArray()
     }
 
-    private fun encodeBattery(snapshot: Snapshot, percent: Float): ByteArray {
+    /**
+     * Road-load: constant / linear / quadratic means (N, N·s/m, N·s²/m²).
+     * Only the constant term is populated so arrival energy tracks the pack's
+     * implied Wh/km without a huge v² term.
+     */
+    private fun encodeRoadLoad(constantForceN: Float): ByteArray {
         val out = ByteArrayOutputStream()
         val cos = CodedOutputStream.newInstance(out)
-        cos.writeInt64(1, 1L) // config_id
-        // Maps treats min_usable_capacity as *current* Wh.
-        cos.writeByteArray(3, encodeEnergyValue(snapshot.currentWh, percent))
-        cos.writeByteArray(4, encodeEnergyValue(snapshot.capacityWh, 100f))
-        cos.writeFloat(6, 0.92f) // charge_efficiency
-        cos.writeFloat(7, 0.95f) // discharge_efficiency
-        cos.writeByteArray(8, encodeEnergyValue((snapshot.capacityWh * 0.05).toInt().coerceAtLeast(1), 5f))
-        cos.writeInt32(9, snapshot.maxChargePowerW)
-        cos.writeInt32(10, snapshot.maxDischargePowerW)
-        cos.writeBool(11, true) // regen_braking_capable
-        cos.flush()
-        return out.toByteArray()
-    }
-
-    private fun encodeConsumption(whPerKm: Float): ByteArray {
-        val out = ByteArrayOutputStream()
-        val cos = CodedOutputStream.newInstance(out)
-        cos.writeByteArray(1, encodeEnergyRate(whPerKm.coerceIn(80f, 250f))) // driving
-        cos.writeByteArray(2, encodeEnergyRate(2.0f)) // auxiliary
-        cos.writeByteArray(3, encodeEnergyRate(0.36f)) // aerodynamic
+        cos.writeByteArray(1, encodeCoeff(constantForceN, 10f))
+        cos.writeByteArray(2, encodeCoeff(0f, 0.25f))
+        cos.writeByteArray(3, encodeCoeff(0f, 0.125f))
         cos.flush()
         return out.toByteArray()
     }
 
     private fun encodeVehicleSpecs(): ByteArray {
-        // VehicleSpecs.fuel_types[0] ≈ FuelTypeEntry { type = ELECTRIC(10) }
-        // Exact nested tags vary; varint field 1 = 10 matches SDR fuel-type encoding.
         val fuelEntry = ByteArrayOutputStream().also { raw ->
             val cos = CodedOutputStream.newInstance(raw)
             cos.writeInt32(1, 10) // ELECTRIC
             cos.flush()
         }.toByteArray()
-        val connectorEntry = ByteArrayOutputStream().also { raw ->
-            val cos = CodedOutputStream.newInstance(raw)
-            cos.writeInt32(1, 2) // MENNEKES / Type 2
-            cos.flush()
-        }.toByteArray()
+        // Same connector set as Service Discovery: AC Type 2 + DC CCS2.
+        val type2 = encodeConnectorType(2) // MENNEKES
+        val ccs2 = encodeConnectorType(5) // COMBO_2 / CCS2
         val out = ByteArrayOutputStream()
         val cos = CodedOutputStream.newInstance(out)
         cos.writeByteArray(1, fuelEntry)
-        cos.writeByteArray(2, connectorEntry)
+        cos.writeByteArray(2, type2)
+        cos.writeByteArray(2, ccs2)
         cos.flush()
         return out.toByteArray()
     }
 
-    private fun encodeChargingPrefs(): ByteArray {
+    private fun encodeConnectorType(type: Int): ByteArray {
         val out = ByteArrayOutputStream()
         val cos = CodedOutputStream.newInstance(out)
-        cos.writeInt32(3, 1) // mode = standard
+        cos.writeInt32(1, type)
         cos.flush()
         return out.toByteArray()
     }
 
-    private fun encodeEnergyValue(wattHours: Int, displayValue: Float): ByteArray {
+    private fun encodeWattHours(wattHours: Int): ByteArray {
         val out = ByteArrayOutputStream()
         val cos = CodedOutputStream.newInstance(out)
         cos.writeInt32(1, wattHours)
-        cos.writeFloat(2, displayValue)
         cos.flush()
         return out.toByteArray()
     }
 
-    private fun encodeEnergyRate(rate: Float): ByteArray {
+    private fun encodeCoeff(mean: Float, stddev: Float): ByteArray {
         val out = ByteArrayOutputStream()
         val cos = CodedOutputStream.newInstance(out)
-        cos.writeFloat(1, rate)
+        cos.writeFloat(1, mean)
+        cos.writeFloat(2, stddev)
         cos.flush()
         return out.toByteArray()
     }
+
+    /** Exposed for unit tests — Wh/km implied by the snapshot after clamping. */
+    internal fun whPerKmForTest(snapshot: Snapshot): Float = derivedWhPerKm(snapshot)
+
+    /** Exposed for unit tests — constant force (N) written into road-load field 1. */
+    internal fun constantForceNForTest(snapshot: Snapshot): Float =
+        (derivedWhPerKm(snapshot) * 3.6f).coerceIn(200f, 900f)
 }
