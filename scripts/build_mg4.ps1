@@ -7,10 +7,9 @@ param(
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 if (-not $PlatformKeysDir) {
-    # Fall back to DiPlay-MG4 / MG4_V3 platform keys if present.
     foreach ($candidate in @(
-        "$env:USERPROFILE\AndroidStudioProjects\DiPlay-MG4",
-        "$env:USERPROFILE\AndroidStudioProjects\MG4_V3"
+        (Join-Path $Root "tools"),
+        "$env:USERPROFILE\AndroidStudioProjects\MG4_V3\tools"
     )) {
         if (Test-Path (Join-Path $candidate "platform.pk8")) { $PlatformKeysDir = $candidate; break }
     }
@@ -22,7 +21,7 @@ if (-not $BuildTools) {
     $BuildTools = (Get-ChildItem (Join-Path $sdk "build-tools") -Directory | Sort-Object Name -Descending | Select-Object -First 1).FullName
 }
 
-$Version = "0.3.11-mg4.1"
+$Version = "0.3.11-mg4.3"
 Set-Location $Root
 $env:JAVA_HOME = if (Test-Path "C:\Program Files\Android\Android Studio\jbr") {
     "C:\Program Files\Android\Android Studio\jbr"

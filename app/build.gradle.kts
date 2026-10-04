@@ -71,8 +71,8 @@ android {
         applicationId = "com.drivehub.diauto.mg4"
         minSdk = 28
         targetSdk = 36
-        versionCode = 116
-        versionName = "0.3.13"
+        versionCode = 121
+        versionName = "1.0"
         setProperty("archivesBaseName", "${applicationId}_${versionName}")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         multiDexEnabled = true
@@ -81,6 +81,11 @@ android {
         // Store available locales in BuildConfig for runtime access
         // This is scanned at build time from values-XX directories
         buildConfigField("String", "AVAILABLE_LOCALES", "\"${availableLocales.joinToString(",")}\"")
+
+        // MG4 HU + modern phones: single ABI so Studio has no Active ABI picker.
+        ndk {
+            abiFilters += listOf("arm64-v8a")
+        }
 
         externalNativeBuild {
             cmake {
