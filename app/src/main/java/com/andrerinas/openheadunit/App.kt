@@ -16,6 +16,7 @@ import com.andrerinas.openheadunit.utils.AppLog
 import com.andrerinas.openheadunit.utils.AppThemeManager
 import com.andrerinas.openheadunit.utils.Settings
 import android.os.SystemClock
+import android.os.Process
 import java.io.File
 
 class App : Application() {
@@ -42,8 +43,12 @@ class App : Application() {
             ConscryptInitializer.initialize()
         }
 
-        // Root support
-        component.suExecutor.register()
+        // A platform-signed car build already has the system identity it needs. Avoid
+        // eagerly constructing the root/Shizuku stack before the first Activity on
+        // vendor Android 9; ordinary phone builds retain the original behaviour.
+        if (Process.myUid() != Process.SYSTEM_UID) {
+            component.suExecutor.register()
+        }
 
         if (isUserUnlocked()) {
             val settings = Settings(this) // Create a Settings instance

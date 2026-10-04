@@ -9,4 +9,13 @@
     <uses-permission
         android:name="android.permission.MANAGE_USB"
         tools:ignore="ProtectedPermissions" />
+
+    <application>
+        <!-- The MG4 build already runs under the platform-signed system UID.
+             Do not initialize Shizuku before Application.onCreate on the
+             vendor Android 9 runtime. -->
+        <provider
+            android:name="rikka.shizuku.ShizukuProvider"
+            tools:node="remove" />
+    </application>
 </manifest>
