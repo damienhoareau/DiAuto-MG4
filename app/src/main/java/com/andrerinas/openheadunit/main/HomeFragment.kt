@@ -94,6 +94,10 @@ class HomeFragment : Fragment() {
                 showBluetoothHelp(R.string.da_no_paired)
                 return
             }
+            if (BluetoothHelper.anyConnectedDeviceState(requireContext()) == false) {
+                showBluetoothHelp(R.string.da_no_connected_bluetooth)
+                return
+            }
             activeDialog?.dismiss()
             activeDialog = MaterialAlertDialogBuilder(requireContext(), R.style.DarkAlertDialog)
                 .setTitle(R.string.da_connect)

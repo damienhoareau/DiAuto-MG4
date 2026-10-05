@@ -38,7 +38,7 @@ class ChargingInfoFragment : Fragment() {
     private var pendingBatteryDemoPercent: Int? = null
     private var pendingBatteryDemoRangeKm: Int? = null
     private var pendingBatteryNetCapacityKwh: Float? = null
-    private var pendingBatteryStateOfHealthPercent: Int? = null
+    private var pendingBatteryStateOfHealthPercent: Float? = null
 
     private var hasChanges = false
     private val SAVE_ITEM_ID = 1001
@@ -171,7 +171,7 @@ class ChargingInfoFragment : Fragment() {
 
         if (pendingBatteryForGoogleMaps == true) {
             val netCap = pendingBatteryNetCapacityKwh ?: 61.7f
-            val soh = pendingBatteryStateOfHealthPercent ?: 100
+            val soh = pendingBatteryStateOfHealthPercent ?: 100f
             val effective = (netCap * soh / 100f).coerceIn(1f, 200f)
 
             items.add(SettingItem.SettingEntry(
@@ -179,29 +179,23 @@ class ChargingInfoFragment : Fragment() {
                 nameResId = R.string.battery_net_capacity_kwh,
                 value = "%.1f kWh".format(netCap),
                 onClick = {
+                    showBatteryCapacityDialog(netCap)
+                }
+            ))
+            items.add(SettingItem.SettingEntry(
+                stableId = "batteryStateOfHealthPercent",
+                nameResId = R.string.battery_soh_percent,
+                value = "${formatDecimal(soh)}%",
+                onClick = {
                     showDecimalInputDialog(
-                        title = getString(R.string.battery_net_capacity_kwh),
-                        message = getString(R.string.battery_net_capacity_description),
-                        initialValue = netCap,
-                    ) { kwh ->
-                        pendingBatteryNetCapacityKwh = kwh.coerceIn(1f, 200f)
+                        title = getString(R.string.battery_soh_percent),
+                        message = getString(R.string.battery_soh_description),
+                        initialValue = soh,
+                    ) { value ->
+                        pendingBatteryStateOfHealthPercent = value.coerceIn(1f, 100f)
                         checkChanges()
                         updateSettingsList()
                     }
-                }
-            ))
-            items.add(SettingItem.SliderSettingEntry(
-                stableId = "batteryStateOfHealthPercent",
-                nameResId = R.string.battery_soh_percent,
-                value = "$soh%",
-                sliderValue = soh.toFloat(),
-                valueFrom = 1f,
-                valueTo = 100f,
-                stepSize = 1f,
-                onValueChanged = { value ->
-                    pendingBatteryStateOfHealthPercent = value.toInt()
-                    checkChanges()
-                    updateSettingsList()
                 }
             ))
             items.add(SettingItem.SettingEntry(
@@ -356,7 +350,7 @@ class ChargingInfoFragment : Fragment() {
         val context = requireContext()
         val editView = EditText(context).apply {
             inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
-            setText("%.1f".format(initialValue))
+            setText(formatDecimal(initialValue))
         }
         val container = android.widget.FrameLayout(context)
         val margin = (24 * context.resources.displayMetrics.density).toInt()
@@ -378,5 +372,28 @@ class ChargingInfoFragment : Fragment() {
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
+    }
+
+    private fun showBatteryCapacityDialog(currentValue: Float) {
+        val values = BATTERY_CAPACITY_OPTIONS
+        val labels = values.map { "%.1f kWh".format(it) }.toTypedArray()
+        val selectedIndex = values.indices.minByOrNull { kotlin.math.abs(values[it] - currentValue) } ?: 1
+        MaterialAlertDialogBuilder(requireContext(), R.style.DarkAlertDialog)
+            .setTitle(R.string.battery_net_capacity_kwh)
+            .setSingleChoiceItems(labels, selectedIndex) { dialog, which ->
+                pendingBatteryNetCapacityKwh = values[which]
+                checkChanges()
+                updateSettingsList()
+                dialog.dismiss()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun formatDecimal(value: Float): String =
+        java.math.BigDecimal(value.toString()).stripTrailingZeros().toPlainString()
+
+    companion object {
+        private val BATTERY_CAPACITY_OPTIONS = floatArrayOf(50.8f, 61.7f, 74.4f)
     }
 }

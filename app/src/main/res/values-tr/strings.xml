@@ -61,10 +61,16 @@
     <string name="category_navigation">Navigasyon</string>
     <string name="category_charging_info">Şarj bilgileri</string>
     <string name="da_charging_info_hint">Pil kapasitesi, SOH ve Google Maps EV ayarları.</string>
+    <string name="battery_net_capacity_kwh">Batarya kapasitesi (kWh)</string>
+    <string name="battery_net_capacity_description">MG4 için kullanılabilir batarya kapasitesini seçin: 50,8, 61,7 veya 74,4 kWh. Maps kapasite × SOH değerini kullanır.</string>
+    <string name="battery_soh_percent">Batarya SOH (%)</string>
+    <string name="battery_soh_description">Batarya sağlık oranını 1–100 arasında elle girin. 98,75 gibi ondalıklı değerler desteklenir. Etkin kapasite = kapasite × SOH / 100.</string>
+    <string name="battery_effective_capacity">Etkin kullanılabilir kapasite</string>
     <string name="battery_live_from_car">Araçtan</string>
     <string name="battery_live_soc">Canlı SoC</string>
     <string name="battery_live_range">Canlı menzil</string>
     <string name="battery_live_energy">Canlı enerji</string>
+    <string name="da_no_connected_bluetooth">Aracın Bluetooth’una bağlı telefon yok. Önce MG Bluetooth ekranından telefonunu bağla, ardından Android Auto’yu tekrar dene.</string>
     <string name="battery_live_waiting">Araç verisi bekleniyor…</string>
     <string name="battery_live_unavailable">Yok (MG4 araç kurulumu / SWI68–69 gerekli)</string>
     <string name="battery_live_refresh">Araçtan yenile</string>

@@ -11,7 +11,7 @@ plugins {
 
 android {
     compileSdk = 36
-    ndkVersion = "28.2.13676358"
+    ndkVersion = "27.2.12479018"
     namespace = "com.andrerinas.openheadunit"
 
     buildFeatures {

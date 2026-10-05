@@ -758,7 +758,15 @@ class AapService : Service(), UsbReceiver.Listener {
             provider.setInvalidatedListener { nativeAaHandshakeManager?.invalidateCredentials() }
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        // Google Nearby is not usable on Google-free head units such as the MG4. Merely creating
+        // its client posts work to GoogleApiHandler; there the missing GSF gservices provider
+        // throws an uncaught SecurityException outside this try/catch and kills the process.
+        // Do not touch the Nearby API at all unless the provider it requires is installed.
+        val hasGoogleServicesFramework = packageManager.resolveContentProvider(
+            "com.google.android.gsf.gservices",
+            0
+        ) != null
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && hasGoogleServicesFramework) {
             try {
                 nearbyManager = NearbyManager(this, serviceScope) { socket ->
                     val appSettings = App.provide(this).settings
@@ -770,6 +778,8 @@ class AapService : Service(), UsbReceiver.Listener {
             } catch (e: Exception) {
                 AppLog.e("AapService: Failed to init NearbyManager: ${e.message}")
             }
+        } else if (!hasGoogleServicesFramework) {
+            AppLog.i("AapService: Google Nearby disabled: GSF gservices provider is unavailable")
         }
 
         // Decided here as well as inside initWifiMode() so a paused start skips the wait-for-WiFi

@@ -112,7 +112,7 @@ object Mg4EnergyProvider {
     fun readCarSnapshot(
         context: Context,
         netCapacityKwh: Float,
-        sohPercent: Int,
+        sohPercent: Float,
     ): EnergySnapshot? {
         return runCatching {
             val gen = FirmwareInfo.getGeneration()

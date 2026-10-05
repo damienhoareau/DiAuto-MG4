@@ -520,11 +520,18 @@ class Settings(private val context: Context) {
                 .apply()
         }
 
-    /** Pack state of health 1–100%. Effective usable kWh = net × SOH / 100. */
-    var batteryStateOfHealthPercent: Int
-        get() = prefs.getInt("battery-state-of-health-percent", 100).coerceIn(1, 100)
+    /** Pack state of health 1–100%, including decimal values such as 98.75. */
+    var batteryStateOfHealthPercent: Float
+        get() = try {
+            prefs.getFloat("battery-state-of-health-percent", 100f).coerceIn(1f, 100f)
+        } catch (_: ClassCastException) {
+            // Migrate values written by versions where SOH was an integer slider.
+            prefs.getInt("battery-state-of-health-percent", 100).toFloat().also {
+                prefs.edit().putFloat("battery-state-of-health-percent", it).apply()
+            }.coerceIn(1f, 100f)
+        }
         set(value) {
-            prefs.edit().putInt("battery-state-of-health-percent", value.coerceIn(1, 100)).apply()
+            prefs.edit().putFloat("battery-state-of-health-percent", value.coerceIn(1f, 100f)).apply()
         }
 
     /** Net × SOH — capacity Wh sent to VehicleEnergyModel. */
@@ -1497,8 +1504,20 @@ class Settings(private val context: Context) {
 
     // 0 = Common Wifi (NSD), 1 = Wifi Direct P2P, 2 = Nearby Devices, 3 = Phone Hotspot (Host), 4 = Headunit Hotspot (Passive)
     var helperConnectionStrategy: Int
-        get() = prefs.getInt("helper-connection-strategy", 2) // Default to Nearby Devices (2)
+        get() {
+            val stored = prefs.getInt("helper-connection-strategy", 4)
+            if (stored != 2 || hasGoogleServicesFramework()) return stored
+
+            // Existing MG4 installs may have inherited the old Nearby default. Nearby depends on
+            // GSF and crashes Google-free firmware, so migrate those installs to the same passive
+            // car-hotspot transport used by the stable wireless setup.
+            prefs.edit().putInt("helper-connection-strategy", 4).apply()
+            return 4
+        }
         set(value) = prefs.edit().putInt("helper-connection-strategy", value).apply()
+
+    private fun hasGoogleServicesFramework(): Boolean =
+        context.packageManager.resolveContentProvider("com.google.android.gsf.gservices", 0) != null
 
     var lastNearbyDeviceName: String
         get() = prefs.getString("last-nearby-device-name", "")!!

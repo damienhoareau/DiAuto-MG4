@@ -149,6 +149,43 @@ object BluetoothHelper {
     private const val PROFILE_A2DP_SINK = 11
 
     /**
+     * Whether at least one paired device is currently connected to this adapter. Reflection gives
+     * the most accurate per-device result on the platform-signed MG4 build; profile state is a
+     * fallback for Android variants that hide BluetoothDevice.isConnected(). Null means the stack
+     * would not disclose either result, so callers should avoid showing a false warning.
+     */
+    fun anyConnectedDeviceState(context: Context): Boolean? {
+        val adapter = try { getBluetoothAdapter(context) } catch (_: Exception) { return null }
+            ?: return false
+        if (try { !adapter.isEnabled } catch (_: Exception) { false }) return false
+
+        var readDeviceState = false
+        val bonded = try { adapter.bondedDevices.orEmpty() } catch (_: Exception) { emptySet() }
+        for (device in bonded) {
+            try {
+                val method = device.javaClass.getMethod("isConnected")
+                readDeviceState = true
+                if ((method.invoke(device) as? Boolean) == true) return true
+            } catch (_: Exception) {
+                // Fall through to the profile-wide check below.
+            }
+        }
+
+        var readProfileState = false
+        for (profile in intArrayOf(
+            PROFILE_HEADSET_CLIENT,
+            BluetoothProfile.HEADSET,
+            BluetoothProfile.A2DP,
+            PROFILE_A2DP_SINK,
+        )) {
+            val state = try { adapter.getProfileConnectionState(profile) } catch (_: Exception) { continue }
+            readProfileState = true
+            if (state == BluetoothProfile.STATE_CONNECTED || state == BluetoothProfile.STATE_CONNECTING) return true
+        }
+        return if (readDeviceState || readProfileState) false else null
+    }
+
+    /**
      * Whether a Bluetooth media link to this head unit is up, in either role.
      *
      * Used to decide against taking system audio focus for Android Auto playback: when the phone is

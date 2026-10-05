@@ -25,6 +25,8 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import android.os.Build
 import android.os.SystemClock
+import android.system.ErrnoException
+import android.system.OsConstants
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
 import java.io.DataInputStream
@@ -520,7 +522,7 @@ class NativeAaHandshakeManager(
                             output.write("OK\r\n".toByteArray())
                         }
                     }
-                    output.flush()
+                    flushBluetoothOutput(output)
                 }
                 delay(200)
             }
@@ -1392,11 +1394,30 @@ class NativeAaHandshakeManager(
 
     private fun sendProtobuf(output: OutputStream, data: ByteArray, type: Int) {
         output.write(WppFraming.encodeFrame(data, type))
-        output.flush()
+        flushBluetoothOutput(output)
         // Not "successfully delivered": write() and flush() returned, nothing more. A stack that
         // accepts the write and puts nothing on the air logs every send exactly like this, so the
         // old wording made a dead radio read as a textbook handshake. Proof is the phone's reply.
         AppLog.i("NativeAA: [TX] Wrote TYPE $type (size ${data.size}) to Bluetooth (write() returned; delivery unconfirmed)")
+    }
+
+    /**
+     * BluetoothOutputStream is unbuffered, but Android's flush() additionally polls the socket's
+     * transmit queue with an ioctl. The MG4 Android 9 Bluetooth stack allows the write while
+     * denying that queue query with EACCES. Treat only that vendor-specific denial as a successful
+     * best-effort flush; every other I/O failure still aborts the handshake normally.
+     */
+    private fun flushBluetoothOutput(output: OutputStream) {
+        try {
+            output.flush()
+        } catch (e: IOException) {
+            val errno = generateSequence<Throwable>(e) { it.cause }
+                .filterIsInstance<ErrnoException>()
+                .firstOrNull()
+                ?.errno
+            if (errno != OsConstants.EACCES) throw e
+            AppLog.w("NativeAA: Bluetooth flush ioctl denied by MG4 firmware; write already completed, continuing")
+        }
     }
 
     private fun readProtobuf(input: DataInputStream): ProtobufMessage {

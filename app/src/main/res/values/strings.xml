@@ -249,10 +249,10 @@
     <string name="battery_for_google_maps">Battery for Google Maps</string>
     <string name="battery_for_google_maps_description">Send MG4 charge and range to Android Auto so Google Maps can show battery level. Set net capacity and SOH below. Requires a platform-signed install on SWI69.</string>
     <string name="battery_net_capacity_kwh">Net capacity (kWh)</string>
-    <string name="battery_net_capacity_description">Usable pack energy when new (0–100% SoC window), not the 64 kWh nameplate. MG4 Long Range is often ~61.7 kWh — enter your car’s figure. Better: set net capacity here and SOH below (Maps uses net × SOH).</string>
+    <string name="battery_net_capacity_description">Select the usable battery capacity for your MG4: 50.8, 61.7 or 74.4 kWh. Maps uses capacity × SOH.</string>
     <string name="battery_net_capacity_enter">Enter net (usable) capacity when new, in kWh</string>
     <string name="battery_soh_percent">Battery SOH (%)</string>
-    <string name="battery_soh_description">State of health. Effective usable capacity = net capacity × SOH / 100. Example: 61.7 × 90% = 55.5 kWh.</string>
+    <string name="battery_soh_description">Enter battery state of health from 1 to 100. Decimal values such as 98.75 are supported. Effective usable capacity = capacity × SOH / 100.</string>
     <string name="battery_effective_capacity">Effective usable</string>
     <string name="battery_demo_mode">Demo battery values</string>
     <string name="battery_demo_mode_description">Use the SoC / range you set below instead of reading the car. Net capacity and SOH above still apply. For desk testing without MG4 hardware.</string>
@@ -263,6 +263,7 @@
     <string name="battery_live_soc">Live SoC</string>
     <string name="battery_live_range">Live range</string>
     <string name="battery_live_energy">Live energy</string>
+    <string name="da_no_connected_bluetooth">No phone is currently connected to the car’s Bluetooth. Connect your phone in the MG Bluetooth screen first, then try Android Auto again.</string>
     <string name="battery_live_waiting">Waiting for car data…</string>
     <string name="battery_live_unavailable">Not available (need MG4 car install / SWI68–69)</string>
     <string name="battery_live_refresh">Refresh from car</string>
