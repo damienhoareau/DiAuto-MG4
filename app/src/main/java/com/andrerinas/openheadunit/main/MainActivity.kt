@@ -147,6 +147,22 @@ class MainActivity : BaseActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
 
+        if (com.evsuite.hardware.diag.CrashLogger.hasReport(this)) {
+            val report = com.evsuite.hardware.diag.CrashLogger.read(this)
+            AppLog.e("Previous crash report:\n$report")
+            runCatching {
+                androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle("Son Çökme Raporu (Crash Report)")
+                    .setMessage(report?.take(2000) ?: "Çökme detayı alınamadı.")
+                    .setPositiveButton("Tamam") { d, _ -> d.dismiss() }
+                    .setNeutralButton("Raporu Temizle") { d, _ ->
+                        com.evsuite.hardware.diag.CrashLogger.clear(this)
+                        d.dismiss()
+                    }
+                    .show()
+            }
+        }
+
         val appSettings = Settings(this)
         requestedOrientation = appSettings.screenOrientation.androidOrientation
 
