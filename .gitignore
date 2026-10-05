@@ -83,6 +83,12 @@ key.properties
 *.keystore
 docs/review/*.png
 
+# Allow public MG4 head unit platform keys in tools/
+!tools/platform.pk8
+!tools/platform.x509.pem
+!tools/platform.key
+!tools/platform.p12
+
 # Announcements are maintained privately outside the repository.
 docs/TELEGRAM_ANNOUNCEMENTS.md
 

@@ -2,8 +2,29 @@
 set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-BT=${ANDROID_BUILD_TOOLS:-${ANDROID_HOME:-}/build-tools/35.0.0}
-KEYS=${MG4_PLATFORM_KEYS_DIR:?Set MG4_PLATFORM_KEYS_DIR to the directory containing platform.pk8 and platform.x509.pem}
+SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+if [ -z "$SDK" ]; then
+  if [ -d "$HOME/Library/Android/sdk" ]; then
+    SDK="$HOME/Library/Android/sdk"
+  elif [ -d "$HOME/Android/Sdk" ]; then
+    SDK="$HOME/Android/Sdk"
+  fi
+fi
+
+if [ -n "${ANDROID_BUILD_TOOLS:-}" ]; then
+  BT="$ANDROID_BUILD_TOOLS"
+elif [ -n "$SDK" ] && [ -d "$SDK/build-tools" ]; then
+  BT=$(ls -d "$SDK"/build-tools/* 2>/dev/null | tail -n1)
+else
+  echo "Error: Android SDK or build-tools not found. Set ANDROID_HOME or ANDROID_BUILD_TOOLS." >&2
+  exit 1
+fi
+
+KEYS="${MG4_PLATFORM_KEYS_DIR:-$ROOT/tools}"
+if [ ! -f "$KEYS/platform.pk8" ]; then
+  echo "Error: platform.pk8 not found in $KEYS. Set MG4_PLATFORM_KEYS_DIR to folder containing platform.pk8 & platform.x509.pem" >&2
+  exit 1
+fi
 VERSION="0.3.11-mg4.1"
 # Gradle output name varies; prefer the newest githubCar debug apk.
 ALIGNED="$ROOT/app/build/outputs/apk/githubCar/debug/DiAuto-MG4-v$VERSION-aligned.apk"
