@@ -177,6 +177,11 @@ class MainActivity : BaseActivity() {
         val serviceIntent = Intent(this, AapService::class.java)
         ContextCompat.startForegroundService(this, serviceIntent)
 
+        // Silent OTA check (toast only when an update exists).
+        runCatching {
+            com.andrerinas.openheadunit.ota.OtaController(this).checkOnStartup()
+        }
+
         setFullscreen()
 
         val navHostFragment = supportFragmentManager.findFragmentById(R.id.main_content) as androidx.navigation.fragment.NavHostFragment

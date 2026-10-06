@@ -40,6 +40,7 @@ import com.andrerinas.openheadunit.BuildConfig
 import com.andrerinas.openheadunit.utils.LogExporter
 import com.andrerinas.openheadunit.utils.SettingsBackupManager
 import com.andrerinas.openheadunit.utils.DialogUtils
+import com.andrerinas.openheadunit.ota.OtaController
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -61,6 +62,10 @@ class SettingsFragment : Fragment() {
     private lateinit var toolbar: MaterialToolbar
     private var saveButton: MaterialButton? = null
     private var resetButton: MaterialButton? = null
+    private var otaController: OtaController? = null
+    private var otaStatusText: String = ""
+    private var otaUpdateAvailable: Boolean = false
+    private var otaAllowBeta: Boolean = false
 
     // Basic/Advanced tab + search state (Feature A)
     private enum class SettingsTier { BASIC, ADVANCED }
@@ -76,7 +81,7 @@ class SettingsFragment : Fragment() {
     private val basicSettingIds = setOf(
         "staticBSSID", "appLanguage", "autoStartSettings", "autoConnectSettings", "resolution",
         "dpiPixelDensity", "viewMode", "fpsLimit", "musicViaBluetooth", "enableAudioSink", "micSettings", "audioVolumeOffsets",
-        "keymap", "version", "about",
+        "keymap", "version", "about", "otaBeta", "otaStatus", "otaCheck",
     )
 
     // Local state to hold changes before saving
@@ -205,6 +210,22 @@ class SettingsFragment : Fragment() {
 
         settings = App.provide(requireContext()).settings
 
+        if (otaStatusText.isEmpty()) {
+            otaStatusText = getString(R.string.ota_status_idle)
+        }
+        if (otaController == null) {
+            otaController = OtaController(requireActivity()).also { controller ->
+                otaAllowBeta = controller.isAllowBeta
+                controller.setStatusListener { text, available, _ ->
+                    if (!isAdded) return@setStatusListener
+                    otaStatusText = text
+                    otaUpdateAvailable = available
+                    updateSettingsList()
+                }
+                controller.bindWithoutViews()
+            }
+        }
+
         // Initialize local state with current values
         pendingUseGps = settings.useGpsForNavigation
         pendingBydNavigationEnabled = settings.bydNavigationEnabled
@@ -309,6 +330,12 @@ class SettingsFragment : Fragment() {
         savedInstanceState?.getParcelable<android.os.Parcelable>("recycler_scroll")?.let {
             settingsRecyclerView.layoutManager?.onRestoreInstanceState(it)
         }
+    }
+
+    override fun onDestroyView() {
+        otaController?.stop()
+        otaController = null
+        super.onDestroyView()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -2167,6 +2194,29 @@ class SettingsFragment : Fragment() {
             nameResId = R.string.version,
             value = BuildConfig.VERSION_NAME,
             onClick = { /* Read only */ }
+        ))
+
+        items.add(SettingItem.ToggleSettingEntry(
+            stableId = "otaBeta",
+            nameResId = R.string.check_ota_beta,
+            descriptionResId = R.string.check_ota_beta_description,
+            isChecked = otaAllowBeta,
+            onCheckedChanged = { enabled ->
+                otaAllowBeta = enabled
+                otaController?.setAllowBeta(enabled)
+                updateSettingsList()
+            }
+        ))
+        items.add(SettingItem.SettingEntry(
+            stableId = "otaStatus",
+            nameResId = R.string.ota_status_label,
+            value = otaStatusText.ifEmpty { getString(R.string.ota_status_idle) },
+            onClick = { /* status only */ }
+        ))
+        items.add(SettingItem.ActionButton(
+            stableId = "otaCheck",
+            textResId = if (otaUpdateAvailable) R.string.btn_ota_download else R.string.btn_ota_check,
+            onClick = { otaController?.checkOrDownload() }
         ))
 
         items.add(SettingItem.SettingEntry(

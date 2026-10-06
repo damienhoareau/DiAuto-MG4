@@ -2,56 +2,66 @@
 setlocal EnableDelayedExpansion
 
 :: ============================================================
-::  MG4 APK İmzalama, SHA-256 Hash ve Kurma Scripti
+::  DiAuto-MG4 — platform imza + SHA-256 + (opsiyonel) ADB kur
 ::
-::  Referans: adammcdonagh/MG4-Custom-Launcher/sign_apk.sh
-::  İmzalama: apksigner --key platform.pk8 --cert platform.x509.pem
-::  (p12 keystore değil — araç bu yöntemi kabul ediyor)
+::  OTA icin tools\releases\ uretir:
+::    diauto_mg4_{versionName}.apk
+::    diauto_mg4_{versionName}.apk.sha256
 ::
-::  Çıktılar (tools\releases\):
-::    DriveHub_Dort_{versionName}.apk
-::    DriveHub_Dort_{versionName}.apk.sha256   ← GitHub OTA için
-::
-::  Kullanım: Android Studio'da assembleRelease yaptıktan sonra
-::             bu dosyayı çift tıkla.
-::
-::  GitHub Release için ayrı script:
-::    tools\publish_github_release.bat
+::  1) Android Studio: Build Variant = githubCarDebug
+::  2) Build > Make Project
+::  3) Bu dosyayi calistir
+::  4) publish_github_release.bat  veya  publish_github_prerelease.bat
 :: ============================================================
 
 set SCRIPT_DIR=%~dp0
 set PROJECT_DIR=%SCRIPT_DIR%..
 set RELEASES_DIR=%SCRIPT_DIR%releases
-set APK_IN=%PROJECT_DIR%\app\build\outputs\apk\car\release\app-car-release-unsigned.apk
-set APK_OUT=%PROJECT_DIR%\app\build\outputs\apk\car\release\app-release-signed.apk
+
+set APK_IN=
+for /f "delims=" %%F in ('dir /b /o-d "%PROJECT_DIR%\app\build\outputs\apk\githubCar\debug\*.apk" 2^>nul') do (
+    echo %%F | findstr /I "aligned unsigned signed" >nul
+    if errorlevel 1 (
+        if not defined APK_IN set APK_IN=%PROJECT_DIR%\app\build\outputs\apk\githubCar\debug\%%F
+    )
+)
+if not defined APK_IN (
+    for /f "delims=" %%F in ('dir /b /o-d "%PROJECT_DIR%\app\build\outputs\apk\github\car\debug\*.apk" 2^>nul') do (
+        echo %%F | findstr /I "aligned unsigned signed" >nul
+        if errorlevel 1 (
+            if not defined APK_IN set APK_IN=%PROJECT_DIR%\app\build\outputs\apk\github\car\debug\%%F
+        )
+    )
+)
+
+set APK_OUT=%PROJECT_DIR%\app\build\outputs\apk\githubCar\debug\DiAuto-MG4-signed.apk
 set PLATFORM_PK8=%SCRIPT_DIR%platform.pk8
 set PLATFORM_PEM=%SCRIPT_DIR%platform.x509.pem
 
-REM build.gradle icinden versionName oku
 set VERSION_NAME=unknown
-for /f "tokens=2 delims== " %%v in ('findstr /R /C:"versionName" "%PROJECT_DIR%\app\build.gradle"') do (
-    set VERSION_NAME=%%v
+for /f "tokens=2 delims==" %%v in ('findstr /C:"versionName =" "%PROJECT_DIR%\app\build.gradle.kts"') do (
+    set RAW=%%v
+    goto :gotver
 )
+:gotver
+set VERSION_NAME=%RAW: =%
 set VERSION_NAME=%VERSION_NAME:"=%
-set APK_TOOLS_NAME=DriveHub_Dort_%VERSION_NAME%.apk
+set APK_TOOLS_NAME=diauto_mg4_%VERSION_NAME%.apk
 set APK_TOOLS_PATH=%RELEASES_DIR%\%APK_TOOLS_NAME%
 set APK_HASH_PATH=%APK_TOOLS_PATH%.sha256
 
-if not exist "%RELEASES_DIR%" mkdir "%RELEASES_DIR%"
-
-:: apksigner.jar yolunu otomatik bul (en yüksek build-tools sürümü)
 set APKSIGNER_JAR=
 set BUILD_TOOLS_BASE=%LOCALAPPDATA%\Android\Sdk\build-tools
 for /d %%v in ("%BUILD_TOOLS_BASE%\*") do (
     set APKSIGNER_JAR=%%v\lib\apksigner.jar
 )
 
-:: -------- Kontroller --------
+if not exist "%RELEASES_DIR%" mkdir "%RELEASES_DIR%"
 
-if not exist "%APK_IN%" (
+if not defined APK_IN (
     echo.
-    echo [HATA] APK bulunamadi: %APK_IN%
-    echo        Android Studio'da Build ^> Make Project yapip tekrar dene.
+    echo [HATA] githubCarDebug APK bulunamadi.
+    echo        Build Variant = githubCarDebug, Build ^> Make Project, tekrar dene.
     pause & exit /b 1
 )
 
@@ -73,9 +83,11 @@ if not exist "%APKSIGNER_JAR%" (
     pause & exit /b 1
 )
 
+mkdir "%PROJECT_DIR%\app\build\outputs\apk\githubCar\debug" 2>nul
+
 echo.
 echo ============================================================
-echo  MG4 APK Imzalama, Hash ve Kurma
+echo  DiAuto-MG4 Imzalama, Hash ve Kurma
 echo ============================================================
 echo  Kaynak APK : %APK_IN%
 echo  Cikti  APK : %APK_OUT%
@@ -84,7 +96,6 @@ echo  SHA-256    : %APK_HASH_PATH%
 echo  Yontem     : --key platform.pk8 --cert platform.x509.pem
 echo.
 
-:: -------- İmzala --------
 echo [1/3] Imzalaniyor...
 java -jar "%APKSIGNER_JAR%" sign ^
     --key "%PLATFORM_PK8%" ^
@@ -99,11 +110,9 @@ if errorlevel 1 (
 )
 echo [1/3] Imzalama tamamlandi.
 
-:: -------- tools/releases/ klasorune kopyala --------
 copy /Y "%APK_OUT%" "%APK_TOOLS_PATH%" >nul
 echo       Kopya: %APK_TOOLS_PATH%
 
-:: -------- OTA icin SHA-256 sidecar --------
 echo [2/3] SHA-256 hash olusturuluyor...
 powershell -NoProfile -Command ^
   "$h = (Get-FileHash -LiteralPath '%APK_TOOLS_PATH%' -Algorithm SHA256).Hash.ToLowerInvariant();" ^
@@ -121,15 +130,15 @@ if not exist "%APK_HASH_PATH%" (
 )
 echo [2/3] Hash hazir: %APK_HASH_PATH%
 
-:: -------- ADB kurulum --------
 echo [3/3] Araca yukleniyor...
 adb devices 2>nul | findstr /v "List" | findstr "device" >nul
 if errorlevel 1 (
     echo.
     echo [UYARI] ADB ile bagli cihaz bulunamadi.
-    echo         Araci USB ile bagla ve tekrar dene.
     echo         Imzali APK hazir: %APK_OUT%
     echo         Hash dosyasi   : %APK_HASH_PATH%
+    echo         Release icin  : tools\publish_github_release.bat
+    echo         Beta icin     : tools\publish_github_prerelease.bat
 ) else (
     adb install -r "%APK_OUT%"
     if errorlevel 1 (
@@ -139,7 +148,8 @@ if errorlevel 1 (
         echo.
         echo ============================================================
         echo  TAMAMLANDI! Uygulama araca yuklendi.
-        echo  GitHub Release icin: tools\publish_github_release.bat
+        echo  GitHub: tools\publish_github_release.bat
+        echo  Beta  : tools\publish_github_prerelease.bat
         echo ============================================================
     )
 )
