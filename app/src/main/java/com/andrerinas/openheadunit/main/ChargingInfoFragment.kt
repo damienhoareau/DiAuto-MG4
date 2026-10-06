@@ -177,7 +177,7 @@ class ChargingInfoFragment : Fragment() {
             items.add(SettingItem.SettingEntry(
                 stableId = "batteryNetCapacityKwh",
                 nameResId = R.string.battery_net_capacity_kwh,
-                value = "%.1f kWh".format(netCap),
+                value = getString(R.string.battery_value_kwh, netCap),
                 onClick = {
                     showBatteryCapacityDialog(netCap)
                 }
@@ -201,7 +201,7 @@ class ChargingInfoFragment : Fragment() {
             items.add(SettingItem.SettingEntry(
                 stableId = "batteryEffectiveCapacity",
                 nameResId = R.string.battery_effective_capacity,
-                value = "%.1f kWh (= net × SOH)".format(effective),
+                value = getString(R.string.battery_effective_capacity_value, effective),
                 onClick = {
                     MaterialAlertDialogBuilder(requireContext(), R.style.DarkAlertDialog)
                         .setTitle(R.string.battery_effective_capacity)
@@ -241,7 +241,7 @@ class ChargingInfoFragment : Fragment() {
                 items.add(SettingItem.SettingEntry(
                     stableId = "batteryDemoRangeKm",
                     nameResId = R.string.battery_demo_range_km,
-                    value = "${pendingBatteryDemoRangeKm ?: 280} km",
+                    value = getString(R.string.battery_value_km, pendingBatteryDemoRangeKm ?: 280),
                     onClick = {
                         showNumericInputDialog(
                             title = getString(R.string.battery_demo_enter_range),
@@ -281,13 +281,17 @@ class ChargingInfoFragment : Fragment() {
             items.add(SettingItem.SettingEntry(
                 stableId = "batteryLiveRange",
                 nameResId = R.string.battery_live_range,
-                value = "${snap.rangeKm} km",
+                value = getString(R.string.battery_value_km, snap.rangeKm),
                 onClick = { },
             ))
             items.add(SettingItem.SettingEntry(
                 stableId = "batteryLiveEnergy",
                 nameResId = R.string.battery_live_energy,
-                value = "%.1f / %.1f kWh".format(snap.currentWh / 1000.0, snap.capacityWh / 1000.0),
+                value = getString(
+                    R.string.battery_live_energy_value,
+                    snap.currentWh / 1000.0,
+                    snap.capacityWh / 1000.0,
+                ),
                 onClick = { },
             ))
         } else {
@@ -376,7 +380,7 @@ class ChargingInfoFragment : Fragment() {
 
     private fun showBatteryCapacityDialog(currentValue: Float) {
         val values = BATTERY_CAPACITY_OPTIONS
-        val labels = values.map { "%.1f kWh".format(it) }.toTypedArray()
+        val labels = values.map { getString(R.string.battery_value_kwh, it) }.toTypedArray()
         val selectedIndex = values.indices.minByOrNull { kotlin.math.abs(values[it] - currentValue) } ?: 1
         MaterialAlertDialogBuilder(requireContext(), R.style.DarkAlertDialog)
             .setTitle(R.string.battery_net_capacity_kwh)
