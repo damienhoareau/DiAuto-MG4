@@ -20,6 +20,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.andrerinas.openheadunit.App
 import com.andrerinas.openheadunit.R
+import com.andrerinas.openheadunit.launcher.LauncherAaClickHelper
 import com.andrerinas.openheadunit.main.settings.SettingItem
 import com.andrerinas.openheadunit.main.settings.SettingsAdapter
 import com.andrerinas.openheadunit.aap.AapService
@@ -46,6 +47,7 @@ class AutoStartFragment : Fragment() {
     private var pendingAutoStartOnWifi: Boolean? = null
     private var pendingAutoStartWifiSsid: String? = null
     private var pendingReopenOnReconnection: Boolean? = null
+    private var pendingOpenOnLauncherAndroidAutoClick: Boolean? = null
 
     private var hasChanges = false
     private val SAVE_ITEM_ID = 1001
@@ -86,6 +88,7 @@ class AutoStartFragment : Fragment() {
         pendingAutoStartOnWifi = settings.autoStartOnWifi
         pendingAutoStartWifiSsid = settings.autoStartWifiSsid
         pendingReopenOnReconnection = settings.reopenOnReconnection
+        pendingOpenOnLauncherAndroidAutoClick = settings.openOnLauncherAndroidAutoClick
 
         requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -204,11 +207,15 @@ class AutoStartFragment : Fragment() {
             Settings.syncAutoStartWifiSsidToDeviceStorage(requireContext(), it)
         }
         pendingReopenOnReconnection?.let { settings.reopenOnReconnection = it }
+        pendingOpenOnLauncherAndroidAutoClick?.let {
+            settings.openOnLauncherAndroidAutoClick = it
+            LauncherAaClickHelper.syncFromSettings(requireContext())
+        }
 
         // Check for Overlay permission if any auto-start is configured
         if ((pendingAutoStartBtMacs.isNotEmpty() || pendingAutoStartOnUsb == true ||
             pendingAutoStartOnBoot == true || pendingAutoStartOnScreenOn == true ||
-            pendingAutoStartOnWifi == true)) {
+            pendingAutoStartOnWifi == true || pendingOpenOnLauncherAndroidAutoClick == true)) {
             if (!AppPermissions.isOverlayGranted(requireContext())) {
                 MaterialAlertDialogBuilder(requireContext(), R.style.DarkAlertDialog)
                     .setTitle(R.string.overlay_permission_title)
@@ -258,7 +265,8 @@ class AutoStartFragment : Fragment() {
                 pendingAutoStartBtMacs != settings.autoStartBluetoothDeviceMacs ||
                 pendingAutoStartOnWifi != settings.autoStartOnWifi ||
                 pendingAutoStartWifiSsid != settings.autoStartWifiSsid ||
-                pendingReopenOnReconnection != settings.reopenOnReconnection
+                pendingReopenOnReconnection != settings.reopenOnReconnection ||
+                pendingOpenOnLauncherAndroidAutoClick != settings.openOnLauncherAndroidAutoClick
 
         updateSaveButtonState()
     }
@@ -334,6 +342,17 @@ class AutoStartFragment : Fragment() {
                 }
             ))
         }
+
+        items.add(SettingItem.ToggleSettingEntry(
+            stableId = "openOnLauncherAndroidAutoClick",
+            nameResId = R.string.launcher_aa_click_label,
+            descriptionResId = R.string.launcher_aa_click_description,
+            isChecked = pendingOpenOnLauncherAndroidAutoClick!!,
+            onCheckedChanged = { isChecked ->
+                pendingOpenOnLauncherAndroidAutoClick = isChecked
+                checkChanges()
+            }
+        ))
 
         items.add(SettingItem.SettingEntry(
             stableId = "autoStartBt",

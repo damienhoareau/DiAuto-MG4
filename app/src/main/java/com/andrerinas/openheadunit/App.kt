@@ -12,6 +12,7 @@ import androidx.multidex.MultiDex
 import com.andrerinas.openheadunit.main.BackgroundNotification
 import com.andrerinas.openheadunit.aap.AapNavigation
 import com.andrerinas.openheadunit.ssl.ConscryptInitializer
+import com.andrerinas.openheadunit.launcher.LauncherAaClickHelper
 import com.andrerinas.openheadunit.utils.AppLog
 import com.andrerinas.openheadunit.utils.AppThemeManager
 import com.andrerinas.openheadunit.utils.Settings
@@ -68,6 +69,9 @@ class App : Application() {
             Settings.syncAutoStartOnWifiToDeviceStorage(this, settings.autoStartOnWifi)
             Settings.syncAutoStartWifiSsidToDeviceStorage(this, settings.autoStartWifiSsid)
             Settings.syncAutoStartBtMacsToDeviceStorage(this, settings.autoStartBluetoothDeviceMacs)
+
+            // Enable OEM launcher Android Auto tile → DiAuto shortcut when configured.
+            LauncherAaClickHelper.syncFromSettings(this)
 
             // Apply app theme (runs the live manager when dynamic, or when a saved place
             // can force the app theme even over a static base).

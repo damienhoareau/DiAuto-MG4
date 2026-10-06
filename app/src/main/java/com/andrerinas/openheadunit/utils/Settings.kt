@@ -801,6 +801,11 @@ class Settings(private val context: Context) {
         get() = prefs.getBoolean("reopen-on-reconnection", true)
         set(value) { prefs.edit().putBoolean("reopen-on-reconnection", value).apply() }
 
+    /** When true, inactive OEM launcher Android Auto tile tap opens DiAuto. */
+    var openOnLauncherAndroidAutoClick: Boolean
+        get() = prefs.getBoolean("open-on-launcher-aa-click", true)
+        set(value) { prefs.edit().putBoolean("open-on-launcher-aa-click", value).apply() }
+
     var autoConnectPriorityOrder: List<String>
         get() {
             val stored = prefs.getString("auto-connect-priority-order", null)
