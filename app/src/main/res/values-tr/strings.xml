@@ -84,7 +84,7 @@
     <string name="battery_live_energy">Canlı enerji</string>
     <string name="da_no_connected_bluetooth">Aracın Bluetooth’una bağlı telefon yok. Önce MG Bluetooth ekranından telefonunu bağla, ardından Android Auto’yu tekrar dene.</string>
     <string name="battery_live_waiting">Araç verisi bekleniyor…</string>
-    <string name="battery_live_unavailable">Yok (platform imzalı MG4 araç kurulumu / SWI68–69 veya DBI68–69 gerekli)</string>
+    <string name="battery_live_unavailable">Yok (platform imzalı MG4 araç kurulumu / canlı telemetri gerekli)</string>
     <string name="battery_live_refresh">Araçtan yenile</string>
     <string name="category_wireless">Kablosuz Bağlantı</string>
 

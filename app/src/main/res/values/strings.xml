@@ -269,7 +269,7 @@
     <string name="battery_live_energy">Live energy</string>
     <string name="da_no_connected_bluetooth">No phone is currently connected to the car’s Bluetooth. Connect your phone in the MG Bluetooth screen first, then try Android Auto again.</string>
     <string name="battery_live_waiting">Waiting for car data…</string>
-    <string name="battery_live_unavailable">Not available (need platform-signed MG4 car install / SWI68–69 or DBI68–69)</string>
+    <string name="battery_live_unavailable">Not available (need platform-signed MG4 car install / live telemetry)</string>
     <string name="battery_live_refresh">Refresh from car</string>
     <string name="enabled">Enabled</string>
     <string name="disabled">Disabled</string>

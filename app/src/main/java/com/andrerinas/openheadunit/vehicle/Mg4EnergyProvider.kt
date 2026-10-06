@@ -6,7 +6,6 @@ import com.andrerinas.openheadunit.App
 import com.andrerinas.openheadunit.utils.AppLog
 import com.andrerinas.openheadunit.utils.Settings
 import com.evsuite.hardware.EVHardware
-import com.evsuite.hardware.FirmwareInfo
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
@@ -46,11 +45,8 @@ object Mg4EnergyProvider {
         return carHardwarePresent()
     }
 
-    /** True on MG4 SWI68/69 (and regional DBI68/69 aliases) — independent of demo mode. */
-    fun carHardwarePresent(): Boolean = runCatching {
-        FirmwareInfo.getGeneration() == FirmwareInfo.Gen.SWI69 ||
-            FirmwareInfo.getGeneration() == FirmwareInfo.Gen.SWI68
-    }.getOrDefault(false)
+    /** True when car telemetry may be read — independent of demo mode / firmware gate. */
+    fun carHardwarePresent(): Boolean = true
 
     @Synchronized
     fun start(context: Context) {
@@ -115,8 +111,6 @@ object Mg4EnergyProvider {
         sohPercent: Float,
     ): EnergySnapshot? {
         return runCatching {
-            val gen = FirmwareInfo.getGeneration()
-            if (gen != FirmwareInfo.Gen.SWI69 && gen != FirmwareInfo.Gen.SWI68) return null
             if (!initialized) {
                 EVHardware.init(context.applicationContext)
                 initialized = true
@@ -162,9 +156,6 @@ object Mg4EnergyProvider {
         }
 
         if (!initialized) return
-
-        val gen = FirmwareInfo.getGeneration()
-        if (gen != FirmwareInfo.Gen.SWI69 && gen != FirmwareInfo.Gen.SWI68) return
 
         val percent = EVHardware.getVendorBatterySocPercent()?.toDouble() ?: return
         val rangeKm = (EVHardware.getVendorRangeKm()
