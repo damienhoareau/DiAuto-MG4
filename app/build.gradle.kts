@@ -82,10 +82,9 @@ android {
         // This is scanned at build time from values-XX directories
         buildConfigField("String", "AVAILABLE_LOCALES", "\"${availableLocales.joinToString(",")}\"")
 
-        // MG4 firmware variants use either a 32-bit or 64-bit Android userspace.
-        // Ship both ARM ABIs, matching the working DiPlay package.
+        // MG4 HU uses 64-bit userspace on this unit; ship arm64 only.
         ndk {
-            abiFilters += listOf("armeabi-v7a", "arm64-v8a")
+            abiFilters += listOf("arm64-v8a")
         }
 
         externalNativeBuild {
