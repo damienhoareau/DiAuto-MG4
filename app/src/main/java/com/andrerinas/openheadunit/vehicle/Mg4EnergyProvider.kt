@@ -6,7 +6,7 @@ import com.andrerinas.openheadunit.App
 import com.andrerinas.openheadunit.utils.AppLog
 import com.andrerinas.openheadunit.utils.Settings
 import com.evsuite.hardware.EVHardware
-// import com.evsuite.hardware.FirmwareInfo // TEMP unused while SWI68/69 gate is commented out
+import com.evsuite.hardware.FirmwareInfo
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
@@ -46,12 +46,10 @@ object Mg4EnergyProvider {
         return carHardwarePresent()
     }
 
-    /** True when car telemetry may be read — independent of demo mode. */
+    /** True on MG4 SWI68/69 (and regional DBI68/69 aliases) — independent of demo mode. */
     fun carHardwarePresent(): Boolean = runCatching {
-        // TEMP: allow any firmware (e.g. DBI*) while probing; restore SWI68/69 gate later.
-        // FirmwareInfo.getGeneration() == FirmwareInfo.Gen.SWI69 ||
-        //     FirmwareInfo.getGeneration() == FirmwareInfo.Gen.SWI68
-        true
+        FirmwareInfo.getGeneration() == FirmwareInfo.Gen.SWI69 ||
+            FirmwareInfo.getGeneration() == FirmwareInfo.Gen.SWI68
     }.getOrDefault(false)
 
     @Synchronized
@@ -117,9 +115,8 @@ object Mg4EnergyProvider {
         sohPercent: Float,
     ): EnergySnapshot? {
         return runCatching {
-            // TEMP: skip SWI68/69 gate while probing other builds (DBI*, …).
-            // val gen = FirmwareInfo.getGeneration()
-            // if (gen != FirmwareInfo.Gen.SWI69 && gen != FirmwareInfo.Gen.SWI68) return null
+            val gen = FirmwareInfo.getGeneration()
+            if (gen != FirmwareInfo.Gen.SWI69 && gen != FirmwareInfo.Gen.SWI68) return null
             if (!initialized) {
                 EVHardware.init(context.applicationContext)
                 initialized = true
@@ -166,9 +163,8 @@ object Mg4EnergyProvider {
 
         if (!initialized) return
 
-        // TEMP: skip SWI68/69 gate while probing other builds (DBI*, …).
-        // val gen = FirmwareInfo.getGeneration()
-        // if (gen != FirmwareInfo.Gen.SWI69 && gen != FirmwareInfo.Gen.SWI68) return
+        val gen = FirmwareInfo.getGeneration()
+        if (gen != FirmwareInfo.Gen.SWI69 && gen != FirmwareInfo.Gen.SWI68) return
 
         val percent = EVHardware.getVendorBatterySocPercent()?.toDouble() ?: return
         val rangeKm = (EVHardware.getVendorRangeKm()

@@ -13,6 +13,10 @@ import android.content.Context
  * SWI131 : "SWI131-xxxxx" — Same as SWI69 (same package, same API), no seat/steering heating
  * SWI165 : "SWI165-xxxxx" — ADAS via VehicleSettingManager (same SDK as SWI68), AEB via setFcwAlarmMode,
  *                            seat + steering heating available
+ *
+ * Turkey / regional builds often publish the same generation as `DBI68-…`, `DBI69-…`, etc.
+ * Those strings are aliases of the matching SWI generation (same SDK routing).
+ *
  * UNKNOWN : unrecognised firmware — the user can force a compatibility mode
  */
 object FirmwareInfo {
@@ -46,18 +50,34 @@ object FirmwareInfo {
         return gen
     }
 
-    /** Pure generation parser, shared by detection and the fail-closed write policy. */
-    internal fun generationOf(version: String?): Gen =
-        when {
-            version == null               -> Gen.UNKNOWN
-            version.startsWith("SWI165")  -> Gen.SWI165
-            version.startsWith("SWI133")  -> Gen.SWI133
-            version.startsWith("SWI132")  -> Gen.SWI132   // before SWI131 — startsWith("SWI13") would be ambiguous
-            version.startsWith("SWI131")  -> Gen.SWI131
-            version.startsWith("SWI68")   -> Gen.SWI68
-            version.startsWith("SWI69")   -> Gen.SWI69
-            else                          -> Gen.UNKNOWN
+    /**
+     * Pure generation parser, shared by detection and the fail-closed write policy.
+     *
+     * `DBI*` regional prefixes are normalized to the matching `SWI*` generation before matching.
+     */
+    internal fun generationOf(version: String?): Gen {
+        val normalized = normalizeGenerationPrefix(version) ?: return Gen.UNKNOWN
+        return when {
+            normalized.startsWith("SWI165") -> Gen.SWI165
+            normalized.startsWith("SWI133") -> Gen.SWI133
+            normalized.startsWith("SWI132") -> Gen.SWI132 // before SWI131 — "SWI13" is ambiguous
+            normalized.startsWith("SWI131") -> Gen.SWI131
+            normalized.startsWith("SWI68")  -> Gen.SWI68
+            normalized.startsWith("SWI69")  -> Gen.SWI69
+            else                           -> Gen.UNKNOWN
         }
+    }
+
+    /** Map regional `DBI68-…` (etc.) onto the `SWI*` family used by the rest of EVHardware. */
+    private fun normalizeGenerationPrefix(version: String?): String? {
+        if (version.isNullOrBlank()) return null
+        val trimmed = version.trim()
+        return if (trimmed.regionMatches(0, "DBI", 0, 3, ignoreCase = true)) {
+            "SWI" + trimmed.substring(3)
+        } else {
+            trimmed
+        }
+    }
 
     /**
      * True only when the firmware string read from the vehicle identifies a supported
