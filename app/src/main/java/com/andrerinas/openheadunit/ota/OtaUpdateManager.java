@@ -88,7 +88,7 @@ final class OtaUpdateManager {
 
         String fileName = sanitizeFileName(
                 (info.assetFileName == null || info.assetFileName.trim().isEmpty())
-                        ? String.format(Locale.US, "diauto_mg4_%s.apk", info.latestVersion)
+                        ? String.format(Locale.US, "DiAuto-MG4_%s.apk", info.latestVersion)
                         : info.assetFileName
         );
         File targetFile = preparePublicDownloadFile(fileName);

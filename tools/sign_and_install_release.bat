@@ -5,8 +5,8 @@ setlocal EnableDelayedExpansion
 ::  DiAuto-MG4 — platform imza + SHA-256 + (opsiyonel) ADB kur
 ::
 ::  OTA icin tools\releases\ uretir:
-::    diauto_mg4_{versionName}.apk
-::    diauto_mg4_{versionName}.apk.sha256
+::    DiAuto-MG4_{versionName}.apk
+::    DiAuto-MG4_{versionName}.apk.sha256
 ::
 ::  1) Android Studio: Build Variant = githubCarDebug
 ::  2) Build > Make Project
@@ -46,7 +46,7 @@ for /f "tokens=2 delims==" %%v in ('findstr /C:"versionName =" "%PROJECT_DIR%\ap
 :gotver
 set VERSION_NAME=%RAW: =%
 set VERSION_NAME=%VERSION_NAME:"=%
-set APK_TOOLS_NAME=diauto_mg4_%VERSION_NAME%.apk
+set APK_TOOLS_NAME=DiAuto-MG4_%VERSION_NAME%.apk
 set APK_TOOLS_PATH=%RELEASES_DIR%\%APK_TOOLS_NAME%
 set APK_HASH_PATH=%APK_TOOLS_PATH%.sha256
 

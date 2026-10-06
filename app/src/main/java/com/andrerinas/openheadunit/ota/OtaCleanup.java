@@ -8,14 +8,14 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.util.Locale;
 
-/** İndirilenler’deki eski diauto_mg4_*.apk dosyalarını temizler. */
+/** İndirilenler’deki eski DiAuto-MG4_*.apk (ve eski diauto_mg4_*) dosyalarını temizler. */
 final class OtaCleanup {
 
     private static final String TAG = "DiAuto_OTA";
     private static final FilenameFilter APK_FILTER = (dir, name) -> {
         if (name == null) return false;
         String lower = name.toLowerCase(Locale.US);
-        return (lower.startsWith("diauto_mg4_") || lower.startsWith("diauto-mg4_"))
+        return (lower.startsWith("diauto-mg4_") || lower.startsWith("diauto_mg4_"))
                 && (lower.endsWith(".apk") || lower.endsWith(".apk.sha256"));
     };
 
