@@ -34,6 +34,8 @@ class App : Application() {
         super.onCreate()
         instance = this
 
+        com.evsuite.hardware.diag.CrashLogger.install(this, "DiAuto-MG4")
+
 
 
         // Enable vector drawable support on older Android versions

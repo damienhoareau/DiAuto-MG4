@@ -96,7 +96,17 @@ object CrashLogger {
             appendLine(AppLogger.dump())
         }
 
-        writeAtomically(file(context), truncate(report))
+        val truncated = truncate(report)
+        writeAtomically(file(context), truncated)
+
+        // Also write to public Downloads directory for easy retrieval on vehicle head units
+        runCatching {
+            val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)
+            if (downloadsDir.exists() || downloadsDir.mkdirs()) {
+                val downloadsFile = File(downloadsDir, "diauto_crash.txt")
+                downloadsFile.writeBytes(truncated)
+            }
+        }
     }
 
     /**
