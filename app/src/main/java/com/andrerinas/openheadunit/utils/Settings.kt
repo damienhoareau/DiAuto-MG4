@@ -1580,10 +1580,9 @@ class Settings(private val context: Context) {
         get() = prefs.getString("hotspot-interface", "")!!
         set(value) = prefs.edit().putString("hotspot-interface", value).apply()
 
-    // Manual override for the head unit's own access point, used first by
-    // SoftApCredentialsProvider when nativeApTransport == 1. Empty = read the system's hotspot
-    // configuration instead. Worth having because getSoftApConfiguration() is reflection over a
-    // non-public API and can simply refuse on a locked-down API 30+ device.
+    // Fallback for the head unit's own access point when SoftApCredentialsProvider cannot read
+    // the live SoftAP config (locked-down / non-privileged installs). On the platform-signed MG4
+    // car build the live name/passphrase are preferred whenever readable.
     var hotspotSsid: String
         get() = prefs.getString("hotspot-ssid", "")!!
         set(value) = prefs.edit().putString("hotspot-ssid", value).apply()

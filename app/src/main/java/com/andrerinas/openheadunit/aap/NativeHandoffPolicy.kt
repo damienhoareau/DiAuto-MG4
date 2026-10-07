@@ -124,4 +124,24 @@ object NativeHandoffPolicy {
      */
     fun shouldRestartDiscovery(nativeAaMode: Boolean, hadClient: Boolean, hasClient: Boolean): Boolean =
         hadClient && !hasClient && !nativeAaMode
+
+    /**
+     * Whether an incoming Bluetooth reconnect should be dropped so a still-viable earlier
+     * handshake can keep waiting for this head unit's WiFi credentials.
+     *
+     * Honor / Samsung phones often open a fresh AA RFCOMM every ~12 s while the HU is still
+     * bringing up a P2P group. Replacing the wait each time cancels the only coroutine that
+     * would have delivered Type 3 once credentials appear, and the log fills with
+     * "closing the previous session" forever. Once credentials are ready the older rule stands:
+     * a reconnect means the earlier handoff failed, so the new socket wins.
+     */
+    fun shouldKeepExistingHandshake(
+        previousJobActive: Boolean,
+        credentialsReady: Boolean,
+        previousStartedAtMs: Long,
+        nowMs: Long,
+    ): Boolean =
+        previousJobActive &&
+            !credentialsReady &&
+            isHandshaking(previousStartedAtMs, nowMs)
 }

@@ -8,8 +8,9 @@ import android.os.Build
  * Reads the SSID and passphrase of the hotspot this device is configured to run.
  *
  * Reflection throughout — neither `getSoftApConfiguration` nor `getWifiApConfiguration` is public
- * API, and both can throw on a locked-down device — so callers want a manual override ahead of it.
- * Shared by `ShareHotspotQrDialog` and the Native AA hotspot transport.
+ * API. On the platform-signed MG4 car build (`android.uid.system`) the read normally succeeds; on
+ * locked-down / non-privileged installs it can refuse, and callers then fall back to the manual
+ * Connection-setup fields. Shared by `ShareHotspotQrDialog` and the Native AA hotspot transport.
  */
 object HotspotConfigReader {
 

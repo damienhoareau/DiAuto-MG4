@@ -50,6 +50,14 @@ class WifiDirectManager(private val context: Context) : WifiP2pManager.Connectio
         private const val NATIVE_JOIN_TIMEOUT_MS = 60000L
         private const val MAX_NATIVE_JOIN_RECREATES = 4
         private const val NATIVE_FORCE_STANDARD_AFTER = 2
+        /**
+         * removeGroup / createGroup on these head units briefly reports P2P disabled then enabled
+         * again. Treating that as a real radio-off bumps [P2pSessionOwnership] generation, abandons
+         * every in-flight create, clears [isGroupCreatingOrCreated], and auto-starts quiet host
+         * again — a storm that never produces credentials (see reconnect logs with thousands of
+         * startNativeAaQuietHost lines). Wait this long before believing the disable.
+         */
+        private const val P2P_DISABLE_DEBOUNCE_MS = 2_000L
     }
 
     @Volatile private var manager: WifiP2pManager? = context.getSystemService(Context.WIFI_P2P_SERVICE) as? WifiP2pManager
@@ -218,6 +226,25 @@ class WifiDirectManager(private val context: Context) : WifiP2pManager.Connectio
 
 
 
+    /**
+     * Applied only after [P2P_DISABLE_DEBOUNCE_MS] of sustained disable. Brief flaps during our own
+     * removeGroup/createGroup must not bump ownership generation or clear creating flags.
+     */
+    private val deferredP2pDisable = Runnable {
+        AppLog.i("WifiDirectManager: P2P stayed disabled — cancelling in-flight session work")
+        sessionOwnership.setEnabled(false)
+        // Hotspot mode can disable P2P while Wi-Fi itself remains enabled.
+        handler.removeCallbacksAndMessages(null)
+        credentialsEpoch++
+        checkGroupAndCreateInFlight = false
+        isGroupOwner = false
+        isGroupCreatingOrCreated = false
+        isConnected = false
+        isClientConnected = false
+        cancelNativeJoinWatchdog()
+        nativeRecreateCount = 0
+    }
+
     private val receiver = object : BroadcastReceiver() {
         @SuppressLint("MissingPermission")
         override fun onReceive(context: Context, intent: Intent) {
@@ -225,13 +252,16 @@ class WifiDirectManager(private val context: Context) : WifiP2pManager.Connectio
                 WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION -> {
                     val state = intent.getIntExtra(WifiP2pManager.EXTRA_WIFI_STATE, -1)
                     AppLog.i("WifiDirectManager: WIFI_P2P_STATE_CHANGED_ACTION state=$state")
-                    sessionOwnership.setEnabled(state == WifiP2pManager.WIFI_P2P_STATE_ENABLED)
                     if (state == WifiP2pManager.WIFI_P2P_STATE_ENABLED) {
+                        handler.removeCallbacks(deferredP2pDisable)
+                        sessionOwnership.setEnabled(true)
                         val appSettings = com.andrerinas.openheadunit.App.provide(context).settings
                         val commManager = com.andrerinas.openheadunit.App.provide(context).commManager
                         val isConnectingOrConnected = commManager.isConnected ||
                             commManager.connectionState.value is com.andrerinas.openheadunit.connection.CommManager.ConnectionState.Connecting
 
+                        // isGroupCreatingOrCreated stays true across brief disable flaps (debounced
+                        // above), so this does not re-enter startNativeAaQuietHost mid-create.
                         if (sessionOwnership.requested && !isConnected && !isConnectingOrConnected && !isGroupCreatingOrCreated) {
                             if (appSettings.wifiConnectionMode == 2 && appSettings.helperConnectionStrategy == 1) {
                                 AppLog.i("WifiDirectManager: P2P enabled, auto-starting WiFi Direct visibility")
@@ -242,16 +272,8 @@ class WifiDirectManager(private val context: Context) : WifiP2pManager.Connectio
                             }
                         }
                     } else {
-                        // Hotspot mode can disable P2P while Wi-Fi itself remains enabled.
-                        handler.removeCallbacksAndMessages(null)
-                        credentialsEpoch++
-                        checkGroupAndCreateInFlight = false
-                        isGroupOwner = false
-                        isGroupCreatingOrCreated = false
-                        isConnected = false
-                        isClientConnected = false
-                        cancelNativeJoinWatchdog()
-                        nativeRecreateCount = 0
+                        handler.removeCallbacks(deferredP2pDisable)
+                        handler.postDelayed(deferredP2pDisable, P2P_DISABLE_DEBOUNCE_MS)
                     }
                 }
 
@@ -1699,6 +1721,7 @@ class WifiDirectManager(private val context: Context) : WifiP2pManager.Connectio
 
     fun stop() {
         AppLog.i("WifiDirectManager: Stopping and cleaning up...")
+        handler.removeCallbacks(deferredP2pDisable)
         sessionOwnership.stop()
         credentialsEpoch++
         isGroupCreatingOrCreated = false

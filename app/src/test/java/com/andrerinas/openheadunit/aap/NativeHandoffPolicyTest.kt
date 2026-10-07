@@ -106,6 +106,42 @@ class NativeHandoffPolicyTest {
     }
 
     @Test
+    fun `keeps existing handshake while credentials are still missing`() {
+        assertTrue(
+            NativeHandoffPolicy.shouldKeepExistingHandshake(
+                previousJobActive = true,
+                credentialsReady = false,
+                previousStartedAtMs = 1_000L,
+                nowMs = 1_000L + 5_000L,
+            )
+        )
+    }
+
+    @Test
+    fun `replaces existing handshake once credentials are ready`() {
+        assertFalse(
+            NativeHandoffPolicy.shouldKeepExistingHandshake(
+                previousJobActive = true,
+                credentialsReady = true,
+                previousStartedAtMs = 1_000L,
+                nowMs = 1_000L + 5_000L,
+            )
+        )
+    }
+
+    @Test
+    fun `does not keep a dead previous handshake job`() {
+        assertFalse(
+            NativeHandoffPolicy.shouldKeepExistingHandshake(
+                previousJobActive = false,
+                credentialsReady = false,
+                previousStartedAtMs = 1_000L,
+                nowMs = 1_000L + 5_000L,
+            )
+        )
+    }
+
+    @Test
     fun `poke is blocked while a handoff is settling`() {
         // The phone joining the group re-delivers credentials, which re-invokes triggerPoke()
         // straight into the phone's DHCP exchange.

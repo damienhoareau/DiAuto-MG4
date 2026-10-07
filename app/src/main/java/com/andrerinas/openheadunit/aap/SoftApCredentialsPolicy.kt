@@ -46,9 +46,7 @@ object SoftApCredentialsPolicy {
      *   configuration
      * @param manualPassphrase [com.andrerinas.openheadunit.utils.Settings.hotspotPassword]
      * @param systemConfig what the device says its own access point is named, or null where it will
-     *   not say. The caller reads it only when [manualSsid] is empty — a name the user typed is a
-     *   claim about their own hardware, and reading past it would cost a reflective call whose
-     *   answer is already outranked.
+     *   not say. When present it outranks the manual fields — see [resolve].
      * @param siteLocalIpv4 the chosen interface's own address, or null if it has none yet
      */
     fun decide(
@@ -68,12 +66,11 @@ object SoftApCredentialsPolicy {
     /**
      * The credentials to send.
      *
-     * SSID: the user's override where they set one, otherwise the device's own name.
-     *
-     * Passphrase (DiPlay ManualHotspotManager): when the live SoftAP configuration is readable,
-     * advertise that passphrase — the vehicle UI can change the hotspot password while a saved
-     * copy in settings goes stale, and a stale credential makes the phone reject the network.
-     * Fall back to the manual passphrase only when the live one is missing.
+     * When the live SoftAP configuration is readable (platform-signed MG4 / system UID can almost
+     * always read it), advertise that SSID and passphrase — the vehicle UI can rename or re-key
+     * the hotspot while a copy in settings goes stale, and a stale credential makes the phone
+     * join nothing useful. Manual fields are only a fallback for locked-down units that refuse
+     * the reflective read.
      *
      * A user who names the network but leaves the password blank, on a device that will not
      * disclose its SoftAP config, still gets an **empty passphrase**; the caller warns. That is
@@ -84,17 +81,19 @@ object SoftApCredentialsPolicy {
         manualPassphrase: String,
         systemConfig: SoftApCredentials?
     ): SoftApCredentials {
+        val liveSsid = systemConfig?.ssid?.takeIf { it.isNotEmpty() }
         val livePassphrase = systemConfig?.passphrase?.takeIf { it.isNotEmpty() }
         return SoftApCredentials(
-            ssid = manualSsid.ifEmpty { systemConfig?.ssid.orEmpty() },
+            ssid = liveSsid ?: manualSsid,
             passphrase = livePassphrase ?: manualPassphrase
         )
     }
 
     /**
-     * DiPlay ManualHotspotManager behaviour: when the live SoftAP SSID is readable it must match
-     * the configured / saved name. A mismatch means settings are stale (vehicle UI renamed the AP)
-     * and advertising the wrong SSID makes the phone join nothing useful.
+     * True when a saved settings name differs from a readable live SoftAP name.
+     *
+     * No longer a hard refuse: [resolve] prefers the live name. Callers may log this as a stale
+     * settings hint so the user can clear the override.
      */
     fun liveSsidConflicts(manualSsid: String, systemConfig: SoftApCredentials?): Boolean {
         val live = systemConfig?.ssid?.trim().orEmpty()

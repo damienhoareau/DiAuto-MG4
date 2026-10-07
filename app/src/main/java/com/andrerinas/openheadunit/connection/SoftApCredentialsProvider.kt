@@ -411,13 +411,12 @@ class SoftApCredentialsProvider(
         )
 
         if (SoftApCredentialsPolicy.liveSsidConflicts(manualSsid, systemConfig)) {
-            // DiPlay ManualHotspotManager refuses to start when saved SSID ≠ live SoftAP SSID.
-            AppLog.e(
-                "SoftApCredentials: Saved hotspot name '$manualSsid' does not match the live SoftAP " +
-                    "'${systemConfig?.ssid}'. Update Connection setup → hotspot details to the car's " +
-                    "real name (CONNECTION_SETUP)."
+            // Live wins in resolve(); warn so a stale Connection-setup override can be cleared.
+            AppLog.w(
+                "SoftApCredentials: Saved hotspot name '$manualSsid' differs from live SoftAP " +
+                    "'${systemConfig?.ssid}' — advertising the live name (clear the saved override " +
+                    "in Connection setup if this is unexpected)."
             )
-            return SoftApCredentialsAttempt.CONFIG_UNREADABLE
         }
 
         val attempt = SoftApCredentialsPolicy.decide(manualSsid, manualPass, systemConfig, ip)
@@ -426,6 +425,7 @@ class SoftApCredentialsProvider(
             return attempt
         }
         val (ssid, psk) = SoftApCredentialsPolicy.resolve(manualSsid, manualPass, systemConfig)
+        val liveSsid = !systemConfig?.ssid.isNullOrEmpty()
         val pskSource = when {
             !systemConfig?.passphrase.isNullOrEmpty() -> "live"
             manualPass.isNotEmpty() -> "saved"
@@ -433,7 +433,7 @@ class SoftApCredentialsProvider(
         }
         AppLog.i(
             "SoftApCredentials: will advertise SSID=$ssid pskSource=$pskSource pskLen=${psk.length} " +
-                "ssidSource=${if (manualSsid.isNotEmpty()) "saved" else "live"}"
+                "ssidSource=${if (liveSsid) "live" else "saved"}"
         )
 
         if (psk.isEmpty()) {

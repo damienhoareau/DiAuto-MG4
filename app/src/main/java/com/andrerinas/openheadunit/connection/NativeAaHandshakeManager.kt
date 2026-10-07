@@ -920,10 +920,28 @@ class NativeAaHandshakeManager(
         // credentials are actually delivered (see the Type 3 branch) or this handshake ends.
 
         // The listener stays open across the settling window, so the phone can reconnect over
-        // Bluetooth while an earlier handoff is still settling. That reconnect means the earlier
-        // one failed: retire it rather than serving both from the same manager state.
+        // Bluetooth while an earlier handoff is still settling. Once credentials are already in
+        // hand that reconnect means the earlier one failed: retire it. While we are still waiting
+        // for this head unit's WiFi network, keep the earlier wait — phone reconnect storms
+        // otherwise cancel the only coroutine that would deliver Type 3.
         val previousSocket = activeHandshakeSocket
         val previousJob = activeHandshakeJob
+        val previousStartedAt = handshakeStartedAt
+        if (previousSocket != null && previousSocket !== socket &&
+            NativeHandoffPolicy.shouldKeepExistingHandshake(
+                previousJobActive = previousJob?.isActive == true,
+                credentialsReady = credentials != null,
+                previousStartedAtMs = previousStartedAt,
+                nowMs = SystemClock.elapsedRealtime(),
+            )
+        ) {
+            AppLog.i(
+                "NativeAA: Ignoring new handshake from ${socket.remoteDevice?.name} — " +
+                    "previous session is still waiting for WiFi credentials."
+            )
+            try { socket.close() } catch (_: Exception) {}
+            return@withContext
+        }
         // Ownership is claimed *before* the previous session is torn down, not after: cancelling
         // it makes its finally block run on another thread at a moment we do not control, and the
         // only thing keeping that block off this handshake's state is the ifOwner fence. Take

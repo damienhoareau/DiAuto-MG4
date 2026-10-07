@@ -66,11 +66,11 @@ class SoftApCredentialsPolicyTest {
     }
 
     @Test
-    fun `live SoftAP passphrase wins over a saved settings password`() {
-        // DiPlay ManualHotspotManager: vehicle UI can change the hotspot password while settings
-        // keep a stale copy. Advertise the live credential whenever the platform can read it.
+    fun `live SoftAP name and passphrase win over stale settings`() {
+        // Vehicle UI can rename/re-key the hotspot while settings keep a stale copy. Platform-
+        // signed MG4 can read the live SoftAP — advertise that, not the override.
         assertEquals(
-            SoftApCredentials("OHU-TEST", "fromTheDevice"),
+            SoftApCredentials("AndroidAP", "fromTheDevice"),
             SoftApCredentialsPolicy.resolve(
                 "OHU-TEST",
                 "staleSavedPassword",
@@ -92,19 +92,27 @@ class SoftApCredentialsPolicyTest {
     }
 
     @Test
-    fun `manual SSID keeps the network name the user typed while taking the live passphrase`() {
+    fun `manual SSID is only used when the live SoftAP name is missing`() {
         assertEquals(
             SoftApCredentials("OHU-TEST", "fromTheDevice"),
-            SoftApCredentialsPolicy.resolve("OHU-TEST", "", SoftApCredentials("AndroidAP", "fromTheDevice"))
+            SoftApCredentialsPolicy.resolve("OHU-TEST", "", SoftApCredentials("", "fromTheDevice"))
         )
     }
 
     @Test
-    fun `live SoftAP SSID conflicting with the saved name is a hard mismatch`() {
-        // DiPlay refuses to advertise when settings SSID ≠ readable SoftAP SSID.
+    fun `live SoftAP SSID conflicting with the saved name is detected but not a refuse`() {
+        // resolve() prefers live; callers may warn about the stale override.
         assertTrue(
             SoftApCredentialsPolicy.liveSsidConflicts(
                 "SavedName",
+                SoftApCredentials("LiveCarHotspot", "x")
+            )
+        )
+        assertEquals(
+            SoftApCredentials("LiveCarHotspot", "x"),
+            SoftApCredentialsPolicy.resolve(
+                "SavedName",
+                "stale",
                 SoftApCredentials("LiveCarHotspot", "x")
             )
         )
