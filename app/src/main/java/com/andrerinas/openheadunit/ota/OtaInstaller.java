@@ -10,20 +10,28 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.ParcelFileDescriptor;
+import android.os.Process;
 import android.provider.Settings;
 import android.util.Log;
+import android.widget.Toast;
 
 import androidx.core.content.FileProvider;
 
+import com.andrerinas.openheadunit.R;
+
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 
 /**
  * İndirilen APK'yı önce uygulama cache'ine kopyalar, doğrular, sonra kurar.
  * Doğrudan Downloads URI ile kurulum araçta sık "paket ayrıştırılamadı" verir.
+ * Platform/system UID'de önce {@code pm install -r} denenir (MG4'te en güvenilir yol).
  */
 final class OtaInstaller {
 
@@ -39,7 +47,8 @@ final class OtaInstaller {
         validateApk(context, staged);
 
         if (Build.VERSION.SDK_INT >= 26
-                && !context.getPackageManager().canRequestPackageInstalls()) {
+                && !context.getPackageManager().canRequestPackageInstalls()
+                && !isSystemUid()) {
             Intent settings = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES);
             settings.setData(Uri.parse("package:" + context.getPackageName()));
             settings.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -47,6 +56,21 @@ final class OtaInstaller {
             throw new IllegalStateException("unknown sources permission required");
         }
 
+        // 1) System / platform build: pm install (avoids OEM package-installer parse bugs)
+        if (isSystemUid()) {
+            try {
+                installWithPm(staged);
+                Log.i(TAG, "pm install ok: " + staged.getAbsolutePath()
+                        + " size=" + staged.length());
+                OtaCleanup.deleteAllOtaApks(context);
+                Toast.makeText(context, R.string.ota_install_success, Toast.LENGTH_LONG).show();
+                return;
+            } catch (Throwable t) {
+                Log.w(TAG, "pm install failed, trying PackageInstaller: " + t.getMessage());
+            }
+        }
+
+        // 2) PackageInstaller session
         try {
             installWithSession(context, staged);
             Log.i(TAG, "PackageInstaller session started: " + staged.getAbsolutePath()
@@ -54,8 +78,14 @@ final class OtaInstaller {
             return;
         } catch (Throwable t) {
             Log.w(TAG, "session install failed, fallback Intent: " + t.getMessage());
+            if (isSystemUid()) {
+                // Intent/content:// path is what triggers "paket ayrıştırılamadı" on MG4.
+                throw new IllegalStateException(
+                        "System install failed (pm + session). " + t.getMessage(), t);
+            }
         }
 
+        // 3) Normal apps only: Intent installer UI
         Uri contentUri = FileProvider.getUriForFile(
                 context, context.getPackageName() + ".fileprovider", staged);
         Intent install = new Intent(Intent.ACTION_VIEW);
@@ -73,6 +103,34 @@ final class OtaInstaller {
     /** Kurulum sırasında korumak için kaynak Downloads dosyası. */
     static File resolveApkFilePublic(Context context, long downloadId, Uri apkUri) {
         return resolveApkFile(context, downloadId, apkUri);
+    }
+
+    private static boolean isSystemUid() {
+        return Process.myUid() == Process.SYSTEM_UID;
+    }
+
+    private static void installWithPm(File apk) throws Exception {
+        // -r replace, -d allow downgrade (test builds), -t allow test packages if present
+        Process process = new ProcessBuilder(
+                "pm", "install", "-r", "-d", "-t", apk.getAbsolutePath()
+        ).redirectErrorStream(true).start();
+
+        StringBuilder out = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (out.length() > 0) out.append('\n');
+                out.append(line);
+            }
+        }
+        int code = process.waitFor();
+        String result = out.toString().trim();
+        Log.i(TAG, "pm install exit=" + code + " output=" + result);
+        if (code != 0 || !result.toLowerCase(java.util.Locale.US).contains("success")) {
+            throw new IllegalStateException(
+                    result.isEmpty() ? ("pm install exit " + code) : result);
+        }
     }
 
     private static File stageApkToCache(Context context, long downloadId, Uri apkUri) throws Exception {
@@ -134,6 +192,7 @@ final class OtaInstaller {
         PackageInstaller installer = context.getPackageManager().getPackageInstaller();
         PackageInstaller.SessionParams params =
                 new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);
+        params.setSize(apk.length());
         if (Build.VERSION.SDK_INT >= 31) {
             params.setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED);
         }
