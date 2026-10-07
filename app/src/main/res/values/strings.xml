@@ -1028,8 +1028,8 @@
     <string name="da_connection_setup">Connection setup</string>
     <string name="da_connection_setup_hint">Choose a connection and set up your car hotspot.</string>
     <string name="da_diagnostics">Diagnostics</string>
-    <string name="da_diagnostics_hint">Save or share a connection report.</string>
-    <string name="diagnostic_report_instructions">Reproduce the connection issue, then save a report. Reports include recent app logs and connection settings, with saved credentials omitted. On Android 10 or newer, reports save to Downloads/DiAuto.</string>
+    <string name="da_diagnostics_hint">Save a connection report, then send it with one tap.</string>
+    <string name="diagnostic_report_instructions">Reproduce the connection issue, then save a report. Reports include recent app logs and connection settings, with saved credentials omitted. On Android 10 or newer, reports save to Downloads/DiAuto. Tap Send to upload the report.</string>
     <string name="save_diagnostic_report">Save diagnostic report</string>
     <string name="choose_report_location">Choose save location</string>
     <string name="setup_edit_hotspot">Edit saved hotspot · %1$s</string>

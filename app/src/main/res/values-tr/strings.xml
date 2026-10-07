@@ -973,8 +973,8 @@
     <string name="da_connection_setup">Bağlantı kurulumu</string>
     <string name="da_connection_setup_hint">Bir bağlantı seç ve araç erişim noktasını ayarla.</string>
     <string name="da_diagnostics">Tanılama</string>
-    <string name="da_diagnostics_hint">Bağlantı raporunu kaydet veya paylaş.</string>
-    <string name="diagnostic_report_instructions">Bağlantı sorununu yeniden üret, sonra bir rapor kaydet. Raporlar son uygulama günlüklerini ve bağlantı ayarlarını içerir; kayıtlı kimlik bilgileri çıkarılır. Android 10 ve üzerinde raporlar İndirilenler/DiAuto klasörüne kaydedilir.</string>
+    <string name="da_diagnostics_hint">Bağlantı raporunu kaydet, sonra tek tuşla gönder.</string>
+    <string name="diagnostic_report_instructions">Bağlantı sorununu yeniden üret, sonra bir rapor kaydet. Raporlar son uygulama günlüklerini ve bağlantı ayarlarını içerir; kayıtlı kimlik bilgileri çıkarılır. Android 10 ve üzerinde raporlar İndirilenler/DiAuto klasörüne kaydedilir. Gönder’e basınca rapor yüklenir.</string>
     <string name="save_diagnostic_report">Tanılama raporunu kaydet</string>
     <string name="choose_report_location">Kayıt konumunu seç</string>
     <string name="setup_edit_hotspot">Kayıtlı erişim noktasını düzenle · %1$s</string>

@@ -9,7 +9,7 @@ import java.net.URL
 import java.nio.charset.StandardCharsets
 
 /**
- * One-tap crash upload for the head-unit user (no login, no GitHub).
+ * One-tap report upload for the head-unit user (no login, no share sheet).
  * Delivery channel is Telegram; credentials are baked in at build time.
  */
 object CrashReportSender {
@@ -23,14 +23,19 @@ object CrashReportSender {
             .get(null) as String
     }.getOrDefault("")
 
-    fun send(report: String): Result {
+    fun send(
+        report: String,
+        fileName: String = "diauto_crash.txt",
+        caption: String = titleFromCrash(report),
+    ): Result {
         val token = buildConfigString("TELEGRAM_BOT_TOKEN")
         val chatId = buildConfigString("TELEGRAM_CHAT_ID")
         if (token.isBlank() || chatId.isBlank()) {
             return Result(ok = false, error = "unavailable")
         }
         val bytes = report.toByteArray(StandardCharsets.UTF_8)
-        val caption = titleFrom(report).take(200)
+        val safeName = fileName.replace("\"", "").ifBlank { "diauto_report.txt" }
+        val safeCaption = caption.take(200)
 
         return try {
             val boundary = "DiautoCrash" + System.currentTimeMillis()
@@ -53,11 +58,11 @@ object CrashReportSender {
                 }
 
                 writeField("chat_id", chatId)
-                writeField("caption", caption)
+                writeField("caption", safeCaption)
 
                 out.writeBytes("--$boundary\r\n")
                 out.writeBytes(
-                    "Content-Disposition: form-data; name=\"document\"; filename=\"diauto_crash.txt\"\r\n"
+                    "Content-Disposition: form-data; name=\"document\"; filename=\"$safeName\"\r\n"
                 )
                 out.writeBytes("Content-Type: text/plain; charset=utf-8\r\n\r\n")
                 out.write(bytes)
@@ -87,7 +92,7 @@ object CrashReportSender {
         }
     }
 
-    private fun titleFrom(report: String): String {
+    private fun titleFromCrash(report: String): String {
         val exceptionLine = report.lineSequence()
             .map { it.trim() }
             .firstOrNull { line ->

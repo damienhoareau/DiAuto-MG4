@@ -1,9 +1,12 @@
 package com.andrerinas.openheadunit.utils
 
 import android.content.Context
-import android.content.Intent
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
-import androidx.core.content.FileProvider
+import android.widget.Toast
+import com.andrerinas.openheadunit.R
+import com.andrerinas.openheadunit.diag.CrashReportSender
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -190,17 +193,29 @@ object LogExporter {
         }
     }
 
+    /** Uploads the log file with one tap (Telegram). No Android share sheet. */
     fun shareLogFile(context: Context, file: File) {
-        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-
-        val shareIntent = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(Intent.EXTRA_STREAM, uri)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
-
-        val chooser = Intent.createChooser(shareIntent, "Share Log File")
-        chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        context.startActivity(chooser)
+        val appContext = context.applicationContext
+        val main = Handler(Looper.getMainLooper())
+        Toast.makeText(appContext, R.string.crash_report_sending, Toast.LENGTH_SHORT).show()
+        Thread({
+            val report = runCatching { file.readText() }.getOrNull()
+            val result = if (report.isNullOrBlank()) {
+                CrashReportSender.Result(ok = false, error = "empty")
+            } else {
+                CrashReportSender.send(
+                    report = report,
+                    fileName = file.name.ifBlank { "diauto_log.txt" },
+                    caption = "DiAuto log: ${file.name}",
+                )
+            }
+            main.post {
+                Toast.makeText(
+                    appContext,
+                    if (result.ok) R.string.crash_report_sent else R.string.crash_report_send_failed,
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }, "DiAuto-LogSend").start()
     }
 }

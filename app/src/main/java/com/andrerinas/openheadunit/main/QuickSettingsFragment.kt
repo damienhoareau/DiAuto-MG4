@@ -418,7 +418,7 @@ class QuickSettingsFragment : DialogFragment() {
             MaterialAlertDialogBuilder(context, R.style.DarkAlertDialog)
                 .setTitle(R.string.logs_exported)
                 .setMessage(getString(R.string.log_saved_to, logFile.absolutePath))
-                .setPositiveButton(R.string.share) { _, _ ->
+                .setPositiveButton(R.string.crash_report_send) { _, _ ->
                     LogExporter.shareLogFile(context, logFile)
                 }
                 .setNegativeButton(R.string.close) { dialog, _ ->
