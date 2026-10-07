@@ -13,6 +13,7 @@ class WirelessServerBindPolicyTest {
         assertNull(WirelessServerBindPolicy.bindHostForAdvertisedIp(null))
         assertNull(WirelessServerBindPolicy.bindHostForAdvertisedIp(""))
         assertNull(WirelessServerBindPolicy.bindHostForAdvertisedIp("   "))
+        assertNull(WirelessServerBindPolicy.advertisedHost(null))
     }
 
     @Test
@@ -23,13 +24,12 @@ class WirelessServerBindPolicyTest {
         )
         assertEquals(
             "192.168.43.1",
-            WirelessServerBindPolicy.bindHostForAdvertisedIp(" 192.168.43.1 ")
+            WirelessServerBindPolicy.advertisedHost(" 192.168.43.1 ")
         )
     }
 
     @Test
     fun `wildcard listening needs a rebind once SoftAP IP is known`() {
-        // DiPlay's success path: control socket on SoftAP IPv4, not 0.0.0.0.
         assertTrue(WirelessServerBindPolicy.needsRebind(null, "192.168.43.1"))
         assertTrue(WirelessServerBindPolicy.needsRebind("", "192.168.43.1"))
     }

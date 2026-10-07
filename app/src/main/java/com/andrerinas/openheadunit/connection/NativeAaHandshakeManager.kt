@@ -1356,7 +1356,17 @@ class NativeAaHandshakeManager(
                 }
                 WppMessageType.CONNECT_STATUS -> {
                     val s = Wireless.WifiConnectStatus.parseFrom(msg.payload)
-                    AppLog.i("NativeAA: [RX] WifiConnectStatus status=${if (s.hasStatus()) s.status else "-"} (0 = the phone got onto our network)")
+                    val st = if (s.hasStatus()) s.status else null
+                    AppLog.i("NativeAA: [RX] WifiConnectStatus status=${st ?: "-"} (0 = the phone got onto our network)")
+                    if (st == 0) {
+                        AppLog.i(
+                            "NativeAA: Phone is on our WiFi. Now waiting for TCP Incoming on " +
+                                "${credentials?.ip ?: "?"}:5288 " +
+                                "(listenerReady=${context.isWirelessServerReadyFor(credentials?.ip)}). " +
+                                "If Incoming never arrives, the car SoftAP likely blocks phone→headunit " +
+                                "traffic — not a closed app port."
+                        )
+                    }
                 }
                 WppMessageType.START_RESPONSE -> {
                     val r = Wireless.WifiStartResponse.parseFrom(msg.payload)

@@ -2492,7 +2492,10 @@ class AapService : Service(), UsbReceiver.Listener {
             startWirelessServer(softApHost)
         } else if (softApHost != null) {
             wirelessBindHost = softApHost
-            AppLog.i("AapService: Wireless listener already on SoftAP $softApHost:5288 — no rebind.")
+            AppLog.i(
+                "AapService: Wireless listener already on SoftAP $softApHost:5288 — no rebind " +
+                    "(listening=$listening)."
+            )
         } else {
             AppLog.w("AapService: Credentials arrived with empty IP — leaving wildcard bind.")
         }
@@ -3378,6 +3381,12 @@ class AapService : Service(), UsbReceiver.Listener {
                     wirelessRebuildsInWindow = 0
                     wirelessRebuildWindowStartedAtMs = 0L
                     AppLog.i("Wireless Server listening on $hostLabel:5288")
+                    AppLog.i(
+                        "WirelessServer: bound=${bound.isBound} " +
+                            "local=${bound.localSocketAddress} — port is open in this app. " +
+                            "Phone reachability is separate: join OK without Incoming usually means " +
+                            "SoftAP blocks phone→car TCP (isolation/firewall)."
+                    )
                     logLocalNetworkInterfaces()
 
                     while (isActive) {
