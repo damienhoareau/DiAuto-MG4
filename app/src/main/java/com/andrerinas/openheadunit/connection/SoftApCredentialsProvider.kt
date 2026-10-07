@@ -21,7 +21,6 @@ import com.andrerinas.openheadunit.aap.SoftApState
 import com.andrerinas.openheadunit.utils.AppLog
 import com.andrerinas.openheadunit.utils.HotspotConfigReader
 import com.andrerinas.openheadunit.utils.HotspotManager
-import com.andrerinas.openheadunit.utils.InterfaceMacReader
 import com.andrerinas.openheadunit.utils.NetworkAddresses
 import com.andrerinas.openheadunit.utils.Settings
 import com.andrerinas.openheadunit.utils.SoftApStateReader
@@ -386,30 +385,62 @@ class SoftApCredentialsProvider(
         return ChosenInterface(picked, namedByUser = false)
     }
 
-    /** Resolves the rest of the credentials for [iface] and hands them over. */
+    /** Resolves the rest of the credentials for [chosen] and hands them over. */
     private suspend fun publish(chosen: ChosenInterface, generation: Long): SoftApCredentialsAttempt {
         val iface = chosen.iface
         val ip = iface.siteLocalIpv4 ?: return SoftApCredentialsAttempt.NO_AP_YET
 
-        // User's override first, then the system's own configuration: getSoftApConfiguration() is
-        // reflection over a non-public API and can simply refuse on a locked-down device. What the
-        // two of them add up to is SoftApCredentialsPolicy's question, not this method's — the
-        // device it matters on is not one we can test against, so the rule lives where a test can
-        // reach it.
+        // Always try the live SoftAP configuration when the platform allows it (DiPlay): a
+        // saved settings password goes stale when the vehicle UI changes the hotspot passphrase.
+        // getSoftApConfiguration() is reflection over a non-public API and can refuse on a
+        // locked-down device — SoftApCredentialsPolicy then falls back to the manual fields.
         val manualSsid = settings.hotspotSsid
-        val systemConfig = if (manualSsid.isEmpty()) {
+        val manualPass = settings.hotspotPassword
+        val systemConfig =
             HotspotConfigReader.getSystemHotspotConfig(context)?.let { SoftApCredentials(it.first, it.second) }
-        } else null
 
-        val attempt = SoftApCredentialsPolicy.decide(manualSsid, settings.hotspotPassword, systemConfig, ip)
-        if (attempt != SoftApCredentialsAttempt.PUBLISHED) return attempt
-        val (ssid, psk) = SoftApCredentialsPolicy.resolve(manualSsid, settings.hotspotPassword, systemConfig)
+        // Diagnostic only — never log the passphrase itself.
+        AppLog.i(
+            "SoftApCredentials: resolve iface=${iface.name} ip=$ip " +
+                "configReadable=${systemConfig != null} " +
+                "liveSsid=${systemConfig?.ssid?.ifEmpty { "<empty>" } ?: "<unreadable>"} " +
+                "savedSsid=${manualSsid.ifEmpty { "<empty>" }} " +
+                "livePskLen=${systemConfig?.passphrase?.length ?: 0} " +
+                "savedPskLen=${manualPass.length}"
+        )
+
+        if (SoftApCredentialsPolicy.liveSsidConflicts(manualSsid, systemConfig)) {
+            // DiPlay ManualHotspotManager refuses to start when saved SSID ≠ live SoftAP SSID.
+            AppLog.e(
+                "SoftApCredentials: Saved hotspot name '$manualSsid' does not match the live SoftAP " +
+                    "'${systemConfig?.ssid}'. Update Connection setup → hotspot details to the car's " +
+                    "real name (CONNECTION_SETUP)."
+            )
+            return SoftApCredentialsAttempt.CONFIG_UNREADABLE
+        }
+
+        val attempt = SoftApCredentialsPolicy.decide(manualSsid, manualPass, systemConfig, ip)
+        if (attempt != SoftApCredentialsAttempt.PUBLISHED) {
+            AppLog.w("SoftApCredentials: decide=$attempt on ${iface.name} ($ip) — not publishing yet.")
+            return attempt
+        }
+        val (ssid, psk) = SoftApCredentialsPolicy.resolve(manualSsid, manualPass, systemConfig)
+        val pskSource = when {
+            !systemConfig?.passphrase.isNullOrEmpty() -> "live"
+            manualPass.isNotEmpty() -> "saved"
+            else -> "none"
+        }
+        AppLog.i(
+            "SoftApCredentials: will advertise SSID=$ssid pskSource=$pskSource pskLen=${psk.length} " +
+                "ssidSource=${if (manualSsid.isNotEmpty()) "saved" else "live"}"
+        )
 
         if (psk.isEmpty()) {
             AppLog.w("SoftApCredentials: No passphrase for '$ssid'. An open network will be refused by the phone; set one by hand if this fails.")
         }
 
         val apState = SoftApStateReader.read(context)
+        AppLog.i("SoftApCredentials: SoftApState=$apState namedByUser=${chosen.namedByUser}")
         if (!NativeCredentialsPolicy.shouldPublishCredentials(apState, chosen.namedByUser)) {
             AppLog.w(
                 "SoftApCredentials: the system reports no access point running, so ${iface.name} " +
@@ -423,18 +454,23 @@ class SoftApCredentialsProvider(
             AppLog.i("SoftApCredentials: This device does not let apps read the hotspot state; proceeding without confirming the access point is up.")
         }
 
+        // DiPlay ManualHotspotManager forces hardwareAddress=null on MG SoftAP (MT2712 denies
+        // SIOCGIFHWADDR). Guessed sysfs / IPv6-derived MACs can look valid and then fail as
+        // WIFI_INVALID_BSSID. Only the user's static BSSID override is trusted here; empty is
+        // allowed on HOTSPOT (NativeCredentialsPolicy.SEND_WITH_EMPTY_BSSID).
         val bssid = SoftApBssidPolicy.choose(
             staticOverride = settings.staticBSSID,
-            shellMac = InterfaceMacReader.read(iface.name),
-            hardwareAddress = hardwareAddressOf(iface.name),
-            // BYD masks MAC APIs but exposes the AP's MAC-derived IPv6 link-local address.
-            // Read only the already selected AP; never substitute the Wi-Fi client or P2P MAC.
-            ipv6DerivedMac = P2pInterfaceBssid.read(iface.name)
+            shellMac = null,
+            hardwareAddress = null,
+            ipv6DerivedMac = null,
         )
         AppLog.i("SoftApCredentials: AP address resolution ${if (bssid.isEmpty()) "unavailable" else "ready"} on ${iface.name}")
         if (bssid.isEmpty()) {
             // Not fatal on this route — see NativeCredentialsPolicy. The handshake decides.
-            AppLog.w("SoftApCredentials: Could not resolve a real BSSID for ${iface.name}; the credentials will go out without one.")
+            AppLog.w(
+                "SoftApCredentials: No SoftAP BSSID (DiPlay omits it on MG SoftAP). " +
+                    "Set a BSSID in Advanced settings if the phone rejects the join."
+            )
         }
 
         currentCoroutineContext().ensureActive()
@@ -449,10 +485,4 @@ class SoftApCredentialsProvider(
         }
     }
 
-    private fun hardwareAddressOf(name: String): String? = try {
-        NetworkInterface.getByName(name)?.hardwareAddress
-            ?.joinToString(":") { String.format("%02x", it) }
-    } catch (e: Exception) {
-        null
-    }
 }

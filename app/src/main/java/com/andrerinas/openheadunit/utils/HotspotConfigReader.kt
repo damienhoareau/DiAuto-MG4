@@ -13,6 +13,20 @@ import android.os.Build
  */
 object HotspotConfigReader {
 
+    /**
+     * Android 9 SoftAP often stores SSID / PSK as quoted strings (`"secret"`). DiPlay's
+     * `ManualHotspotManager.unquote` strips those before advertising; without this the phone
+     * gets a passphrase that never matches the real network.
+     */
+    fun unquote(value: String?): String {
+        if (value.isNullOrEmpty()) return ""
+        return if (value.length >= 2 && value.first() == '"' && value.last() == '"') {
+            value.substring(1, value.length - 1)
+        } else {
+            value
+        }
+    }
+
     /** The configured hotspot as (ssid, passphrase), or null if it cannot be read. */
     fun getSystemHotspotConfig(context: Context): Pair<String, String>? {
         try {
@@ -26,9 +40,16 @@ object HotspotConfigReader {
                     if (softApConfig != null) {
                         val getSsidMethod = softApConfig.javaClass.getMethod("getSsid")
                         val getPassphraseMethod = softApConfig.javaClass.getMethod("getPassphrase")
-                        val ssid = getSsidMethod.invoke(softApConfig) as? String ?: ""
-                        val pass = getPassphraseMethod.invoke(softApConfig) as? String ?: ""
+                        val rawSsid = getSsidMethod.invoke(softApConfig) as? String
+                        val rawPass = getPassphraseMethod.invoke(softApConfig) as? String
+                        val ssid = unquote(rawSsid)
+                        val pass = unquote(rawPass)
                         if (ssid.isNotEmpty()) {
+                            AppLog.i(
+                                "HotspotConfigReader: SoftApConfiguration ssid=$ssid " +
+                                    "pskLen=${pass.length} quotedSsid=${rawSsid != ssid} " +
+                                    "quotedPsk=${rawPass != null && rawPass != pass}"
+                            )
                             return Pair(ssid, pass)
                         }
                     }
@@ -37,23 +58,25 @@ object HotspotConfigReader {
                 }
             }
 
-            // 2. Try legacy getWifiApConfiguration (API < 30)
+            // 2. Try legacy getWifiApConfiguration (API < 30) — MG4 / Android 9 SoftAP path
             try {
                 val getWifiApConfigurationMethod = wm.javaClass.getMethod("getWifiApConfiguration")
                 val wifiConfig = getWifiApConfigurationMethod.invoke(wm)
                 if (wifiConfig != null) {
                     val ssidField = wifiConfig.javaClass.getField("SSID")
                     val preSharedKeyField = wifiConfig.javaClass.getField("preSharedKey")
-                    val ssid = ssidField.get(wifiConfig) as? String ?: ""
-                    val pass = preSharedKeyField.get(wifiConfig) as? String ?: ""
-
-                    // Clean SSID quotes if present
-                    val cleanSsid = if (ssid.startsWith("\"") && ssid.endsWith("\"")) {
-                        ssid.substring(1, ssid.length - 1)
-                    } else {
-                        ssid
+                    val rawSsid = ssidField.get(wifiConfig) as? String
+                    val rawPass = preSharedKeyField.get(wifiConfig) as? String
+                    val ssid = unquote(rawSsid)
+                    val pass = unquote(rawPass)
+                    if (ssid.isNotEmpty() || pass.isNotEmpty()) {
+                        AppLog.i(
+                            "HotspotConfigReader: WifiApConfiguration ssid=$ssid " +
+                                "pskLen=${pass.length} quotedSsid=${rawSsid != ssid} " +
+                                "quotedPsk=${rawPass != null && rawPass != pass}"
+                        )
+                        return Pair(ssid, pass)
                     }
-                    return Pair(cleanSsid, pass)
                 }
             } catch (e: Exception) {
                 AppLog.d("HotspotConfigReader: Failed to get wifi ap config via reflection: ${e.message}")

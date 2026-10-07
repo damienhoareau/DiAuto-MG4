@@ -84,6 +84,20 @@ class SoftApNetworkPolicyTest {
     }
 
     @Test
+    fun `among same-ranked interfaces a 192_168 SoftAP address wins`() {
+        // DiPlay ManualHotspotManager scores 192.168/16 higher than a generic site-local.
+        assertEquals(
+            "ra0",
+            SoftApNetworkPolicy.pickApInterface(
+                listOf(
+                    iface("ra1", ipv4 = "10.0.0.1"),
+                    iface("ra0", ipv4 = "192.168.43.1"),
+                )
+            )?.name
+        )
+    }
+
+    @Test
     fun `excluding the station cannot leave us with nothing to advertise`() {
         // Only the station is up: there is no access point, and saying so beats handing the phone
         // the address of a network it is already on.

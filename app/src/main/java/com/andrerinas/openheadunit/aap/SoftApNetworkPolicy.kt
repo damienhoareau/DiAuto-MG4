@@ -88,7 +88,11 @@ object SoftApNetworkPolicy {
                     it.siteLocalIpv4 != null
             }
         }
-        return eligible(candidates, stationIpv4).minByOrNull { rank(it.name) }
+        // DiPlay ManualHotspotManager: prefer ap*/softap, then 192.168/16 among equals.
+        return eligible(candidates, stationIpv4).minWithOrNull(
+            compareBy<ApInterfaceCandidate> { rank(it.name) }
+                .thenByDescending { isLikelySoftApIpv4(it.siteLocalIpv4) }
+        )
     }
 
     /**
@@ -127,4 +131,11 @@ object SoftApNetworkPolicy {
         val index = PREFERRED_PREFIXES.indexOfFirst { lower.startsWith(it) }
         return if (index >= 0) index else PREFERRED_PREFIXES.size
     }
+
+    /**
+     * SoftAP gateways on MG4 / Android tethering are almost always `192.168.*`. DiPlay scores
+     * that +30 over a generic site-local; use it as a tie-break when two ifaces share a rank.
+     */
+    private fun isLikelySoftApIpv4(ipv4: String?): Boolean =
+        ipv4?.startsWith("192.168.") == true
 }

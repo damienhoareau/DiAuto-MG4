@@ -6,13 +6,11 @@ import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import com.android.dx.DexMaker
 import com.android.dx.TypeId
 import java.lang.reflect.Method
 import java.net.Inet4Address
 import java.net.NetworkInterface
-import com.andrerinas.openheadunit.utils.SoftApConfigCompat
 import com.andrerinas.openheadunit.aap.ApBand
 import com.andrerinas.openheadunit.aap.ApInterfaceCandidate
 import com.andrerinas.openheadunit.aap.SoftApBandPolicy
@@ -23,7 +21,6 @@ import com.andrerinas.openheadunit.aap.SoftApState
  * Manages WiFi Hotspot (tethering) using reflection + dexmaker.
  */
 object HotspotManager {
-    private const val TAG = "OPENHU_WIFI"
     private const val CALLBACK_CLASS = "android.net.ConnectivityManager\$OnStartTetheringCallback"
 
     /** How long to give the framework to actually bring an access point up. */
@@ -105,8 +102,15 @@ object HotspotManager {
         // with a start: only one caller ever asks for it.
         if (!enabled) return startOnBand(context, enabled = false, band = ApBand.BAND_5GHZ).attempted
 
-        // Claimed before anything slow runs, or the WiFi-disable sleep below is long enough for a
-        // second caller to walk straight past the check.
+        // DiPlay CarHotspotController.enable(): if SoftAP is already up, leave it alone.
+        // Re-applying SoftAp configuration on a live SAIC MG4 AP bounces it mid-handshake.
+        if (isApUp(context)) {
+            AppLog.i("HotspotManager: Access point already up; not reconfiguring or restarting it.")
+            return true
+        }
+
+        // Claimed before anything slow runs, or a second caller walks past while the first is
+        // still waiting for the access point.
         synchronized(this) {
             if (startInFlight) {
                 AppLog.i("HotspotManager: A hotspot start is already running; letting it finish rather than starting a second one.")
@@ -115,28 +119,10 @@ object HotspotManager {
             startInFlight = true
         }
 
-        // On Android 8+, WiFi must be disabled before tethering can start. Ask, then say what
-        // actually happened: setWifiEnabled() is a no-op for apps targeting API 29+ and this app
-        // targets well past that, so on most devices the request is silently ignored and the
-        // framework drops the station itself when it needs the radio. Announcing the attempt as if
-        // it worked is how the radio state ends up being read as ours.
+        // DiPlay CarHotspotController does not force the station radio off before SoftAP enable.
+        // On SAIC MG4 that call can disrupt the built-in car SoftAP path; the framework drops
+        // the station itself when tethering needs the radio.
         try {
-            try {
-                val wm = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-                if (wm.isWifiEnabled) {
-                    @Suppress("DEPRECATION")
-                    wm.isWifiEnabled = false
-                    Thread.sleep(500) // Let the radio settle
-                    if (wm.isWifiEnabled) {
-                        AppLog.i("HotspotManager: Asked to disable WiFi and the platform ignored it (expected on modern Android); the framework will take the radio itself if it needs to.")
-                    } else {
-                        AppLog.i("HotspotManager: WiFi disabled before enabling hotspot.")
-                    }
-                }
-            } catch (e: Exception) {
-                AppLog.w("HotspotManager: Failed to disable WiFi: ${e.message}")
-            }
-
             // 5 GHz first, 2.4 GHz only if the radio will not host an access point on it. See
             // SoftApBandPolicy for why the order is not a preference.
             var attemptedAny = false
@@ -467,11 +453,25 @@ object HotspotManager {
         }
     }
 
+    @Suppress("DEPRECATION")
     private fun tryLegacyWifiManager(context: Context, enabled: Boolean): Boolean {
         try {
             val wm = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-            val method = wm.javaClass.getMethod("setWifiApEnabled", android.net.wifi.WifiConfiguration::class.java, Boolean::class.javaPrimitiveType)
-            return method.invoke(wm, null, enabled) as Boolean
+            // DiPlay CarHotspotController: pass the saved SoftAP WifiConfiguration, not null.
+            // Android 9 MG SoftAP enable with null can be rejected or start with empty credentials.
+            val configuration = if (enabled) {
+                runCatching {
+                    wm.javaClass.getMethod("getWifiApConfiguration").invoke(wm)
+                }.getOrNull()
+            } else {
+                null
+            }
+            val method = wm.javaClass.getMethod(
+                "setWifiApEnabled",
+                android.net.wifi.WifiConfiguration::class.java,
+                Boolean::class.javaPrimitiveType
+            )
+            return method.invoke(wm, configuration, enabled) as Boolean
         } catch (_: Exception) { return false }
     }
 }

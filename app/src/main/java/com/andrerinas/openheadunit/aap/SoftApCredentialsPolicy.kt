@@ -66,23 +66,39 @@ object SoftApCredentialsPolicy {
     }
 
     /**
-     * The credentials to send: each field the user's override where they set one, the device's own
-     * configuration where they did not.
+     * The credentials to send.
      *
-     * Note what this means at the call site, since it is a real outcome and not an oversight. A user
-     * who names the network but leaves the password blank gets an **empty passphrase**, not the
-     * device's — the caller does not read the system configuration at all once a manual name is set,
-     * so there is nothing to fall back to. Sending an open network is worse than sending nothing on
-     * a protocol that refuses one, so the caller warns; it is not silently corrected here, because
-     * pairing a name the user typed with a passphrase read off the device would hand the phone a
-     * mismatched pair and fail with no line pointing at why.
+     * SSID: the user's override where they set one, otherwise the device's own name.
+     *
+     * Passphrase (DiPlay ManualHotspotManager): when the live SoftAP configuration is readable,
+     * advertise that passphrase — the vehicle UI can change the hotspot password while a saved
+     * copy in settings goes stale, and a stale credential makes the phone reject the network.
+     * Fall back to the manual passphrase only when the live one is missing.
+     *
+     * A user who names the network but leaves the password blank, on a device that will not
+     * disclose its SoftAP config, still gets an **empty passphrase**; the caller warns. That is
+     * the locked-down-unit path CONNECTION_SETUP documents.
      */
     fun resolve(
         manualSsid: String,
         manualPassphrase: String,
         systemConfig: SoftApCredentials?
-    ): SoftApCredentials = SoftApCredentials(
-        ssid = manualSsid.ifEmpty { systemConfig?.ssid.orEmpty() },
-        passphrase = manualPassphrase.ifEmpty { systemConfig?.passphrase.orEmpty() }
-    )
+    ): SoftApCredentials {
+        val livePassphrase = systemConfig?.passphrase?.takeIf { it.isNotEmpty() }
+        return SoftApCredentials(
+            ssid = manualSsid.ifEmpty { systemConfig?.ssid.orEmpty() },
+            passphrase = livePassphrase ?: manualPassphrase
+        )
+    }
+
+    /**
+     * DiPlay ManualHotspotManager behaviour: when the live SoftAP SSID is readable it must match
+     * the configured / saved name. A mismatch means settings are stale (vehicle UI renamed the AP)
+     * and advertising the wrong SSID makes the phone join nothing useful.
+     */
+    fun liveSsidConflicts(manualSsid: String, systemConfig: SoftApCredentials?): Boolean {
+        val live = systemConfig?.ssid?.trim().orEmpty()
+        val manual = manualSsid.trim()
+        return live.isNotEmpty() && manual.isNotEmpty() && !manual.equals(live, ignoreCase = true)
+    }
 }

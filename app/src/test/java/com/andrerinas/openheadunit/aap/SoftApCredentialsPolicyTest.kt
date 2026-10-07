@@ -1,6 +1,8 @@
 package com.andrerinas.openheadunit.aap
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SoftApCredentialsPolicyTest {
@@ -50,12 +52,9 @@ class SoftApCredentialsPolicyTest {
     }
 
     @Test
-    fun `a named network with no password goes out open, and that is the caller's warning to give`() {
-        // Not an oversight being pinned by accident. The caller does not read the system
-        // configuration at all once a manual name is set, so there is nothing to fall back to, and
-        // pairing a user-typed name with a passphrase read off the device would hand the phone a
-        // mismatched pair that fails with nothing pointing at why. The empty passphrase is the
-        // honest answer; SoftApCredentialsProvider logs it.
+    fun `a named network with no password goes out open when the live SoftAP is unreadable`() {
+        // Locked-down unit path from CONNECTION_SETUP: manual SSID, blank password, no system
+        // config. The empty passphrase is the honest answer; SoftApCredentialsProvider logs it.
         assertEquals(
             SoftApCredentialsAttempt.PUBLISHED,
             decide(manualSsid = "OHU-TEST", manualPassphrase = "", systemConfig = null)
@@ -67,20 +66,58 @@ class SoftApCredentialsPolicyTest {
     }
 
     @Test
-    fun `each field takes the user's override where there is one`() {
-        // Field-by-field precedence, which is the function's own rule. Note the first case cannot
-        // arise from SoftApCredentialsProvider as it stands — it stops reading the system
-        // configuration once a manual name is set, so a manual name never meets a system
-        // passphrase. Pinned anyway, so that if a caller ever does pass both, the answer is the
-        // documented one rather than whatever falls out.
+    fun `live SoftAP passphrase wins over a saved settings password`() {
+        // DiPlay ManualHotspotManager: vehicle UI can change the hotspot password while settings
+        // keep a stale copy. Advertise the live credential whenever the platform can read it.
+        assertEquals(
+            SoftApCredentials("OHU-TEST", "fromTheDevice"),
+            SoftApCredentialsPolicy.resolve(
+                "OHU-TEST",
+                "staleSavedPassword",
+                SoftApCredentials("AndroidAP", "fromTheDevice")
+            )
+        )
+    }
+
+    @Test
+    fun `manual passphrase fills in when the live SoftAP has none`() {
+        assertEquals(
+            SoftApCredentials("AndroidAP", "typedByHand"),
+            SoftApCredentialsPolicy.resolve("", "typedByHand", SoftApCredentials("AndroidAP", ""))
+        )
+        assertEquals(
+            SoftApCredentials("OHU-TEST", "typedByHand"),
+            SoftApCredentialsPolicy.resolve("OHU-TEST", "typedByHand", null)
+        )
+    }
+
+    @Test
+    fun `manual SSID keeps the network name the user typed while taking the live passphrase`() {
         assertEquals(
             SoftApCredentials("OHU-TEST", "fromTheDevice"),
             SoftApCredentialsPolicy.resolve("OHU-TEST", "", SoftApCredentials("AndroidAP", "fromTheDevice"))
         )
-        assertEquals(
-            SoftApCredentials("AndroidAP", "typedByHand"),
-            SoftApCredentialsPolicy.resolve("", "typedByHand", SoftApCredentials("AndroidAP", "fromTheDevice"))
+    }
+
+    @Test
+    fun `live SoftAP SSID conflicting with the saved name is a hard mismatch`() {
+        // DiPlay refuses to advertise when settings SSID ≠ readable SoftAP SSID.
+        assertTrue(
+            SoftApCredentialsPolicy.liveSsidConflicts(
+                "SavedName",
+                SoftApCredentials("LiveCarHotspot", "x")
+            )
         )
+        assertFalse(
+            SoftApCredentialsPolicy.liveSsidConflicts(
+                "LiveCarHotspot",
+                SoftApCredentials("LiveCarHotspot", "x")
+            )
+        )
+        assertFalse(
+            SoftApCredentialsPolicy.liveSsidConflicts("", SoftApCredentials("LiveCarHotspot", "x"))
+        )
+        assertFalse(SoftApCredentialsPolicy.liveSsidConflicts("SavedName", null))
     }
 
     @Test

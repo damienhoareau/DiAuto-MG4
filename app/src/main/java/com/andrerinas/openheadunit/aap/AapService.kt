@@ -50,7 +50,6 @@ import com.andrerinas.openheadunit.connection.UsbAccessoryMode
 import com.andrerinas.openheadunit.connection.UsbDeviceCompat
 import com.andrerinas.openheadunit.connection.UsbReceiver
 import com.andrerinas.openheadunit.location.GpsLocationService
-import com.andrerinas.openheadunit.utils.HeadUnitScreenConfig
 import com.andrerinas.openheadunit.utils.LocaleHelper
 import com.andrerinas.openheadunit.utils.LogExporter
 import com.andrerinas.openheadunit.utils.NightModeManager
@@ -65,20 +64,17 @@ import android.content.pm.ServiceInfo
 import android.graphics.PixelFormat
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
-import android.provider.Settings as AndroidSettings
 import android.view.View
 import android.view.WindowManager
 import android.media.AudioManager
 import com.andrerinas.openheadunit.utils.HotspotManager
 import com.andrerinas.openheadunit.utils.VpnControl
-import com.andrerinas.openheadunit.connection.CarKeyReceiver
 import com.andrerinas.openheadunit.connection.NativeAaHandshakeManager
 import com.andrerinas.openheadunit.connection.NearbyManager
 import com.andrerinas.openheadunit.connection.SoftApCredentialsProvider
 import com.andrerinas.openheadunit.connection.LocalHotspotCredentialsProvider
-import com.andrerinas.openheadunit.connection.carkey.CarKeysManager
 import com.andrerinas.openheadunit.main.BackgroundNotification
-import com.andrerinas.openheadunit.utils.SUExecutor
+import android.annotation.SuppressLint
 import com.andrerinas.openheadunit.utils.Settings
 import com.andrerinas.openheadunit.utils.protoUint32ToLong
 import java.net.ServerSocket
@@ -118,6 +114,11 @@ class AapService : Service(), UsbReceiver.Listener {
     // @Volatile: the handshake can now ask for a repair from Dispatchers.IO, so this is no
     // longer read only from Main.
     @Volatile private var wirelessServer: WirelessServer? = null
+    /**
+     * SoftAP / P2P IPv4 the wireless TCP server should bind to (DiPlay-style), or null for
+     * the wildcard used by helper / head-unit-server modes before Native AA credentials exist.
+     */
+    @Volatile private var wirelessBindHost: String? = null
     // Rebuild bookkeeping for WirelessServerRestartPolicy. The handshake asks about every 4s while a
     // phone keeps arriving, so without a bound a port that cannot bind becomes a rebuild loop.
     private var lastWirelessRebuildAtMs = 0L
@@ -1859,6 +1860,8 @@ class AapService : Service(), UsbReceiver.Listener {
         try { wifiAutoStartReceiver?.let { unregisterReceiver(it) } } catch (_: Exception) {}
         try {
             if (::uiModeManager.isInitialized) {
+                // 0 = no flags (do not force GO_HOME). IntDef only lists DISABLE_CAR_MODE_GO_HOME.
+                @Suppress("WrongConstant")
                 uiModeManager.disableCarMode(0)
             }
         } catch (e: Exception) {
@@ -2369,51 +2372,73 @@ class AapService : Service(), UsbReceiver.Listener {
 
     /**
      * Starts the [WirelessServer] (TCP on port 5288) and kicks off the initial NSD scan.
-     * No-op if the server is already running.
+     * No-op if the server is already running on the desired address.
+     *
+     * @param bindHost SoftAP / P2P IPv4 to bind (DiPlay), or null for `0.0.0.0`. When Native AA
+     *   credentials publish a host IP, [onNativeCredentials] rebinds here before the BT poke.
      */
-    private fun startWirelessServer() {
+    private fun startWirelessServer(bindHost: String? = wirelessBindHost) {
+        val desiredHost = WirelessServerBindPolicy.bindHostForAdvertisedIp(bindHost)
+        wirelessBindHost = desiredHost
         val existing = wirelessServer
-        val action = WirelessServerRestartPolicy.decide(
-            assigned = existing != null,
-            alive = existing?.isAlive == true,
-            listening = existing?.isListening == true,
-            nowMs = android.os.SystemClock.elapsedRealtime(),
-            sessionBusy = commManager.isConnected,
-            lastRebuildAtMs = lastWirelessRebuildAtMs,
-            rebuildsInWindow = wirelessRebuildsInWindow,
-            windowStartedAtMs = wirelessRebuildWindowStartedAtMs,
-        )
-        val why = WirelessServerRestartPolicy.describe(action, existing != null, existing?.isListening == true)
-        when (action) {
-            WirelessServerRestartPolicy.Action.NO_OP,
-            WirelessServerRestartPolicy.Action.AWAIT -> {
-                AppLog.d("AapService: Wireless server not started - $why.")
-                return
+
+        // SoftAP IP known but listener still on wildcard / wrong address: force a rebuild even
+        // though RestartPolicy would say NO_OP. That gap is what Skipperjonce2 saw as join-OK /
+        // zero Incoming connection while DiPlay's SoftAP-bound AirPlay worked.
+        val addressMismatch = existing?.isListening == true &&
+            WirelessServerBindPolicy.needsRebind(existing.boundHost, desiredHost)
+        if (addressMismatch) {
+            AppLog.i(
+                "AapService: Wireless server is on ${existing?.boundHost ?: "0.0.0.0"}:5288; " +
+                    "rebinding to SoftAP $desiredHost:5288 (DiPlay-style)."
+            )
+            try { existing?.stopServer() } catch (e: Exception) {
+                AppLog.d("AapService: Error stopping wireless server for SoftAP rebind: ${e.message}")
             }
-            WirelessServerRestartPolicy.Action.BACKOFF -> {
-                // INFO, not DEBUG. This is the state a stuck unit sits in, and the reporter logs
-                // that would have identified it are captured at INFO.
-                AppLog.i("AapService: Wireless server on 5288 is not accepting connections - $why.")
-                return
-            }
-            WirelessServerRestartPolicy.Action.REBUILD -> {
-                val now = android.os.SystemClock.elapsedRealtime()
-                wirelessRebuildsInWindow = WirelessServerRestartPolicy.nextRebuildCount(
-                    now, wirelessRebuildWindowStartedAtMs, wirelessRebuildsInWindow
-                )
-                wirelessRebuildWindowStartedAtMs =
-                    WirelessServerRestartPolicy.nextWindowStart(now, wirelessRebuildWindowStartedAtMs)
-                lastWirelessRebuildAtMs = now
-                AppLog.w("AapService: Rebuilding the wireless server on 5288 - $why (attempt $wirelessRebuildsInWindow).")
-                // Only this object, never stopWirelessServer(): that also clears activeWifiMode and
-                // activeHelperStrategy, and the mode has not changed - we are repairing inside it.
-                try { existing?.stopServer() } catch (e: Exception) {
-                    AppLog.d("AapService: Error stopping the previous wireless server: ${e.message}")
+            wirelessServer = null
+        } else {
+            val action = WirelessServerRestartPolicy.decide(
+                assigned = existing != null,
+                alive = existing?.isAlive == true,
+                listening = existing?.isListening == true,
+                nowMs = android.os.SystemClock.elapsedRealtime(),
+                sessionBusy = commManager.isConnected,
+                lastRebuildAtMs = lastWirelessRebuildAtMs,
+                rebuildsInWindow = wirelessRebuildsInWindow,
+                windowStartedAtMs = wirelessRebuildWindowStartedAtMs,
+            )
+            val why = WirelessServerRestartPolicy.describe(action, existing != null, existing?.isListening == true)
+            when (action) {
+                WirelessServerRestartPolicy.Action.NO_OP,
+                WirelessServerRestartPolicy.Action.AWAIT -> {
+                    AppLog.d("AapService: Wireless server not started - $why.")
+                    return
                 }
-                wirelessServer = null
-            }
-            WirelessServerRestartPolicy.Action.START -> {
-                AppLog.d("AapService: Starting the wireless server on 5288 - $why.")
+                WirelessServerRestartPolicy.Action.BACKOFF -> {
+                    // INFO, not DEBUG. This is the state a stuck unit sits in, and the reporter logs
+                    // that would have identified it are captured at INFO.
+                    AppLog.i("AapService: Wireless server on 5288 is not accepting connections - $why.")
+                    return
+                }
+                WirelessServerRestartPolicy.Action.REBUILD -> {
+                    val now = android.os.SystemClock.elapsedRealtime()
+                    wirelessRebuildsInWindow = WirelessServerRestartPolicy.nextRebuildCount(
+                        now, wirelessRebuildWindowStartedAtMs, wirelessRebuildsInWindow
+                    )
+                    wirelessRebuildWindowStartedAtMs =
+                        WirelessServerRestartPolicy.nextWindowStart(now, wirelessRebuildWindowStartedAtMs)
+                    lastWirelessRebuildAtMs = now
+                    AppLog.w("AapService: Rebuilding the wireless server on 5288 - $why (attempt $wirelessRebuildsInWindow).")
+                    // Only this object, never stopWirelessServer(): that also clears activeWifiMode and
+                    // activeHelperStrategy, and the mode has not changed - we are repairing inside it.
+                    try { existing?.stopServer() } catch (e: Exception) {
+                        AppLog.d("AapService: Error stopping the previous wireless server: ${e.message}")
+                    }
+                    wirelessServer = null
+                }
+                WirelessServerRestartPolicy.Action.START -> {
+                    AppLog.d("AapService: Starting the wireless server on 5288 - $why.")
+                }
             }
         }
         val settings = App.provide(this).settings
@@ -2426,7 +2451,9 @@ class AapService : Service(), UsbReceiver.Listener {
         // handoff instead of just blindly probing the TCP port.
         val shouldRegisterNsd = mode == 1 || (mode == 2 && (strategy == 0 || strategy == 3 || strategy == 4))
 
-        wirelessServer = WirelessServer().apply { start(registerNsd = shouldRegisterNsd) }
+        wirelessServer = WirelessServer().apply {
+            start(registerNsd = shouldRegisterNsd, bindHost = desiredHost)
+        }
         if (shouldRegisterNsd) {
             startDiscovery()
         }
@@ -2446,7 +2473,29 @@ class AapService : Service(), UsbReceiver.Listener {
             AppLog.d("AapService: WiFi credentials received, but not in Native AA mode. Skipping HandshakeManager update.")
             return
         }
-        AppLog.i("AapService: Received WiFi credentials from manager (SSID=$ssid, IP=$ip). Updating and Triggering Poke.")
+        val beforeHost = wirelessServer?.boundHost
+        val listening = wirelessServer?.isListening == true
+        AppLog.i(
+            "AapService: Received WiFi credentials (SSID=$ssid, IP=$ip, BSSID=${bssid.ifEmpty { "<none>" }}). " +
+                "listener=${if (listening) "up" else "down"} bound=${beforeHost ?: "0.0.0.0"}"
+        )
+        // DiPlay order: SoftAP IPv4 listener first, then publish credentials over BT. Binding
+        // wildcard :5288 while advertising ap0's address left phones joined with no TCP accept.
+        val softApHost = WirelessServerBindPolicy.bindHostForAdvertisedIp(ip)
+        if (softApHost != null &&
+            WirelessServerBindPolicy.needsRebind(wirelessServer?.boundHost, softApHost)
+        ) {
+            AppLog.i(
+                "AapService: SoftAP rebind needed — moving listener " +
+                    "${beforeHost ?: "0.0.0.0"}:5288 → $softApHost:5288 (DiPlay-style)."
+            )
+            startWirelessServer(softApHost)
+        } else if (softApHost != null) {
+            wirelessBindHost = softApHost
+            AppLog.i("AapService: Wireless listener already on SoftAP $softApHost:5288 — no rebind.")
+        } else {
+            AppLog.w("AapService: Credentials arrived with empty IP — leaving wildcard bind.")
+        }
         nativeAaHandshakeManager?.updateWifiCredentials(ssid, psk, ip, bssid)
         if (commManager.isConnected ||
             commManager.connectionState.value is CommManager.ConnectionState.Connecting) {
@@ -2468,6 +2517,24 @@ class AapService : Service(), UsbReceiver.Listener {
     fun isWirelessServerListening(): Boolean = wirelessServer?.isListening == true
 
     /**
+     * DiPlay-style readiness: listening **and** bound to [advertisedIp] when credentials name a
+     * SoftAP host. A wildcard `:5288` must not count as ready once the phone is told to dial
+     * `192.168.x.x:5288`.
+     */
+    fun isWirelessServerReadyFor(advertisedIp: String?): Boolean {
+        val server = wirelessServer
+        if (server?.isListening != true) return false
+        val ready = !WirelessServerBindPolicy.needsRebind(server.boundHost, advertisedIp)
+        if (!ready) {
+            AppLog.d(
+                "AapService: SoftAP not ready — listening on ${server.boundHost ?: "0.0.0.0"}:5288 " +
+                    "but phone will dial ${advertisedIp ?: "<none>"}:5288"
+            )
+        }
+        return ready
+    }
+
+    /**
      * Tries to get the AAP port bound, and reports whether it is.
      *
      * Called by the Bluetooth handshake when it finds the port unbound with credentials already in
@@ -2485,14 +2552,27 @@ class AapService : Service(), UsbReceiver.Listener {
      * @param timeoutMs how long to wait for the bind after asking.
      */
     suspend fun ensureWirelessServerListening(reason: String, timeoutMs: Long): Boolean {
-        if (isWirelessServerListening()) return true
-        AppLog.i("AapService: $reason found port 5288 unbound. Trying to start the wireless server.")
-        withContext(Dispatchers.Main.immediate) { startWirelessServer() }
+        val desired = wirelessBindHost
+        val listeningOnDesired = isWirelessServerListening() &&
+            !WirelessServerBindPolicy.needsRebind(wirelessServer?.boundHost, desired)
+        if (listeningOnDesired) return true
+        AppLog.i(
+            "AapService: $reason found port 5288 unbound" +
+                (desired?.let { " (want SoftAP $it)" } ?: "") +
+                ". Trying to start the wireless server."
+        )
+        withContext(Dispatchers.Main.immediate) { startWirelessServer(desired) }
 
         val deadline = android.os.SystemClock.elapsedRealtime() + timeoutMs
         while (android.os.SystemClock.elapsedRealtime() < deadline) {
-            if (isWirelessServerListening()) {
-                AppLog.i("AapService: port 5288 is bound now.")
+            if (isWirelessServerListening() &&
+                !WirelessServerBindPolicy.needsRebind(wirelessServer?.boundHost, desired)
+            ) {
+                AppLog.i(
+                    "AapService: port 5288 is bound now" +
+                        (wirelessServer?.boundHost?.let { " on $it" } ?: "") +
+                        "."
+                )
                 return true
             }
             delay(250)
@@ -2705,6 +2785,7 @@ class AapService : Service(), UsbReceiver.Listener {
         discoveryDormantAfterWifiLoss = false
         wirelessServer?.stopServer()
         wirelessServer = null
+        wirelessBindHost = null
         scanningState.value = false
         VpnControl.stopVpn(this)
     }
@@ -3026,6 +3107,41 @@ class AapService : Service(), UsbReceiver.Listener {
         }
     }
 
+    /**
+     * Best-effort MAC for Self Mode's WifiBluetoothReceiver fallback.
+     * Permission is granted for the car app install; Lint still flags bondedDevices / getAddress.
+     */
+    @SuppressLint("MissingPermission", "HardwareIds")
+    private fun resolveSelfModeBluetoothAddress(): String {
+        return try {
+            val adapter = BluetoothHelper.getBluetoothAdapter(this)
+            val bonded = adapter?.bondedDevices
+            val connectedDevice = bonded?.firstOrNull { dev ->
+                try {
+                    val m = dev.javaClass.getMethod("isConnected")
+                    (m.invoke(dev) as? Boolean) == true
+                } catch (_: Exception) {
+                    false
+                }
+            }
+            val targetDev = connectedDevice ?: bonded?.firstOrNull()
+            val selfAddr: String? = try {
+                adapter?.address
+            } catch (_: SecurityException) {
+                null
+            }
+            AppLog.i(
+                "SelfMode BT Discovery: bondedCount=${bonded?.size ?: 0}, " +
+                    "connectedMac=${connectedDevice?.address}, selectedMac=${targetDev?.address}"
+            )
+            targetDev?.address
+                ?: if (!selfAddr.isNullOrBlank() && selfAddr != "02:00:00:00:00:00") selfAddr else null
+        } catch (e: Throwable) {
+            AppLog.w("Failed to get bonded BT device address: ${e.message}")
+            null
+        } ?: "00:11:22:33:44:55"
+    }
+
     private fun startSelfMode() {
         selfMode = true
 
@@ -3106,23 +3222,7 @@ class AapService : Service(), UsbReceiver.Listener {
                         AppLog.i("Broadcast fallback 1 (WirelessStartupReceiver) sent.")
 
                         // Fallback 2: WifiBluetoothReceiver (START_WIRELESS_PROJECTION) for AA 17.4+
-                        val bondedAddress = try {
-                            val adapter = BluetoothHelper.getBluetoothAdapter(this@AapService)
-                            val bonded = adapter?.bondedDevices
-                            val connectedDevice = bonded?.firstOrNull { dev ->
-                                try {
-                                    val m = dev.javaClass.getMethod("isConnected")
-                                    (m.invoke(dev) as? Boolean) == true
-                                } catch (e: Exception) { false }
-                            }
-                            val targetDev = connectedDevice ?: bonded?.firstOrNull()
-                            val selfAddr: String? = try { adapter?.address } catch (se: SecurityException) { null }
-                            AppLog.i("SelfMode BT Discovery: bondedCount=${bonded?.size ?: 0}, connectedMac=${connectedDevice?.address}, selectedMac=${targetDev?.address}")
-                            targetDev?.address ?: if (!selfAddr.isNullOrBlank() && selfAddr != "02:00:00:00:00:00") selfAddr else null
-                        } catch (e: Throwable) {
-                            AppLog.w("Failed to get bonded BT device address: ${e.message}")
-                            null
-                        } ?: "00:11:22:33:44:55"
+                        val bondedAddress = resolveSelfModeBluetoothAddress()
 
                         val btReceiverIntent = Intent("com.google.android.projection.gearhead.START_WIRELESS_PROJECTION").apply {
                             setClassName(
@@ -3205,6 +3305,13 @@ class AapService : Service(), UsbReceiver.Listener {
             private set
 
         /**
+         * Host this listener is bound to, or null for the wildcard (`0.0.0.0`). Native AA SoftAP
+         * must match the IP advertised over Bluetooth (DiPlay AirPlay bind behaviour).
+         */
+        @Volatile var boundHost: String? = null
+            private set
+
+        /**
          * Whether the coroutine that owns the bind is still running.
          *
          * [isListening] alone cannot separate "binding, give it a moment" from "died and will never
@@ -3213,7 +3320,7 @@ class AapService : Service(), UsbReceiver.Listener {
          */
         val isAlive: Boolean get() = job?.isActive == true
 
-        fun start(registerNsd: Boolean = true) {
+        fun start(registerNsd: Boolean = true, bindHost: String? = null) {
             nsdManager = getSystemService(Context.NSD_SERVICE) as? NsdManager
             if (nsdManager == null) {
                 AppLog.e("WirelessServer: NsdManager not available on this device.")
@@ -3221,11 +3328,12 @@ class AapService : Service(), UsbReceiver.Listener {
                 registerNsd()
             }
 
+            val hostLabel = bindHost ?: "0.0.0.0"
             // Outside the coroutine on purpose. Everything below runs on a scope that can already
             // be cancelled, in which case the block never executes and prints nothing at all; this
             // line is what tells a reader the difference between "never asked" and "asked, and the
             // answer never came". Two complete reporter captures could not be told apart without it.
-            AppLog.i("WirelessServer: binding port 5288...")
+            AppLog.i("WirelessServer: binding $hostLabel:5288...")
 
             job = serviceScope.launch(Dispatchers.IO) {
                 try {
@@ -3243,32 +3351,37 @@ class AapService : Service(), UsbReceiver.Listener {
                         try {
                             bound = ServerSocket().apply {
                                 reuseAddress = true
-                                bind(java.net.InetSocketAddress(5288))
+                                // SoftAP IPv4 when known (DiPlay); wildcard only before that.
+                                bind(
+                                    if (bindHost != null) java.net.InetSocketAddress(bindHost, 5288)
+                                    else java.net.InetSocketAddress(5288)
+                                )
                             }
                         } catch (e: Exception) {
                             // The last attempt rethrows, so a permanent failure still reaches the
                             // catch below and is reported as an error rather than disappearing.
                             if (attempt >= BIND_ATTEMPTS) throw e
-                            AppLog.w("WirelessServer: port 5288 did not bind on attempt $attempt of $BIND_ATTEMPTS (${e.javaClass.simpleName}: ${e.message}). Retrying in ${BIND_RETRY_DELAY_MS}ms.")
+                            AppLog.w("WirelessServer: $hostLabel:5288 did not bind on attempt $attempt of $BIND_ATTEMPTS (${e.javaClass.simpleName}: ${e.message}). Retrying in ${BIND_RETRY_DELAY_MS}ms.")
                             delay(BIND_RETRY_DELAY_MS)
                         }
                     }
                     if (bound == null) {
-                        AppLog.i("WirelessServer: stopped before port 5288 could be bound.")
+                        AppLog.i("WirelessServer: stopped before $hostLabel:5288 could be bound.")
                         return@launch
                     }
                     serverSocket = bound
+                    boundHost = bindHost
                     isListening = true
                     // A bind that worked ends the rebuild budget: the next failure, whenever it
                     // comes, is a fresh one and gets its own attempts.
                     lastWirelessRebuildAtMs = 0L
                     wirelessRebuildsInWindow = 0
                     wirelessRebuildWindowStartedAtMs = 0L
-                    AppLog.i("Wireless Server listening on port 5288")
+                    AppLog.i("Wireless Server listening on $hostLabel:5288")
                     logLocalNetworkInterfaces()
 
                     while (isActive) {
-                        AppLog.d("WirelessServer: Waiting for TCP connection on port 5288...")
+                        AppLog.d("WirelessServer: Waiting for TCP connection on $hostLabel:5288...")
                         val clientSocket = serverSocket?.accept() ?: break
                         AppLog.i("WirelessServer: Incoming connection detected from ${clientSocket.inetAddress}")
                         serviceScope.launch {
@@ -3297,6 +3410,7 @@ class AapService : Service(), UsbReceiver.Listener {
                     else AppLog.i("WirelessServer: port 5288 released (${e.javaClass.simpleName}).")
                 } finally {
                     isListening = false
+                    boundHost = null
                     unregisterNsd()
                     try { serverSocket?.close() } catch (e: Exception) {}
                 }

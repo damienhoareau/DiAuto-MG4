@@ -37,7 +37,12 @@ import java.util.*
 /**
  * Manages the official Android Auto Wireless Bluetooth handshake.
  * This class implements the RFCOMM server protocol to exchange WiFi credentials with the phone.
+ *
+ * Bluetooth APIs here require [android.Manifest.permission.BLUETOOTH_CONNECT]. Public entry
+ * points ([start], [triggerPoke], [manualPoke]) check that permission before opening sockets;
+ * Lint still flags every `device.name` / RFCOMM call site — suppressed at class scope.
  */
+@SuppressLint("MissingPermission")
 class NativeAaHandshakeManager(
     private val context: AapService,
     private val scope: CoroutineScope
@@ -218,12 +223,35 @@ class NativeAaHandshakeManager(
     // backoff, so a phone retrying every ~12 s does not repeat the long explanation each time.
     @Volatile private var loggedHandshakeBackoff = false
 
-    /** Polls until the AAP TCP port is bound, or [timeoutMs] passes. */
+    /**
+     * Polls until the AAP TCP port is bound on the SoftAP / P2P IP we are about to advertise
+     * (DiPlay: control listener on host address before Wi‑Fi credentials go out), or [timeoutMs]
+     * passes. A wildcard listener alone is not enough once [credentials] name a host IP.
+     */
     private suspend fun awaitWirelessServerListening(timeoutMs: Long): Boolean {
+        val advertisedIp = credentials?.ip
+        AppLog.i(
+            "NativeAA: Waiting up to ${timeoutMs}ms for TCP :5288 ready" +
+                (advertisedIp?.let { " on SoftAP $it" } ?: " (wildcard OK)") +
+                "."
+        )
         val deadline = SystemClock.elapsedRealtime() + timeoutMs
         while (true) {
-            if (context.isWirelessServerListening()) return true
-            if (SystemClock.elapsedRealtime() >= deadline) return false
+            if (context.isWirelessServerReadyFor(advertisedIp)) {
+                AppLog.i(
+                    "NativeAA: TCP :5288 ready" +
+                        (advertisedIp?.let { " on SoftAP $it" } ?: "") +
+                        " before Type 3."
+                )
+                return true
+            }
+            if (SystemClock.elapsedRealtime() >= deadline) {
+                AppLog.w(
+                    "NativeAA: TCP :5288 not SoftAP-ready after ${timeoutMs}ms " +
+                        "(want=${advertisedIp ?: "wildcard"}, listening=${context.isWirelessServerListening()})."
+                )
+                return false
+            }
             delay(250)
         }
     }
@@ -272,7 +300,6 @@ class NativeAaHandshakeManager(
     // deciding whether it's safe to force-reinit should check this instead of isActive() alone.
     fun isAttemptInFlight(): Boolean = isHandshakeInFlight() || pokeAttemptInFlight || isHandoffSettling()
 
-    @SuppressLint("MissingPermission")
     fun start() {
         if (isRunning) return
 
@@ -1246,7 +1273,12 @@ class NativeAaHandshakeManager(
             AppLog.i("NativeAA: Starting Handshake Exchange:")
             AppLog.i("  > Target SSID: $credSsid")
             AppLog.i("  > Target IP:   $credIp:5288")
-            AppLog.i("  > BSSID:       $credBssid")
+            AppLog.i("  > BSSID:       ${credBssid.ifEmpty { "<none>" }}")
+            AppLog.i("  > PSK length:  ${credPsk.length} (value not logged)")
+            AppLog.i(
+                "  > Listener:    ready=${context.isWirelessServerReadyFor(credIp)} " +
+                    "listening=${context.isWirelessServerListening()}"
+            )
 
             feed(WppEvent.CredentialsReady)
 
