@@ -284,6 +284,14 @@ class AapService : Service(), UsbReceiver.Listener {
     private val isSwitchingToAccessory = AtomicBoolean(false)
 
     /**
+     * True while a forced USB attach is tearing down a wireless session so AOA can proceed.
+     * [onDisconnected] must not re-init Native AA / SoftAP in that window — that was racing
+     * the USB connect after v1.6 made wireless handoff succeed more often.
+     */
+    @Volatile
+    private var preemptingWirelessForUsb = false
+
+    /**
      * Set when the phone sends VIDEO_FOCUS_NATIVE (user tapped "Exit" in AA).
      * Suppresses [scheduleReconnectIfNeeded] so we don't try to reconnect to a
      * stale dongle that hasn't re-enumerated yet.
@@ -1202,7 +1210,10 @@ class AapService : Service(), UsbReceiver.Listener {
             val strategy = settings.helperConnectionStrategy
 
             if (mode == 3) {
-                if (state.isUserExit) {
+                if (preemptingWirelessForUsb) {
+                    AppLog.i("AapService: Native AA disconnect during USB preempt — not re-initializing wireless.")
+                    nativeAaHandshakeManager?.stop()
+                } else if (state.isUserExit) {
                     AppLog.i("AapService: Native AA user exit. Stopping handshake manager.")
                     nativeAaHandshakeManager?.stop()
                 } else {
@@ -1211,7 +1222,9 @@ class AapService : Service(), UsbReceiver.Listener {
                     nativeAaHandshakeManager?.stop()
                     serviceScope.launch {
                         delay(1500) // Give hardware time to settle before re-initializing P2P
-                        initWifiMode(force = true)
+                        if (!preemptingWirelessForUsb && !isSwitchingToAccessory.get()) {
+                            initWifiMode(force = true)
+                        }
                     }
                 }
             }
@@ -2071,7 +2084,10 @@ class AapService : Service(), UsbReceiver.Listener {
             launchMainActivityIfNeeded("USB normal attach ($deviceName)")
             serviceScope.launch {
                 delay(USB_ATTACH_FALLBACK_DELAY_MS)
-                if (!commManager.isConnected && !isSwitchingToAccessory.get()) {
+                // Wireless Connected must not skip this — USB preempts SoftAP/P2P after v1.6.
+                if (!isSwitchingToAccessory.get() &&
+                    (!commManager.isConnected || commManager.isWirelessSession)
+                ) {
                     AppLog.i("UsbAttachedActivity didn't handle $deviceName. Trying from service...")
                     checkAlreadyConnectedUsb(force = true)
                 }
@@ -2195,6 +2211,24 @@ class AapService : Service(), UsbReceiver.Listener {
     }
 
     /**
+     * Tear down a live/in-progress wireless session so a cable attach can open AOA.
+     * Native AA already aborts when USB is up; the reverse was missing after v1.6 SoftAP
+     * made wireless stay Connected/Connecting and silently block [checkAlreadyConnectedUsb].
+     */
+    private suspend fun preemptWirelessForUsb() {
+        AppLog.i(
+            "AapService: Preempting wireless for USB attach " +
+                "(state=${commManager.connectionState.value}, wireless=${commManager.isWirelessSession})"
+        )
+        nativeAaHandshakeManager?.stop()
+        if (commManager.isBusy) {
+            commManager.disconnect(sendByeBye = false, isUserExit = false)
+            commManager.awaitDisconnectComplete()
+        }
+        delay(200)
+    }
+
+    /**
      * Scans currently connected USB devices and connects to any that are already in
      * Android Open Accessory (AOA) mode, or attempts to switch a known device into AOA mode.
      *
@@ -2202,17 +2236,45 @@ class AapService : Service(), UsbReceiver.Listener {
      *              called in response to an actual USB attach event or from [UsbAttachedActivity],
      *              because the user has explicitly plugged in a device. Use `false` (default)
      *              for the startup scan in [onCreate].
+     * @param afterWirelessPreempt Internal: second pass after [preemptWirelessForUsb].
      */
-    private fun checkAlreadyConnectedUsb(force: Boolean = false) {
+    private fun checkAlreadyConnectedUsb(force: Boolean = false, afterWirelessPreempt: Boolean = false) {
         val settings = App.provide(this).settings
         val lastSession = settings.autoConnectLastSession
         val singleUsb = settings.autoConnectSingleUsbDevice
         val usbAutoStart = settings.autoStartOnUsb
 
         if (!force && !lastSession && !singleUsb && !usbAutoStart) return
-        if (commManager.isConnected ||
-            commManager.connectionState.value is CommManager.ConnectionState.Connecting ||
-            isSwitchingToAccessory.get()) return
+        if (isSwitchingToAccessory.get()) return
+
+        // USB projection already running — leave it alone.
+        if (commManager.isConnected && !commManager.isWirelessSession) return
+
+        if (commManager.isBusy) {
+            if (!force) return
+            if (afterWirelessPreempt) {
+                AppLog.w("AapService: Still busy after wireless preempt — skipping USB this pass.")
+                preemptingWirelessForUsb = false
+                return
+            }
+            serviceScope.launch {
+                preemptingWirelessForUsb = true
+                try {
+                    preemptWirelessForUsb()
+                    checkAlreadyConnectedUsb(force = true, afterWirelessPreempt = true)
+                } finally {
+                    // If USB did not take over, put Native AA / SoftAP bring-up back.
+                    if (!commManager.isBusy && !isSwitchingToAccessory.get()) {
+                        preemptingWirelessForUsb = false
+                        AppLog.i("AapService: USB did not connect after preempt — restoring wireless bring-up.")
+                        initWifiMode(force = true)
+                    } else {
+                        preemptingWirelessForUsb = false
+                    }
+                }
+            }
+            return
+        }
 
         val usbManager = getSystemService(Context.USB_SERVICE) as UsbManager
         val deviceList = usbManager.deviceList.values.filter { UsbDeviceCompat.isAndroidDevice(it) }
@@ -3394,8 +3456,11 @@ class AapService : Service(), UsbReceiver.Listener {
                         val clientSocket = serverSocket?.accept() ?: break
                         AppLog.i("WirelessServer: Incoming connection detected from ${clientSocket.inetAddress}")
                         serviceScope.launch {
-                            if (commManager.isConnected) {
-                                AppLog.w("WirelessServer: Already connected, dropping client from ${clientSocket.inetAddress}")
+                            if (commManager.isBusy || isSwitchingToAccessory.get() || preemptingWirelessForUsb) {
+                                AppLog.w(
+                                    "WirelessServer: Busy/USB-preempt, dropping client from " +
+                                        "${clientSocket.inetAddress} (state=${commManager.connectionState.value})"
+                                )
                                 withContext(Dispatchers.IO) {
                                     try { clientSocket.close() } catch (e: Exception) {}
                                 }

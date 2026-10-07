@@ -89,7 +89,12 @@ class UsbAttachedActivity : Activity() {
         val settings = if (!isLocked) Settings(this) else null
 
         if (!isLocked) {
-            if (App.provide(this).commManager.connectionState.value is CommManager.ConnectionState.TransportStarted) {
+            val comm = App.provide(this).commManager
+            // Only block when USB projection is already up. A wireless TransportStarted must
+            // yield to cable — AapService preempts SoftAP/P2P on ACTION_CHECK_USB.
+            if (comm.connectionState.value is CommManager.ConnectionState.TransportStarted &&
+                !comm.isWirelessSession
+            ) {
                 AppLog.e("Thread already running")
                 finish()
                 return
