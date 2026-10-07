@@ -216,10 +216,24 @@ class SoftApNetworkPolicyTest {
     fun `cellular and numbered Ethernet interfaces never stand in for an automatic hotspot`() {
         for (name in listOf(
             "eth0", "eth12", "eth0.7", "eth0.12", "eth0.3", "eth0.4", "eth0.1", "eth0.11",
-            "ccmni0", "ccmni1", "rmnet_data0", "briotgw"
+            "ccmni0", "ccmni1", "rmnet_data0", "briotgw", "tbox0", "tbox1"
         )) {
             assertFalse(name, SoftApNetworkPolicy.isApHost(iface(name)))
         }
+        // Skipperjonce SWI133: hotspot ENABLED still must not advertise the T-Box bridge.
+        assertNull(
+            SoftApNetworkPolicy.pickApInterface(
+                listOf(iface("tbox0"), iface("wlan0", ipv4 = "192.168.1.55")),
+                stationIpv4 = "192.168.1.55"
+            )
+        )
+        assertEquals(
+            "ap0",
+            SoftApNetworkPolicy.pickApInterface(
+                listOf(iface("tbox0"), iface("wlan0", ipv4 = "192.168.1.55"), iface("ap0")),
+                stationIpv4 = "192.168.1.55"
+            )?.name
+        )
         assertEquals("ra0", SoftApNetworkPolicy.pickApInterface(listOf(iface("eth0"), iface("ra0")))?.name)
         // SAIC MG4: VLAN eth aliases are up before ap0; they must not win over a real AP.
         assertEquals(

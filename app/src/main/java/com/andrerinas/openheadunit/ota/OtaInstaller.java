@@ -111,7 +111,7 @@ final class OtaInstaller {
 
     private static void installWithPm(File apk) throws Exception {
         // -r replace, -d allow downgrade (test builds), -t allow test packages if present
-        Process process = new ProcessBuilder(
+        java.lang.Process process = new ProcessBuilder(
                 "pm", "install", "-r", "-d", "-t", apk.getAbsolutePath()
         ).redirectErrorStream(true).start();
 

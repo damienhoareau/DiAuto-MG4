@@ -53,7 +53,12 @@ object SoftApNetworkPolicy {
      * needed extending three times. [NativeCredentialsPolicy.shouldPublishCredentials] is the
      * defence that does not depend on knowing every name in advance.
      */
-    private val EXCLUDED_PREFIXES = listOf("p2p-", "tun", "dummy", "apcli", "sta", "seth_lte", "ccmni", "rmnet")
+    // `tbox*` is the SAIC telematics modem bridge (Skipperjonce / SWI133 report): always up with a
+    // private IPv4, never the soft AP. Same failure class as seth_lte / ccmni — publish it and the
+    // phone joins Wi‑Fi then cannot reach the projection socket.
+    private val EXCLUDED_PREFIXES = listOf(
+        "p2p-", "tun", "dummy", "apcli", "sta", "seth_lte", "ccmni", "rmnet", "tbox"
+    )
     // BYD/SAIC wired/modem interfaces are already up when its hotspot is still starting. A global
     // ENABLED state does not make eth0 the AP. Match numbered Ethernet names and VLAN aliases
     // (eth0.7, eth0.12, … on SAIC MG4), leaving unusual vendor AP names such as eth_ap available;
