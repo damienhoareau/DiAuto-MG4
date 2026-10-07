@@ -150,17 +150,7 @@ class MainActivity : BaseActivity() {
         if (com.evsuite.hardware.diag.CrashLogger.hasReport(this)) {
             val report = com.evsuite.hardware.diag.CrashLogger.read(this)
             AppLog.e("Previous crash report:\n$report")
-            runCatching {
-                androidx.appcompat.app.AlertDialog.Builder(this)
-                    .setTitle("Son Çökme Raporu (Crash Report)")
-                    .setMessage(report?.take(2000) ?: "Çökme detayı alınamadı.")
-                    .setPositiveButton("Tamam") { d, _ -> d.dismiss() }
-                    .setNeutralButton("Raporu Temizle") { d, _ ->
-                        com.evsuite.hardware.diag.CrashLogger.clear(this)
-                        d.dismiss()
-                    }
-                    .show()
-            }
+            showCrashReportDialog(report)
         }
 
         val appSettings = Settings(this)
@@ -855,6 +845,56 @@ class MainActivity : BaseActivity() {
             )
         } else {
             AppLog.d("All required permissions already granted.")
+        }
+    }
+
+    private fun showCrashReportDialog(report: String?) {
+        val preview = report?.take(2000) ?: getString(R.string.crash_report_empty)
+        runCatching {
+            val dialog = com.google.android.material.dialog.MaterialAlertDialogBuilder(this, R.style.DarkAlertDialog)
+                .setTitle(R.string.crash_report_title)
+                .setMessage(preview)
+                .setPositiveButton(R.string.crash_report_send, null)
+                .setNeutralButton(R.string.crash_report_clear) { d, _ ->
+                    com.evsuite.hardware.diag.CrashLogger.clear(this)
+                    d.dismiss()
+                }
+                .setNegativeButton(R.string.close, null)
+                .create()
+
+            dialog.setOnShowListener {
+                val sendButton = dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)
+                sendButton.setOnClickListener {
+                    if (report.isNullOrBlank()) {
+                        Toast.makeText(this, R.string.crash_report_empty, Toast.LENGTH_SHORT).show()
+                        return@setOnClickListener
+                    }
+                    sendButton.isEnabled = false
+                    Toast.makeText(this, R.string.crash_report_sending, Toast.LENGTH_SHORT).show()
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        val result = com.andrerinas.openheadunit.diag.CrashReportSender.send(report)
+                        launch(Dispatchers.Main) {
+                            if (result.ok) {
+                                com.evsuite.hardware.diag.CrashLogger.clear(this@MainActivity)
+                                Toast.makeText(
+                                    this@MainActivity,
+                                    R.string.crash_report_sent,
+                                    Toast.LENGTH_LONG
+                                ).show()
+                                dialog.dismiss()
+                            } else {
+                                sendButton.isEnabled = true
+                                Toast.makeText(
+                                    this@MainActivity,
+                                    R.string.crash_report_send_failed,
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                        }
+                    }
+                }
+            }
+            dialog.show()
         }
     }
 

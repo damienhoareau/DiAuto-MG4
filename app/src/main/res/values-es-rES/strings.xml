@@ -990,4 +990,12 @@
     <string name="audio_queue_backlog">Unbounded (Max backlog)</string>
     <string name="keymap_test_hint">Press any key to test…</string>
     <string name="keymap_test_event">Key: %1$s (%2$d) · %3$s</string>
+
+    <string name="crash_report_title">Previous crash report</string>
+    <string name="crash_report_empty">No crash details available.</string>
+    <string name="crash_report_send">Send</string>
+    <string name="crash_report_clear">Clear</string>
+    <string name="crash_report_sending">Sending report…</string>
+    <string name="crash_report_sent">Report sent. Thank you.</string>
+    <string name="crash_report_send_failed">Could not send the report. Check internet and try again.</string>
 </resources>

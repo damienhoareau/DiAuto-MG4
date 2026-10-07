@@ -82,6 +82,30 @@ android {
         // This is scanned at build time from values-XX directories
         buildConfigField("String", "AVAILABLE_LOCALES", "\"${availableLocales.joinToString(",")}\"")
 
+        // Crash "Send" → Telegram (baked in at build; head-unit user never sees this).
+        // local.properties (gitignored): TELEGRAM_BOT_TOKEN=...  TELEGRAM_CHAT_ID=...
+        val localProps = Properties().apply {
+            val f = rootProject.file("local.properties")
+            if (f.exists()) load(FileInputStream(f))
+        }
+        fun propOrEnv(key: String, default: String = ""): String =
+            localProps.getProperty(key)
+                ?: (project.findProperty(key) as? String)
+                ?: System.getenv(key)
+                ?: default
+        fun escapeBuildConfig(value: String): String =
+            value.replace("\\", "\\\\").replace("\"", "\\\"")
+        buildConfigField(
+            "String",
+            "TELEGRAM_BOT_TOKEN",
+            "\"${escapeBuildConfig(propOrEnv("TELEGRAM_BOT_TOKEN"))}\""
+        )
+        buildConfigField(
+            "String",
+            "TELEGRAM_CHAT_ID",
+            "\"${escapeBuildConfig(propOrEnv("TELEGRAM_CHAT_ID"))}\""
+        )
+
         // MG4 HU uses 64-bit userspace on this unit; ship arm64 only.
         ndk {
             abiFilters += listOf("arm64-v8a")

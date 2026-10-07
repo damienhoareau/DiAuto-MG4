@@ -308,6 +308,13 @@
     <string name="about">Hakkında &amp; Destek</string>
     <string name="about_description">Open Headunit hakkında daha fazla bilgi alın</string>
     <string name="version">Sürüm</string>
+    <string name="crash_report_title">Son çökme raporu</string>
+    <string name="crash_report_empty">Çökme detayı alınamadı.</string>
+    <string name="crash_report_send">Gönder</string>
+    <string name="crash_report_clear">Temizle</string>
+    <string name="crash_report_sending">Rapor gönderiliyor…</string>
+    <string name="crash_report_sent">Rapor gönderildi. Teşekkürler.</string>
+    <string name="crash_report_send_failed">Rapor gönderilemedi. İnterneti kontrol edip tekrar dene.</string>
     <string name="check_ota_beta">Beta sürümleri de kontrol et</string>
     <string name="check_ota_beta_description">Güncelleme kontrolünde GitHub ön sürümlerini de dahil et.</string>
     <string name="btn_ota_check">Güncelleme kontrol et</string>
