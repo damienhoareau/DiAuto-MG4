@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.andrerinas.openheadunit.R
@@ -159,7 +160,8 @@ class SoftApCredentialsProvider(
             return
         }
         isRunning = true
-        runStartedAt = System.currentTimeMillis()
+        // elapsedRealtime survives head-unit wall-clock jumps (seen as "after 245014311s").
+        runStartedAt = SystemClock.elapsedRealtime()
         triedAutoEnable = false
         reportedConfigUnreadable = false
         reportedBudgetExhausted = false
@@ -232,9 +234,9 @@ class SoftApCredentialsProvider(
         onInvalidated?.invoke()
         reportedNoInterface = false
         resolveJob = scope.launch(Dispatchers.IO + CoroutineName("SoftApCredentials-Resolve")) {
-            val deadline = System.currentTimeMillis() + RESOLVE_BUDGET_MS
+            val deadline = SystemClock.elapsedRealtime() + RESOLVE_BUDGET_MS
 
-            while (isActive && isRunning && System.currentTimeMillis() < deadline) {
+            while (isActive && isRunning && SystemClock.elapsedRealtime() < deadline) {
                 val chosen = pickApInterface()
                 val apName = chosen?.iface?.name ?: "the access point"
                 when (if (chosen == null) SoftApCredentialsAttempt.NO_AP_YET else publish(chosen, generation)) {
@@ -264,7 +266,7 @@ class SoftApCredentialsProvider(
                     SoftApCredentialsAttempt.NO_AP_YET -> {
                         // Nothing on air yet, which is exactly what auto-enable is for. Reached only
                         // here, so an access point that is up but unreadable never triggers it.
-                        val waited = System.currentTimeMillis() - runStartedAt
+                        val waited = SystemClock.elapsedRealtime() - runStartedAt
                         reportBudgetExhaustedOnce(waited)
                         if (!triedAutoEnable && waited >= AUTO_ENABLE_AFTER_MS && settings.autoEnableHotspot) {
                             triedAutoEnable = true
@@ -279,7 +281,7 @@ class SoftApCredentialsProvider(
             }
 
             if (isActive && isRunning) {
-                reportBudgetExhaustedOnce(System.currentTimeMillis() - runStartedAt, force = true)
+                reportBudgetExhaustedOnce(SystemClock.elapsedRealtime() - runStartedAt, force = true)
                 invalidateIfCurrent(generation)
             }
         }

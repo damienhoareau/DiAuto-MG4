@@ -17,16 +17,19 @@ import com.andrerinas.openheadunit.connection.UsbDeviceCompat
 
 class Settings(private val context: Context) {
 
-    private val _prefs: SharedPreferences? by lazy {
-        try {
-            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        } catch (e: Exception) {
-            null
-        }
-    }
-
+    // Do not cache a failed open: Direct Boot can create Settings before unlock, and a
+    // one-shot null would keep failing after the user unlocks for the rest of the process.
     private val prefs: SharedPreferences
-        get() = _prefs ?: throw IllegalStateException("SharedPreferences in credential encrypted storage are not available until after user is unlocked")
+        get() {
+            try {
+                return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            } catch (e: Exception) {
+                throw IllegalStateException(
+                    "SharedPreferences in credential encrypted storage are not available until after user is unlocked",
+                    e
+                )
+            }
+        }
 
     fun isConnectingDevice(deviceCompat: UsbDeviceCompat): Boolean {
         val allowDevices = prefs.getStringSet("allow-devices", null) ?: return false

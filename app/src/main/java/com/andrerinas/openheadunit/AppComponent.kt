@@ -14,7 +14,19 @@ import com.andrerinas.openheadunit.utils.Settings
 class AppComponent(private val app: App) {
 
     val settings = Settings(app)
-    val videoDecoder = VideoDecoder(settings, DeviceMemoryProfile.readWithOverride(app, settings.debugForceMemoryProfile))
+    val videoDecoder = VideoDecoder(
+        settings,
+        DeviceMemoryProfile.readWithOverride(
+            app,
+            // Direct Boot can still reach here if a caller forces component creation early.
+            // Prefer measuring memory over crashing the process for a debug-only override.
+            try {
+                settings.debugForceMemoryProfile
+            } catch (_: IllegalStateException) {
+                null
+            }
+        )
+    )
     val audioDecoder = AudioDecoder()
 
     val notificationManager: NotificationManager

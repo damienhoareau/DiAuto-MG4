@@ -46,14 +46,17 @@ class App : Application() {
             ConscryptInitializer.initialize()
         }
 
-        // A platform-signed car build already has the system identity it needs. Avoid
-        // eagerly constructing the root/Shizuku stack before the first Activity on
-        // vendor Android 9; ordinary phone builds retain the original behaviour.
-        if (Process.myUid() != Process.SYSTEM_UID) {
-            component.suExecutor.register()
-        }
-
+        // Never touch AppComponent / credential-encrypted SharedPreferences while the user
+        // profile is still locked. Boot receivers are directBootAware; constructing Settings
+        // here used to crash the whole process with IllegalStateException before unlock.
         if (isUserUnlocked()) {
+            // A platform-signed car build already has the system identity it needs. Avoid
+            // eagerly constructing the root/Shizuku stack before the first Activity on
+            // vendor Android 9; ordinary phone builds retain the original behaviour.
+            if (Process.myUid() != Process.SYSTEM_UID) {
+                component.suExecutor.register()
+            }
+
             val settings = Settings(this) // Create a Settings instance
             AppLog.init(settings, this) // Initialize AppLog with settings for conditional logging
 
@@ -94,22 +97,27 @@ class App : Application() {
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // Use the system service directly so Direct Boot never forces AppComponent
+            // (and therefore Settings) into existence before the user is unlocked.
+            val notificationManager =
+                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
             val serviceChannel = NotificationChannel(defaultChannel, "Headunit Service", NotificationManager.IMPORTANCE_LOW)
             serviceChannel.description = "Persistent service notification"
             serviceChannel.setShowBadge(false)
-            component.notificationManager.createNotificationChannel(serviceChannel)
+            notificationManager.createNotificationChannel(serviceChannel)
 
             val mediaChannel = NotificationChannel(BackgroundNotification.mediaChannel, "Media Playback", NotificationManager.IMPORTANCE_LOW)
             mediaChannel.setSound(null, null)
             mediaChannel.setShowBadge(false)
-            component.notificationManager.createNotificationChannel(mediaChannel)
+            notificationManager.createNotificationChannel(mediaChannel)
 
             AapNavigation.createNotificationChannel(this)
 
             val bootChannel = NotificationChannel(bootStartChannel, "Boot Auto-Start", NotificationManager.IMPORTANCE_HIGH)
             bootChannel.description = "Shown once after boot to open the app"
             bootChannel.setShowBadge(false)
-            component.notificationManager.createNotificationChannel(bootChannel)
+            notificationManager.createNotificationChannel(bootChannel)
         }
 
         // Register the main broadcast receiver safely for Android 14+ using ContextCompat

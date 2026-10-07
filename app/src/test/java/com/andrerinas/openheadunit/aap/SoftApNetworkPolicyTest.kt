@@ -214,10 +214,29 @@ class SoftApNetworkPolicyTest {
 
     @Test
     fun `cellular and numbered Ethernet interfaces never stand in for an automatic hotspot`() {
-        for (name in listOf("eth0", "eth12", "ccmni0", "ccmni1", "rmnet_data0", "briotgw")) {
+        for (name in listOf(
+            "eth0", "eth12", "eth0.7", "eth0.12", "eth0.3", "eth0.4", "eth0.1", "eth0.11",
+            "ccmni0", "ccmni1", "rmnet_data0", "briotgw"
+        )) {
             assertFalse(name, SoftApNetworkPolicy.isApHost(iface(name)))
         }
         assertEquals("ra0", SoftApNetworkPolicy.pickApInterface(listOf(iface("eth0"), iface("ra0")))?.name)
+        // SAIC MG4: VLAN eth aliases are up before ap0; they must not win over a real AP.
+        assertEquals(
+            "ap0",
+            SoftApNetworkPolicy.pickApInterface(
+                listOf(
+                    iface("eth0.7"), iface("eth0.12"), iface("eth0.3"),
+                    iface("wlan0", ipv4 = "192.168.1.55"), iface("ap0")
+                ),
+                stationIpv4 = "192.168.1.55"
+            )?.name
+        )
+        assertNull(
+            SoftApNetworkPolicy.pickApInterface(
+                listOf(iface("eth0.7"), iface("eth0.12"), iface("eth0.3"), iface("eth0.4"), iface("eth0.1"))
+            )
+        )
     }
 
     @Test

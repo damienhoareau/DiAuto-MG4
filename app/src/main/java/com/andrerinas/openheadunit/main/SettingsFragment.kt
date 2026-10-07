@@ -210,22 +210,6 @@ class SettingsFragment : Fragment() {
 
         settings = App.provide(requireContext()).settings
 
-        if (otaStatusText.isEmpty()) {
-            otaStatusText = getString(R.string.ota_status_idle)
-        }
-        if (otaController == null) {
-            otaController = OtaController(requireActivity()).also { controller ->
-                otaAllowBeta = controller.isAllowBeta
-                controller.setStatusListener { text, available, _ ->
-                    if (!isAdded) return@setStatusListener
-                    otaStatusText = text
-                    otaUpdateAvailable = available
-                    updateSettingsList()
-                }
-                controller.bindWithoutViews()
-            }
-        }
-
         // Initialize local state with current values
         pendingUseGps = settings.useGpsForNavigation
         pendingBydNavigationEnabled = settings.bydNavigationEnabled
@@ -308,6 +292,24 @@ class SettingsFragment : Fragment() {
         settingsRecyclerView = view.findViewById(R.id.settingsRecyclerView)
         settingsRecyclerView.layoutManager = LinearLayoutManager(requireContext())
         settingsRecyclerView.adapter = settingsAdapter
+
+        // OTA bind calls the status listener synchronously. That used to run before the
+        // RecyclerView existed and crashed Settings with UninitializedPropertyAccessException.
+        if (otaStatusText.isEmpty()) {
+            otaStatusText = getString(R.string.ota_status_idle)
+        }
+        if (otaController == null) {
+            otaController = OtaController(requireActivity()).also { controller ->
+                otaAllowBeta = controller.isAllowBeta
+                controller.setStatusListener { text, available, _ ->
+                    if (!isAdded || !::settingsRecyclerView.isInitialized) return@setStatusListener
+                    otaStatusText = text
+                    otaUpdateAvailable = available
+                    updateSettingsList()
+                }
+                controller.bindWithoutViews()
+            }
+        }
 
         setupTabsAndSearch(view)
 
@@ -687,6 +689,7 @@ class SettingsFragment : Fragment() {
         if (budget == VideoFaultInjector.UNLIMITED_BUDGET) "Whole session" else "$budget faults"
 
     private fun updateSettingsList() {
+        if (!::settingsRecyclerView.isInitialized) return
         val app = App.provide(requireContext())
         val scrollState = settingsRecyclerView.layoutManager?.onSaveInstanceState()
         val items = mutableListOf<SettingItem>()

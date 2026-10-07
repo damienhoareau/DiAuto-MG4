@@ -54,10 +54,11 @@ object SoftApNetworkPolicy {
      * defence that does not depend on knowing every name in advance.
      */
     private val EXCLUDED_PREFIXES = listOf("p2p-", "tun", "dummy", "apcli", "sta", "seth_lte", "ccmni", "rmnet")
-    // BYD's wired/modem interfaces are already up when its hotspot is still starting. A global
-    // ENABLED state does not make eth0 the AP. Match numbered Ethernet names, leaving unusual
-    // vendor AP names such as eth_ap available; an explicit override also bypasses this guess.
-    private val ETHERNET_NAME = Regex("eth[0-9]+")
+    // BYD/SAIC wired/modem interfaces are already up when its hotspot is still starting. A global
+    // ENABLED state does not make eth0 the AP. Match numbered Ethernet names and VLAN aliases
+    // (eth0.7, eth0.12, … on SAIC MG4), leaving unusual vendor AP names such as eth_ap available;
+    // an explicit override also bypasses this guess.
+    private val ETHERNET_NAME = Regex("eth[0-9]+(\\.[0-9]+)*")
 
     /**
      * The interface most likely to be our access point, or null if none qualifies. Must be up and

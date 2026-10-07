@@ -38,6 +38,11 @@ internal object DiagnosticExportStore {
     fun write(resolver: ContentResolver, uri: Uri, report: String) {
         val stream = resolver.openOutputStream(uri, "wt")
             ?: throw IOException("Report destination is unavailable")
-        stream.bufferedWriter(Charsets.UTF_8).use { it.write(report) }
+        // UTF-8 with BOM so Windows Notepad recognises the encoding instead of showing
+        // mojibake / refusing to open after the report is shared from the head unit.
+        stream.bufferedWriter(Charsets.UTF_8).use { writer ->
+            writer.write("\uFEFF")
+            writer.write(report)
+        }
     }
 }

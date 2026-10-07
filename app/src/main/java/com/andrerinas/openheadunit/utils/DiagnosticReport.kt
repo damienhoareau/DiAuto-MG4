@@ -6,6 +6,18 @@ import java.util.ArrayDeque
 
 /** Small, shareable report. Never exports saved credentials or raw protocol payloads. */
 object DiagnosticReport {
+    /** Replace characters that commonly break plain Notepad / chat-app transfers. */
+    private fun sanitizeForEditors(line: String): String =
+        line
+            .replace("\u2014", "-") // em dash
+            .replace("\u2013", "-") // en dash
+            .replace("\u00B7", "-") // middle dot
+            .replace("\u2026", "...") // ellipsis
+            .replace("\u2018", "'")
+            .replace("\u2019", "'")
+            .replace("\u201C", "\"")
+            .replace("\u201D", "\"")
+
     fun build(context: Context): String {
         val settings = Settings(context)
         val ssid = settings.hotspotSsid
@@ -33,7 +45,9 @@ object DiagnosticReport {
             } finally { process.destroy() }
         }
         return buildString {
-            appendLine("DiAuto ${context.packageManager.getPackageInfo(context.packageName, 0).versionName} · diagnostic report")
+            // ASCII punctuation only: some Windows Notepad / OEM viewers choke on middle-dot
+            // and em-dash bytes when the file is shared through chat apps.
+            appendLine("DiAuto ${context.packageManager.getPackageInfo(context.packageName, 0).versionName} - diagnostic report")
             appendLine("Android=${Build.VERSION.RELEASE}; API=${Build.VERSION.SDK_INT}")
             appendLine("Head unit: ${Build.MANUFACTURER} ${Build.MODEL}; board=${Build.BOARD}; build=${Build.DISPLAY}")
             appendLine("Wireless mode=${settings.wifiConnectionMode}; native transport=${settings.nativeApTransport}")
@@ -43,7 +57,7 @@ object DiagnosticReport {
             appendLine("Saved credentials, network addresses and protocol payloads are omitted.")
             appendLine("--- Recent app logs (up to 6000 lines) ---")
             if (lines.isEmpty()) appendLine("No recent app logs available. Reproduce the issue and save a new report.")
-            lines.forEach { appendLine(it) }
+            lines.forEach { appendLine(sanitizeForEditors(it)) }
         }
     }
 }
