@@ -562,7 +562,7 @@
     <string name="exit_dialog_stop">Bağlantıyı Durdur</string>
     <string name="exit_dialog_pip">Resim içinde Resim (PiP)</string>
     <string name="exit_dialog_background">Arka Plana Al</string>
-    <string name="gesture_hint">İpucu: Çıkış menüsünü açmak için sol kenardan 2 parmağınızla kaydırın.</string>
+    <string name="gesture_hint">İpucu: Sol kenardan 2 parmak çıkış menüsünü, 3 parmak aşağı kaydırma ana ekrana döner.</string>
     <string name="audio_latency_multiplier">Ses Gecikme Çarpanı</string>
     <string name="audio_latency_multiplier_description">Ses tampon boyutunu ayarlar (Düşük = Daha az gecikme, Yüksek = Daha az takılma)</string>
     <string name="audio_queue_capacity">Ses Kuyruğu Kapasitesi (Backpressure)</string>

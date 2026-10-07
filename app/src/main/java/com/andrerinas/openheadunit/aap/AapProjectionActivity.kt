@@ -88,6 +88,11 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
     private var initialY = 0f
     private var isPotentialGesture = false
 
+    // 3-finger swipe-down → return to DiAuto main screen
+    private var threeFingerInitialX = 0f
+    private var threeFingerInitialY = 0f
+    private var isPotentialThreeFingerSwipe = false
+
     // Activity-local override for fullscreen mode. If non-null, setFullscreen() will use this
     // instead of persisting to Settings. This keeps toggles local to the Activity lifecycle.
     private var activityFullscreenOverride: Settings.FullscreenMode? = null
@@ -1387,9 +1392,19 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
     }
 
     private fun showQuickSettings() {
-        // We will implement QuickSettingsFragment as a DialogFragment for easy overlay
+        if (supportFragmentManager.findFragmentByTag("quick_settings") != null) return
         val quickSettings = com.andrerinas.openheadunit.main.QuickSettingsFragment()
         quickSettings.show(supportFragmentManager, "quick_settings")
+    }
+
+    private fun returnToMainScreen() {
+        commManager.disconnect(sendByeBye = true)
+        startActivity(
+            Intent(this, com.andrerinas.openheadunit.main.MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            }
+        )
+        finish()
     }
 
     private fun enterPiP() {
@@ -1464,6 +1479,7 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
         // 1. 2-finger swipe detection from the left or right edge (to open exit menu or toggle fullscreen)
         if (ev.pointerCount == 2) {
+            isPotentialThreeFingerSwipe = false
             when (ev.actionMasked) {
                 MotionEvent.ACTION_POINTER_DOWN -> {
                     initialX = ev.getX(0)
@@ -1497,7 +1513,44 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
             }
         }
 
-        // 2. Legacy Touch handling for older devices (API < 19)
+        // 2. 3-finger swipe down → disconnect and return to DiAuto main screen
+        if (ev.pointerCount >= 3) {
+            isPotentialGesture = false
+            when (ev.actionMasked) {
+                MotionEvent.ACTION_POINTER_DOWN -> {
+                    if (ev.pointerCount == 3) {
+                        threeFingerInitialX = ev.getX(0)
+                        threeFingerInitialY = ev.getY(0)
+                        isPotentialThreeFingerSwipe = true
+                    }
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    if (isPotentialThreeFingerSwipe) {
+                        val deltaY = ev.getY(0) - threeFingerInitialY
+                        val deltaX = abs(ev.getX(0) - threeFingerInitialX)
+                        if (deltaY > 200 && deltaX < 150) {
+                            isPotentialThreeFingerSwipe = false
+                            returnToMainScreen()
+                            return true
+                        }
+                    }
+                }
+                MotionEvent.ACTION_UP,
+                MotionEvent.ACTION_CANCEL -> {
+                    isPotentialThreeFingerSwipe = false
+                }
+            }
+        } else if (ev.pointerCount < 3) {
+            when (ev.actionMasked) {
+                MotionEvent.ACTION_UP,
+                MotionEvent.ACTION_CANCEL,
+                MotionEvent.ACTION_POINTER_UP -> {
+                    isPotentialThreeFingerSwipe = false
+                }
+            }
+        }
+
+        // 3. Legacy Touch handling for older devices (API < 19)
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) {
             sendTouchEvent(ev)
         }
