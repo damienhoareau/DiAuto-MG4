@@ -21,6 +21,7 @@ import com.andrerinas.openheadunit.aap.SoftApState
 import com.andrerinas.openheadunit.utils.AppLog
 import com.andrerinas.openheadunit.utils.HotspotConfigReader
 import com.andrerinas.openheadunit.utils.HotspotManager
+import com.andrerinas.openheadunit.utils.InterfaceMacReader
 import com.andrerinas.openheadunit.utils.NetworkAddresses
 import com.andrerinas.openheadunit.utils.Settings
 import com.andrerinas.openheadunit.utils.SoftApStateReader
@@ -454,22 +455,33 @@ class SoftApCredentialsProvider(
             AppLog.i("SoftApCredentials: This device does not let apps read the hotspot state; proceeding without confirming the access point is up.")
         }
 
-        // DiPlay ManualHotspotManager forces hardwareAddress=null on MG SoftAP (MT2712 denies
-        // SIOCGIFHWADDR). Guessed sysfs / IPv6-derived MACs can look valid and then fail as
-        // WIFI_INVALID_BSSID. Only the user's static BSSID override is trusted here; empty is
-        // allowed on HOTSPOT (NativeCredentialsPolicy.SEND_WITH_EMPTY_BSSID).
+        // Android Auto requires a BSSID in Type 3 (Paul / Pixel 8 Pro: empty BSSID → status=-3).
+        // DiPlay can omit it on CarPlay; AA cannot. Prefer real ap0 MAC from sysfs / hardware /
+        // IPv6 EUI-64; static override first. SoftAP IPv4 bind stays DiPlay-style separately.
+        val shellMac = InterfaceMacReader.read(iface.name)
+        val hardwareAddress = hardwareAddressOf(iface.name)
+        val ipv6DerivedMac = P2pInterfaceBssid.read(iface.name)
+        val bssidSource = when {
+            SoftApBssidPolicy.isUsable(settings.staticBSSID) -> "static"
+            SoftApBssidPolicy.isUsable(shellMac) -> "sysfs"
+            SoftApBssidPolicy.isUsable(hardwareAddress) -> "hardware"
+            SoftApBssidPolicy.isUsable(ipv6DerivedMac) -> "ipv6-eui64"
+            else -> "none"
+        }
         val bssid = SoftApBssidPolicy.choose(
             staticOverride = settings.staticBSSID,
-            shellMac = null,
-            hardwareAddress = null,
-            ipv6DerivedMac = null,
+            shellMac = shellMac,
+            hardwareAddress = hardwareAddress,
+            ipv6DerivedMac = ipv6DerivedMac,
         )
-        AppLog.i("SoftApCredentials: AP address resolution ${if (bssid.isEmpty()) "unavailable" else "ready"} on ${iface.name}")
+        AppLog.i(
+            "SoftApCredentials: AP BSSID ${if (bssid.isEmpty()) "unavailable" else "ready"} " +
+                "on ${iface.name} source=$bssidSource"
+        )
         if (bssid.isEmpty()) {
-            // Not fatal on this route — see NativeCredentialsPolicy. The handshake decides.
             AppLog.w(
-                "SoftApCredentials: No SoftAP BSSID (DiPlay omits it on MG SoftAP). " +
-                    "Set a BSSID in Advanced settings if the phone rejects the join."
+                "SoftApCredentials: No SoftAP BSSID for ${iface.name}. " +
+                    "Android Auto usually refuses join (status=-3); set static BSSID in Advanced settings."
             )
         }
 
@@ -485,4 +497,10 @@ class SoftApCredentialsProvider(
         }
     }
 
+    private fun hardwareAddressOf(name: String): String? = try {
+        NetworkInterface.getByName(name)?.hardwareAddress
+            ?.joinToString(":") { String.format("%02x", it) }
+    } catch (_: Exception) {
+        null
+    }
 }
