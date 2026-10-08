@@ -268,6 +268,7 @@
     <string name="auto_connecting_single_usb">USB cihazına otomatik bağlanılıyor…</string>
     <string name="video_codec">Video Kodeği</string>
     <string name="fps_limit">FPS Sınırı</string>
+    <string name="video_profile_unsupported_toast">Bu ünitenin decoder’ı %1$s @ %2$d fps için yetersiz olabilir. Video koparsa Video ayarlarından FPS Limit’i 30 yapın veya çözünürlüğü düşürün.</string>
     <string name="save">Kaydet</string>
     <string name="save_and_restart">Kaydet (Yeniden bağlantı gerekli)</string>
     <string name="add_new">Yeni ekle</string>

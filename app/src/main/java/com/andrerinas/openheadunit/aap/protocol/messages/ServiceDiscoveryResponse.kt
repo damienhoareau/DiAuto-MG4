@@ -1,7 +1,10 @@
 package com.andrerinas.openheadunit.aap.protocol.messages
 
 import android.content.Context
+import android.os.SystemClock
+import android.widget.Toast
 import com.andrerinas.openheadunit.App
+import com.andrerinas.openheadunit.R
 import com.andrerinas.openheadunit.aap.AapMessage
 import com.andrerinas.openheadunit.aap.AapService
 import com.andrerinas.openheadunit.aap.KeyCode
@@ -13,6 +16,7 @@ import com.andrerinas.openheadunit.aap.protocol.proto.Sensors
 import com.andrerinas.openheadunit.decoder.VideoDecoder
 import com.andrerinas.openheadunit.utils.AppLog
 import com.andrerinas.openheadunit.utils.HeadUnitScreenConfig
+import com.andrerinas.openheadunit.utils.ToastUtils
 import com.andrerinas.openheadunit.vehicle.Mg4EnergyProvider
 import com.google.protobuf.Message
 import com.google.protobuf.UnknownFieldSet
@@ -139,7 +143,7 @@ class ServiceDiscoveryResponse(private val context: Context)
                     mediaSinkServiceBuilder.availableWhileInCall = true
 
                     AppLog.i("[ServiceDiscovery] NegotiatedResolution is: ${HeadUnitScreenConfig.getNegotiatedWidth()}x${HeadUnitScreenConfig.getNegotiatedHeight()}")
-                    logNegotiatedCodecCapability(effectiveCodec, settings)
+                    logNegotiatedCodecCapability(context, effectiveCodec, settings)
                     AppLog.i("[ServiceDiscovery] Margins are: ${phoneWidthMargin}x${phoneHeightMargin}")
 
                     mediaSinkServiceBuilder.addVideoConfigs(Control.Service.MediaSinkService.VideoConfiguration.newBuilder().apply {
@@ -296,20 +300,21 @@ class ServiceDiscoveryResponse(private val context: Context)
             }.build()
         }
 
+        /** Reconnect storms must not toast on every Service Discovery. */
+        private const val DECODER_CAPABILITY_TOAST_COOLDOWN_MS = 30_000L
+        @Volatile private var lastDecoderCapabilityToastAt = 0L
+
         /**
          * Records whether a decoder on this device claims it can carry the profile we are about to
-         * ask the phone for.
-         *
-         * Nothing acts on the answer. It exists because this is the one place where the codec is
-         * decided - the 1440p rule above overrides the user's own choice - and until now nothing in
-         * the app asked a decoder anything before making it. A #219 reporter's Galaxy Tab S7 FE runs
-         * the resulting 2560x1440 HEVC on `c2.qti.hevc.decoder` and sheds frames in bursts, with the
-         * shedding confined to windows that also spent up to 2019ms of 5000 waiting for an input
-         * buffer. No log has ever said what that component claimed beforehand.
+         * ask the phone for, and warns the user when it does not.
          *
          * A WARN here from a unit that reports artifacts is what would justify revisiting the rule.
          */
-        private fun logNegotiatedCodecCapability(codec: Media.MediaCodecType, settings: com.andrerinas.openheadunit.utils.Settings) {
+        private fun logNegotiatedCodecCapability(
+            context: Context,
+            codec: Media.MediaCodecType,
+            settings: com.andrerinas.openheadunit.utils.Settings,
+        ) {
             val mime = when (codec) {
                 Media.MediaCodecType.MEDIA_CODEC_VIDEO_H265 -> VideoDecoder.CodecType.H265.mimeType
                 Media.MediaCodecType.MEDIA_CODEC_VIDEO_H264_BP -> VideoDecoder.CodecType.H264.mimeType
@@ -331,6 +336,19 @@ class ServiceDiscoveryResponse(private val context: Context)
                     "[ServiceDiscovery] Negotiating a profile no decoder here claims to carry: $capability. " +
                         "Frames shed under load and the artifacts that follow are the expected consequence."
                 )
+                val now = SystemClock.elapsedRealtime()
+                if (now - lastDecoderCapabilityToastAt >= DECODER_CAPABILITY_TOAST_COOLDOWN_MS) {
+                    lastDecoderCapabilityToastAt = now
+                    ToastUtils.showToast(
+                        context.applicationContext,
+                        context.getString(
+                            R.string.video_profile_unsupported_toast,
+                            "${width}x${height}",
+                            settings.fpsLimit,
+                        ),
+                        Toast.LENGTH_LONG,
+                    )
+                }
             }
         }
 

@@ -456,6 +456,7 @@
     <string name="auto_connecting_single_usb">Auto-connecting to USB device…</string>
     <string name="video_codec">Video Codec</string>
     <string name="fps_limit">FPS Limit</string>
+    <string name="video_profile_unsupported_toast">This head unit\'s decoder may not sustain %1$s @ %2$d fps. If video drops, lower FPS Limit to 30 or pick a smaller resolution in Video settings.</string>
     <string name="save">Save</string>
     <string name="save_and_restart">Save (Reconnect needed)</string>
     <string name="add_new">Add new</string>
