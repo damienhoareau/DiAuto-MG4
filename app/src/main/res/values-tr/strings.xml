@@ -209,6 +209,8 @@
 
     <string name="listen_for_usb_devices_label">USB Cihazlarını Dinle</string>
     <string name="listen_for_usb_devices_description">Bir USB cihazı takıldığında Android sistem istemini göster.</string>
+    <string name="block_oem_android_auto_label">DiAuto açıkken OEM Android Auto\'yu engelle</string>
+    <string name="block_oem_android_auto_description">DiAuto çalışırken fabrika AllGo Android Auto (com.allgo.app.androidauto / caradapter) durdurulur; kablo önce DiAuto\'yu açar. CarPlay ve ortak AllGo RUI servisine dokunulmaz. Kalıcı değil — DiAuto silinirse OEM Android Auto yine çalışır.</string>
     <string name="show_toast_messages">Toast Bildirimlerini Göster</string>
     <string name="show_toast_messages_description">Bağlantı, kopma ve mod değiştirme durumlarında durum bildirimi göster.</string>
     <string name="auto_start_usb_label">USB ile otomatik başlat</string>

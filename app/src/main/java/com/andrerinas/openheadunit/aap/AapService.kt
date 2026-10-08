@@ -758,6 +758,7 @@ class AapService : Service(), UsbReceiver.Listener {
 
         AppLog.init(settings, this)
         syncLogBackendState()
+        com.andrerinas.openheadunit.utils.OemAndroidAutoBlocker.blockIfEnabled(this, "service-start")
 
         nativeAaHandshakeManager = NativeAaHandshakeManager(this, serviceScope)
         wifiDirectManager = WifiDirectManager(this)
@@ -2068,6 +2069,7 @@ class AapService : Service(), UsbReceiver.Listener {
             AppLog.i("Ignoring non-Android USB device attached in service (VID: ${device.vendorId}): ${device.deviceName}")
             return
         }
+        com.andrerinas.openheadunit.utils.OemAndroidAutoBlocker.blockIfEnabled(this, "service-usb-attach")
         userExitedAA = false
         if (UsbDeviceCompat.isInAccessoryMode(device)) {
             // Device already in AOA mode (re-enumerated after UsbAttachedActivity switched it).

@@ -161,6 +161,8 @@
 
     <string name="listen_for_usb_devices_label">監聽 USB 裝置</string>
     <string name="listen_for_usb_devices_description">在插入 USB 裝置時顯示 Android 系統提示。</string>
+    <string name="block_oem_android_auto_label">DiAuto 執行時封鎖 OEM Android Auto</string>
+    <string name="block_oem_android_auto_description">DiAuto 執行時停止原廠 AllGo Android Auto（com.allgo.app.androidauto / caradapter），讓傳輸線優先開啟 DiAuto。不影響 CarPlay 與共用的 AllGo RUI 服務。非永久——解除安裝 DiAuto 後 OEM Android Auto 會恢復。</string>
     <string name="show_toast_messages">顯示 Toast 吐司訊息</string>
     <string name="show_toast_messages_description">在連線、中斷連線及切換模式時顯示狀態吐司快顯訊息。</string>
     <string name="auto_start_usb_label">USB 自動啟動</string>
@@ -217,6 +219,7 @@
     <string name="auto_connecting_single_usb">正在自動連接 USB 裝置…</string>
     <string name="video_codec">視訊編碼</string>
     <string name="fps_limit">FPS 限制</string>
+    <string name="video_profile_unsupported_toast">本機解碼器可能無法穩定支援 %1$s @ %2$d fps。若畫面中斷，請將 FPS 限制調至 30，或在視訊設定中選擇較低解析度。</string>
     <string name="save">儲存</string>
     <string name="save_and_restart">儲存 (需要重新連接)</string>
     <string name="add_new">加入新的</string>

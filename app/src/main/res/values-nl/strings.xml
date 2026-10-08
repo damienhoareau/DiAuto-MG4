@@ -161,6 +161,8 @@
 
     <string name="listen_for_usb_devices_label">Luister naar USB-apparaten</string>
     <string name="listen_for_usb_devices_description">Toon de Android-systeemprompt wanneer een USB-apparaat wordt aangesloten.</string>
+    <string name="block_oem_android_auto_label">OEM Android Auto blokkeren zolang DiAuto draait</string>
+    <string name="block_oem_android_auto_description">Stopt de fabrieks-AllGo Android Auto (com.allgo.app.androidauto / caradapter) terwijl DiAuto draait, zodat de kabel eerst DiAuto opent. Raakt CarPlay en de gedeelde AllGo RUI-service niet aan. Niet permanent — verwijder DiAuto en OEM Android Auto werkt weer.</string>
     <string name="show_toast_messages">Toast-berichten tonen</string>
     <string name="show_toast_messages_description">Statuspop-ups tonen bij verbinden, verbreken en moduswissel.</string>
     <string name="auto_start_usb_label">Automatisch starten via USB</string>
@@ -217,6 +219,7 @@
     <string name="auto_connecting_single_usb">Automatisch verbinden met USB-apparaat…</string>
     <string name="video_codec">Video Codec</string>
     <string name="fps_limit">FPS Limiet</string>
+    <string name="video_profile_unsupported_toast">De decoder van dit apparaat kan %1$s @ %2$d fps mogelijk niet aan. Als de video wegvalt, zet de FPS-limiet op 30 of kies een lagere resolutie in de Video-instellingen.</string>
     <string name="save">Opslaan</string>
     <string name="save_and_restart">Opslaan (Opnieuw aansluiten benodigd)</string>
     <string name="add_new">Nieuwe toevoegen</string>

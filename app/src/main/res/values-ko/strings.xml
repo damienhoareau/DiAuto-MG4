@@ -187,6 +187,8 @@
     <string name="wifi_ssid_not_set">설정 안 됨</string>
     <string name="listen_for_usb_devices_label">USB 기기 감지</string>
     <string name="listen_for_usb_devices_description">USB 기기가 연결되면 Android 시스템 프롬프트를 표시합니다.</string>
+    <string name="block_oem_android_auto_label">DiAuto 실행 중 OEM Android Auto 차단</string>
+    <string name="block_oem_android_auto_description">DiAuto가 실행되는 동안 공장 AllGo Android Auto(com.allgo.app.androidauto / caradapter)를 중지하여 케이블이 먼저 DiAuto를 열도록 합니다. CarPlay와 공유 AllGo RUI 서비스에는 영향을 주지 않습니다. 영구적이지 않음 — DiAuto를 제거하면 OEM Android Auto가 다시 작동합니다.</string>
     <string name="show_toast_messages">토스트 메시지 표시</string>
     <string name="show_toast_messages_description">연결, 해제 및 모드 전환 시 상태 토스트 팝업을 표시합니다.</string>
     <string name="auto_start_usb_label">USB 연결 시 자동 시작</string>
@@ -251,6 +253,7 @@
     <string name="auto_connecting_single_usb">USB 기기에 자동으로 연결 중…</string>
     <string name="video_codec">비디오 코덱</string>
     <string name="fps_limit">FPS 제한</string>
+    <string name="video_profile_unsupported_toast">이 장치의 디코더가 %1$s @ %2$d fps를 감당하지 못할 수 있습니다. 영상이 끊기면 FPS 제한을 30으로 낮추거나 동영상 설정에서 해상도를 줄이세요.</string>
     <string name="save">저장</string>
     <string name="save_and_restart">저장(재연결 필요)</string>
     <string name="add_new">새로 추가</string>

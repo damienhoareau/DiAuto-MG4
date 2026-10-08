@@ -21,6 +21,7 @@ import com.andrerinas.openheadunit.utils.AppLog
 import com.andrerinas.openheadunit.utils.DeviceIntent
 import com.andrerinas.openheadunit.utils.LocaleHelper
 import com.andrerinas.openheadunit.main.MainActivity
+import com.andrerinas.openheadunit.utils.OemAndroidAutoBlocker
 import com.andrerinas.openheadunit.utils.Settings
 import com.andrerinas.openheadunit.utils.ToastUtils
 
@@ -73,6 +74,8 @@ class UsbAttachedActivity : Activity() {
         super.onCreate(savedInstanceState)
 
         AppLog.i("USB Intent: $intent")
+        // Before OEM AllGo/caradapter can claim the phone (setting off = no-op).
+        OemAndroidAutoBlocker.blockIfEnabled(this, "usb-attach")
 
         val device = resolveUsbDevice(intent)
         if (device == null || !UsbDeviceCompat.isAndroidDevice(device)) {

@@ -181,6 +181,8 @@
 
     <string name="listen_for_usb_devices_label">Ascultați dispozitive USB</string>
     <string name="listen_for_usb_devices_description">Afișați solicitarea sistemului Android când este conectat un dispozitiv USB.</string>
+    <string name="block_oem_android_auto_label">Blochează OEM Android Auto cât timp rulează DiAuto</string>
+    <string name="block_oem_android_auto_description">Oprește AllGo Android Auto din fabrică (com.allgo.app.androidauto / caradapter) cât timp rulează DiAuto, ca firul să deschidă mai întâi DiAuto. Nu atinge CarPlay și nici serviciul comun AllGo RUI. Nu e permanent — dezinstalezi DiAuto și OEM Android Auto funcționează din nou.</string>
     <string name="show_toast_messages">Afișează mesaje Toast</string>
     <string name="show_toast_messages_description">Afișează mesaje pop-up de stare la conectare, deconectare și schimbarea modului.</string>
     <string name="auto_start_usb_label">Pornire automată pe USB</string>
@@ -237,6 +239,7 @@
     <string name="auto_connecting_single_usb">Se conectează automat la USB…</string>
     <string name="video_codec">Codec Video</string>
     <string name="fps_limit">Limită FPS</string>
+    <string name="video_profile_unsupported_toast">Decodorul acestei unități poate să nu susțină %1$s @ %2$d fps. Dacă video-ul se întrerupe, reduce limita FPS la 30 sau alege o rezoluție mai mică în setările Video.</string>
     <string name="save">Salvează</string>
     <string name="save_and_restart">Salvează (Necesită reconectare)</string>
     <string name="add_new">Adaugă nou</string>

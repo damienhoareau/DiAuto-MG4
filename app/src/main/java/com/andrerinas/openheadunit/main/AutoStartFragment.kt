@@ -42,6 +42,7 @@ class AutoStartFragment : Fragment() {
     private var pendingAutoStartOnBoot: Boolean? = null
     private var pendingAutoStartOnScreenOn: Boolean? = null
     private var pendingListenForUsbDevices: Boolean? = null
+    private var pendingBlockOemAndroidAuto: Boolean? = null
     private var pendingAutoStartOnUsb: Boolean? = null
     private val pendingAutoStartBtMacs = mutableSetOf<String>()
     private var pendingAutoStartOnWifi: Boolean? = null
@@ -82,6 +83,7 @@ class AutoStartFragment : Fragment() {
         pendingAutoStartOnBoot = settings.autoStartOnBoot
         pendingAutoStartOnScreenOn = settings.autoStartOnScreenOn
         pendingListenForUsbDevices = settings.listenForUsbDevices
+        pendingBlockOemAndroidAuto = settings.blockOemAndroidAutoWhileRunning
         pendingAutoStartOnUsb = settings.autoStartOnUsb
         pendingAutoStartBtMacs.clear()
         pendingAutoStartBtMacs.addAll(settings.autoStartBluetoothDeviceMacs)
@@ -167,6 +169,15 @@ class AutoStartFragment : Fragment() {
             settings.listenForUsbDevices = it
             Settings.syncListenForUsbDevicesToDeviceStorage(requireContext(), it)
             Settings.setUsbAttachedActivityEnabled(requireContext(), it)
+        }
+        pendingBlockOemAndroidAuto?.let {
+            settings.blockOemAndroidAutoWhileRunning = it
+            if (it) {
+                com.andrerinas.openheadunit.utils.OemAndroidAutoBlocker.blockIfEnabled(
+                    requireContext(),
+                    "settings-save",
+                )
+            }
         }
         pendingAutoStartOnUsb?.let {
             settings.autoStartOnUsb = it
@@ -261,6 +272,7 @@ class AutoStartFragment : Fragment() {
         hasChanges = pendingAutoStartOnBoot != settings.autoStartOnBoot ||
                 pendingAutoStartOnScreenOn != settings.autoStartOnScreenOn ||
                 pendingListenForUsbDevices != settings.listenForUsbDevices ||
+                pendingBlockOemAndroidAuto != settings.blockOemAndroidAutoWhileRunning ||
                 pendingAutoStartOnUsb != settings.autoStartOnUsb ||
                 pendingAutoStartBtMacs != settings.autoStartBluetoothDeviceMacs ||
                 pendingAutoStartOnWifi != settings.autoStartOnWifi ||
@@ -315,6 +327,17 @@ class AutoStartFragment : Fragment() {
                 pendingListenForUsbDevices = isChecked
                 checkChanges()
                 updateSettingsList()
+            }
+        ))
+
+        items.add(SettingItem.ToggleSettingEntry(
+            stableId = "blockOemAndroidAuto",
+            nameResId = R.string.block_oem_android_auto_label,
+            descriptionResId = R.string.block_oem_android_auto_description,
+            isChecked = pendingBlockOemAndroidAuto!!,
+            onCheckedChanged = { isChecked ->
+                pendingBlockOemAndroidAuto = isChecked
+                checkChanges()
             }
         ))
 
@@ -395,7 +418,7 @@ class AutoStartFragment : Fragment() {
 
         // Hide options that do not apply to the chosen connection types. Bluetooth bridges
         // WiFi, so it is treated as WiFi scope.
-        val usbIds = setOf("listenForUsbDevices", "autoStartUsb", "reopenOnReconnection")
+        val usbIds = setOf("listenForUsbDevices", "blockOemAndroidAuto", "autoStartUsb", "reopenOnReconnection")
         val wifiIds = setOf("autoStartBt", "autoStartWifiWarning", "autoStartWifi", "autoStartWifiSsid")
         val filtered = items.filterNot { item ->
             (item.stableId in usbIds && !settings.showsUsb()) ||

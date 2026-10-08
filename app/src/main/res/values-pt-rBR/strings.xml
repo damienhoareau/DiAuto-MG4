@@ -162,6 +162,8 @@
 
     <string name="listen_for_usb_devices_label">Ouvir dispositivos USB</string>
     <string name="listen_for_usb_devices_description">Mostrar o aviso do sistema Android quando um dispositivo USB for conectado.</string>
+    <string name="block_oem_android_auto_label">Bloquear OEM Android Auto enquanto o DiAuto estiver ativo</string>
+    <string name="block_oem_android_auto_description">Interrompe o AllGo Android Auto de fábrica (com.allgo.app.androidauto / caradapter) enquanto o DiAuto estiver em execução para o cabo abrir o DiAuto primeiro. Não mexe no CarPlay nem no serviço compartilhado AllGo RUI. Não é permanente — desinstale o DiAuto e o OEM Android Auto volta a funcionar.</string>
     <string name="show_toast_messages">Mostrar mensagens Toast</string>
     <string name="show_toast_messages_description">Exibir pop-ups de status na conexão, desconexão e troca de modo.</string>
     <string name="auto_start_usb_label">Início automático por USB</string>
@@ -218,6 +220,7 @@
     <string name="auto_connecting_single_usb">Conectando automaticamente ao dispositivo USB…</string>
     <string name="video_codec">Codec de vídeo</string>
     <string name="fps_limit">Limite de FPS</string>
+    <string name="video_profile_unsupported_toast">O decoder desta unidade pode não sustentar %1$s @ %2$d fps. Se o vídeo falhar, baixe o limite de FPS para 30 ou escolha uma resolução menor nas configurações de Vídeo.</string>
     <string name="save">Salvar</string>
     <string name="save_and_restart">Salvar (é necessário reconectar)</string>
     <string name="add_new">Adicionar novo</string>

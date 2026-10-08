@@ -185,6 +185,8 @@
 
     <string name="listen_for_usb_devices_label">USBデバイスへの反応</string>
     <string name="listen_for_usb_devices_description">USBデバイスが接続されたときにAndroidのシステムプロンプトを表示します。</string>
+    <string name="block_oem_android_auto_label">DiAuto 実行中は OEM Android Auto をブロック</string>
+    <string name="block_oem_android_auto_description">DiAuto の実行中は純正 AllGo Android Auto（com.allgo.app.androidauto / caradapter）を停止し、ケーブルで先に DiAuto が開くようにします。CarPlay と共有の AllGo RUI サービスには触れません。永続ではありません — DiAuto をアンインストールすれば OEM Android Auto は再び動作します。</string>
     <string name="show_toast_messages">トースト通知を表示</string>
     <string name="show_toast_messages_description">接続・切断・モード切替時にステータスのトースト通知を表示します。</string>
     <string name="auto_start_usb_label">USBから自動起動</string>
@@ -241,6 +243,7 @@
     <string name="auto_connecting_single_usb">USBデバイスに自動接続しています…</string>
     <string name="video_codec">ビデオコーデック</string>
     <string name="fps_limit">FPS 制限</string>
+    <string name="video_profile_unsupported_toast">このユニットのデコーダーは %1$s @ %2$d fps を維持できない可能性があります。映像が途切れる場合は、FPS 制限を 30 に下げるか、動画設定で解像度を下げてください。</string>
     <string name="save">保存</string>
     <string name="save_and_restart">保存 (再接続が必要です)</string>
     <string name="add_new">新規追加</string>

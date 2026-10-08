@@ -162,6 +162,8 @@
 
     <string name="listen_for_usb_devices_label">Naslouchat zařízením USB</string>
     <string name="listen_for_usb_devices_description">Zobrazit výzvu systému Android při připojení zařízení USB.</string>
+    <string name="block_oem_android_auto_label">Blokovat OEM Android Auto, když běží DiAuto</string>
+    <string name="block_oem_android_auto_description">Zastaví tovární AllGo Android Auto (com.allgo.app.androidauto / caradapter), dokud běží DiAuto, aby kabel nejprve otevřel DiAuto. Nedotýká se CarPlay ani sdílené služby AllGo RUI. Není trvalé — po odinstalaci DiAuto bude OEM Android Auto znovu fungovat.</string>
     <string name="show_toast_messages">Zobrazovat oznamovací zprávy (Toast)</string>
     <string name="show_toast_messages_description">Zobrazit vyskakovací zprávy o stavu při připojení, odpojení a změně režimu.</string>
     <string name="auto_start_usb_label">Automatické spuštění přes USB</string>
@@ -218,6 +220,7 @@
     <string name="auto_connecting_single_usb">Automatické připojování k USB zařízení…</string>
     <string name="video_codec">Video kodek</string>
     <string name="fps_limit">Limit FPS</string>
+    <string name="video_profile_unsupported_toast">Dekodér této jednotky nemusí zvládnout %1$s @ %2$d fps. Pokud obraz výpadne, snižte limit FPS na 30 nebo v nastavení Videa zvolte nižší rozlišení.</string>
     <string name="save">Uložit</string>
     <string name="save_and_restart">Uložit (vyžaduje opětovné připojení)</string>
     <string name="add_new">Přidat nové</string>

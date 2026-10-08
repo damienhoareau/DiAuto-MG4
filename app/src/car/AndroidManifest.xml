@@ -18,12 +18,18 @@
         android:name="android.permission.DELETE_PACKAGES"
         tools:ignore="ProtectedPermissions" />
 
+    <!-- Runtime-stop OEM AllGo / caradapter while DiAuto is running (never pm-disable). -->
+    <uses-permission
+        android:name="android.permission.FORCE_STOP_PACKAGES"
+        tools:ignore="ProtectedPermissions" />
+
     <application>
         <!-- The MG4 build already runs under the platform-signed system UID.
              Do not initialize Shizuku before Application.onCreate on the
              vendor Android 9 runtime. -->
         <provider
             android:name="rikka.shizuku.ShizukuProvider"
+            android:authorities="${applicationId}.shizuku"
             tools:node="remove" />
     </application>
 </manifest>

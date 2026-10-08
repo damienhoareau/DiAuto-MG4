@@ -168,6 +168,8 @@
     <string name="auto_start_bt_description">Tự động mở Open Headunit khi một thiết bị Bluetooth nhất định kết nối.</string>
     <string name="listen_for_usb_devices_label">Lắng nghe thiết bị USB</string>
     <string name="listen_for_usb_devices_description">Hiển thị yêu cầu hệ thống Android khi cắm thiết bị USB.</string>
+    <string name="block_oem_android_auto_label">Chặn OEM Android Auto khi DiAuto đang chạy</string>
+    <string name="block_oem_android_auto_description">Dừng AllGo Android Auto gốc (com.allgo.app.androidauto / caradapter) khi DiAuto đang chạy để cáp mở DiAuto trước. Không đụng tới CarPlay hay dịch vụ AllGo RUI dùng chung. Không vĩnh viễn — gỡ DiAuto thì OEM Android Auto lại hoạt động.</string>
     <string name="show_toast_messages">Hiển thị thông báo Toast</string>
     <string name="show_toast_messages_description">Hiển thị thông báo trạng thái khi kết nối, ngắt kết nối và chuyển chế độ.</string>
     <string name="auto_start_usb_label">Tự khởi động khi có USB</string>
@@ -232,6 +234,7 @@
     <string name="auto_connecting_single_usb">Đang tự kết nối thiết bị USB…</string>
     <string name="video_codec">Codec video</string>
     <string name="fps_limit">Giới hạn FPS</string>
+    <string name="video_profile_unsupported_toast">Bộ giải mã của thiết bị này có thể không duy trì được %1$s @ %2$d fps. Nếu video bị mất, hãy hạ giới hạn FPS xuống 30 hoặc chọn độ phân giải thấp hơn trong cài đặt Video.</string>
     <string name="save">Lưu</string>
     <string name="save_and_restart">Lưu (Cần kết nối lại)</string>
     <string name="add_new">Thêm mới</string>

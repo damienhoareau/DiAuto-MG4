@@ -162,6 +162,8 @@
 
     <string name="listen_for_usb_devices_label">الاستماع لأجهزة USB</string>
     <string name="listen_for_usb_devices_description">إظهار موجه نظام Android عند توصيل جهاز USB.</string>
+    <string name="block_oem_android_auto_label">حظر OEM Android Auto أثناء تشغيل DiAuto</string>
+    <string name="block_oem_android_auto_description">يوقف AllGo Android Auto الأصلي (com.allgo.app.androidauto / caradapter) أثناء تشغيل DiAuto حتى يفتح الكابل DiAuto أولاً. لا يمس CarPlay ولا خدمة AllGo RUI المشتركة. غير دائم — أزل تثبيت DiAuto ويعود OEM Android Auto للعمل.</string>
     <string name="show_toast_messages">إظهار الرسائل المنبثقة (Toast)</string>
     <string name="show_toast_messages_description">عرض الرسائل المنبثقة للحالة عند الاتصال والانفصال وتغيير الوضع.</string>
     <string name="auto_start_usb_label">تشغيل تلقائي عند توصيل USB</string>
@@ -218,6 +220,7 @@
     <string name="auto_connecting_single_usb">جار الاتصال تلقائيا بجهاز USB…</string>
     <string name="video_codec">ترميز الفيديو</string>
     <string name="fps_limit">حد معدل الإطارات</string>
+    <string name="video_profile_unsupported_toast">قد لا يتمكن مفكك الترميز في هذه الوحدة من الحفاظ على %1$s @ %2$d إطار/ث. إذا انقطع الفيديو، خفّض حد معدل الإطارات إلى 30 أو اختر دقة أقل في إعدادات الفيديو.</string>
     <string name="save">حفظ</string>
     <string name="save_and_restart">حفظ (يلزم إعادة الاتصال)</string>
     <string name="add_new">إضافة جديد</string>

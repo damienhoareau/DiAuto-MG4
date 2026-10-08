@@ -161,6 +161,8 @@
 
     <string name="listen_for_usb_devices_label">USB-eszközök figyelése</string>
     <string name="listen_for_usb_devices_description">Az Android rendszerüzenet megjelenítése USB-eszköz csatlakoztatásakor.</string>
+    <string name="block_oem_android_auto_label">OEM Android Auto blokkolása, amíg a DiAuto fut</string>
+    <string name="block_oem_android_auto_description">Leállítja a gyári AllGo Android Auto-t (com.allgo.app.androidauto / caradapter), amíg a DiAuto fut, hogy a kábel először a DiAuto-t nyissa meg. A CarPlay-t és a közös AllGo RUI szolgáltatást nem érinti. Nem tartós — a DiAuto eltávolítása után az OEM Android Auto újra működik.</string>
     <string name="show_toast_messages">Toast üzenetek megjelenítése</string>
     <string name="show_toast_messages_description">Állapotjelző felugró üzenetek megjelenítése csatlakozáskor, bontáskor és módváltáskor.</string>
     <string name="auto_start_usb_label">Automatikus indítás USB-n</string>
@@ -217,6 +219,7 @@
     <string name="move_down">Lefelé</string>
     <string name="video_codec">Videókódek</string>
     <string name="fps_limit">FPS korlát</string>
+    <string name="video_profile_unsupported_toast">Ez az egység dekódere nem biztos, hogy bírja a %1$s @ %2$d fps-t. Ha a kép megszakad, állítsd az FPS korlátot 30-ra, vagy válassz kisebb felbontást a Videó beállításokban.</string>
     <string name="save">Mentés</string>
     <string name="save_and_restart">Mentés (újracsatlakozás szükséges)</string>
     <string name="add_new">Új hozzáadása</string>
