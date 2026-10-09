@@ -156,6 +156,9 @@ class ServiceDiscoveryResponse(private val context: Context)
                         setPixelAspectRatioE4(HeadUnitScreenConfig.getPixelAspectRatioE4())
                         setMarginWidth(phoneWidthMargin)
                         setMarginHeight(phoneHeightMargin)
+                        // Stock AllGo on MG4 EH32 advertises depth 1 so the phone sends idle frames
+                        // for the HU decoder pipeline (see HUIG / aap_system_attributes).
+                        setDecoderAdditionalDepth(1)
                         setVideoCodecType(effectiveCodec)
                     }.build())
                 }.build()

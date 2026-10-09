@@ -68,36 +68,27 @@ class SystemOptimizer(private val context: Context) {
         val calculatedDpi = (effectiveDiagonalPx / sizePreset.diagonalInch) * LEGIBILITY_FACTOR
         var recDpi = calculatedDpi.toInt()
 
-        // 3. View Mode Recommendation
+        // 3. View Mode Recommendation — MG4 AllGo uses direct Surface composition; prefer that.
+        // TextureView remains available for old APIs / software-decode fallbacks.
         val recViewMode = when {
-            // Very old devices (Android 4.x) often have distortion issues with SurfaceView,
-            // so we recommend TextureView instead.
             Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP -> Settings.ViewMode.TEXTURE
-
-            // 5.0 - 8.1: start on the safe, observable TextureView rather than forcing SurfaceView
-            // up front. SurfaceView renders directly but is a blind spot for the display-stall
-            // watchdog (it reports no drawn frames), so if it happens to be broken on a device the
-            // user is stranded with no automatic recovery (issue #767). TextureView failures ARE
-            // observable, so on the MediaTek MDP devices where the external-texture path collapses
-            // to a few fps (issue #650) the watchdog detects the stall and escalates to SurfaceView
-            // on its own. GLES is only kept for devices without hardware HEVC, which may fall back
-            // to the software YUV sink that GLES provides.
-            Build.VERSION.SDK_INT <= Build.VERSION_CODES.O_MR1 ->
-                if (hasH265) Settings.ViewMode.TEXTURE else Settings.ViewMode.GLES
-
-            // Modern devices are usually fine with the default TextureView
-            else -> Settings.ViewMode.TEXTURE
+            Build.VERSION.SDK_INT <= Build.VERSION_CODES.O_MR1 && !hasH265 -> Settings.ViewMode.GLES
+            else -> Settings.ViewMode.SURFACE
         }
         AppLog.i("SystemOptimizer: SoC=${Build.HARDWARE}/${Build.BOARD} API=${Build.VERSION.SDK_INT} hasHwHevc=$hasH265 -> recommended viewMode=$recViewMode")
 
-        // 4. Apply orientation-based caps
-        if (isPortraitTarget) {
-            recDpi = recDpi.coerceAtMost(190)
-        } else {
-            recDpi = recDpi.coerceAtMost(240)
+        // 4. DPI — stock AllGo EH32: 227 @ 1080p, 151 @ 720p/480p; otherwise keep calculated range.
+        recDpi = when (panelCeil) {
+            Settings.Resolution._1920x1080 -> 227
+            Settings.Resolution._1280x720, Settings.Resolution._800x480 -> 151
+            else -> {
+                if (isPortraitTarget) {
+                    recDpi.coerceAtMost(190)
+                } else {
+                    recDpi.coerceAtMost(240)
+                }.coerceAtLeast(110)
+            }
         }
-
-        recDpi = recDpi.coerceAtLeast(110)
 
         // Default to H.264. Many head units report HEVC support they cannot actually play back, so
         // only recommend H.265 when the panel is above Full HD (1440p/4K), where H.264 bandwidth

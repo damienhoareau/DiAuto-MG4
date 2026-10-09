@@ -433,10 +433,17 @@ object HeadUnitScreenConfig {
     }
 
     fun getDensityDpi(): Int {
-        return if (this::currentSettings.isInitialized && currentSettings.dpiPixelDensity != 0) {
-            currentSettings.dpiPixelDensity
-        } else {
-            densityDpi
+        if (this::currentSettings.isInitialized && currentSettings.dpiPixelDensity != 0) {
+            return currentSettings.dpiPixelDensity
+        }
+        // Auto DPI: match stock AllGo EH32 densities per negotiated resolution.
+        return when (negotiatedResolutionType) {
+            Control.Service.MediaSinkService.VideoConfiguration.VideoCodecResolutionType._1920x1080,
+            Control.Service.MediaSinkService.VideoConfiguration.VideoCodecResolutionType._1080x1920 -> 227
+            Control.Service.MediaSinkService.VideoConfiguration.VideoCodecResolutionType._1280x720,
+            Control.Service.MediaSinkService.VideoConfiguration.VideoCodecResolutionType._720x1280,
+            Control.Service.MediaSinkService.VideoConfiguration.VideoCodecResolutionType._800x480 -> 151
+            else -> densityDpi
         }
     }
 

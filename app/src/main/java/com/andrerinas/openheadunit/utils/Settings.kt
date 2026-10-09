@@ -202,12 +202,13 @@ class Settings(private val context: Context) {
 
     var viewMode: ViewMode
         get() {
-            val stored = if (prefs.contains("view-mode")) prefs.getInt("view-mode", -1) else null
+            // Key renamed so upgrades drop the old TextureView/60fps-era choice and pick AllGo defaults.
+            val stored = if (prefs.contains(KEY_VIEW_MODE)) prefs.getInt(KEY_VIEW_MODE, -1) else null
             val value = com.andrerinas.openheadunit.view.ProjectionRendererPolicy.resolve(stored, Build.MODEL)
-            return ViewMode.fromInt(value) ?: ViewMode.TEXTURE
+            return ViewMode.fromInt(value) ?: ViewMode.SURFACE
         }
         set(viewMode) {
-            prefs.edit().putInt("view-mode", viewMode.value).apply()
+            prefs.edit().putInt(KEY_VIEW_MODE, viewMode.value).apply()
         }
 
     var screenOrientation: ScreenOrientation
@@ -220,9 +221,9 @@ class Settings(private val context: Context) {
         }
 
     var dpiPixelDensity: Int
-        get() = prefs.getInt("dpi-pixel-density", 0) // Default 0 for Auto
+        get() = prefs.getInt(KEY_DPI_PIXEL_DENSITY, 0) // Default 0 for Auto → AllGo densities per res
         set(value) {
-            prefs.edit().putInt("dpi-pixel-density", value).apply()
+            prefs.edit().putInt(KEY_DPI_PIXEL_DENSITY, value).apply()
         }
 
     var pixelAspectRatioE4: Int
@@ -578,8 +579,8 @@ class Settings(private val context: Context) {
         set(value) { prefs.edit().putString("video-codec", value).apply() }
 
     var fpsLimit: Int
-        get() = prefs.getInt("fps-limit", 60)
-        set(value) { prefs.edit().putInt("fps-limit", value).apply() }
+        get() = prefs.getInt(KEY_FPS_LIMIT, 30)
+        set(value) { prefs.edit().putInt(KEY_FPS_LIMIT, value).apply() }
 
     var hasAcceptedDisclaimer: Boolean
         get() = prefs.getBoolean("has-accepted-disclaimer", false)
@@ -1126,6 +1127,11 @@ class Settings(private val context: Context) {
         // Was "music-via-bluetooth" (default only DiLink5.1). Renamed so upgrades start ON.
         const val KEY_MUSIC_VIA_BLUETOOTH = "music-via-bluetooth-v2"
         const val KEY_MEDIA_AUDIO_BUFFER_MS = "media-audio-buffer-ms"
+        // Was view-mode / dpi-pixel-density / fps-limit. Renamed so upgrades pick AllGo MG4 defaults
+        // (SurfaceView, Auto DPI→227@1080p, 30 fps) instead of keeping TextureView/60 fps.
+        const val KEY_VIEW_MODE = "view-mode-allgo"
+        const val KEY_DPI_PIXEL_DENSITY = "dpi-pixel-density-allgo"
+        const val KEY_FPS_LIMIT = "fps-limit-allgo"
         /** Persist whether log capture should be active across restarts. */
         const val KEY_LOG_CAPTURE_ENABLED = "log-capture-enabled"
 
