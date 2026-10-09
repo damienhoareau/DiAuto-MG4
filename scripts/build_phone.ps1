@@ -7,20 +7,12 @@ $env:JAVA_HOME = if (Test-Path "C:\Program Files\Android\Android Studio\jbr") {
     "C:\Program Files\Android\Android Studio\jbr"
 } else { $env:JAVA_HOME }
 
-.\gradlew.bat :app:assembleGithubPhoneDebug
+.\gradlew.bat :app:assemblePhoneDebug
 
-$apkDirs = @(
-    "$Root\app\build\outputs\apk\githubPhone\debug",
-    "$Root\app\build\outputs\apk\github\phone\debug"
-)
-$apk = $null
-foreach ($dir in $apkDirs) {
-    if (Test-Path $dir) {
-        $apk = Get-ChildItem "$dir\*.apk" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-        if ($apk) { break }
-    }
-}
-if (-not $apk) { throw "No githubPhone debug APK found" }
+$apkDir = "$Root\app\build\outputs\apk\phone\debug"
+$apk = Get-ChildItem "$apkDir\*.apk" -ErrorAction SilentlyContinue |
+    Sort-Object LastWriteTime -Descending | Select-Object -First 1
+if (-not $apk) { throw "No phone debug APK found in $apkDir" }
 
 $delivery = Join-Path (Split-Path $Root -Parent) "DiAuto-MG4-phone-debug.apk"
 Copy-Item $apk.FullName $delivery -Force

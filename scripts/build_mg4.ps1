@@ -26,21 +26,13 @@ Set-Location $Root
 $env:JAVA_HOME = if (Test-Path "C:\Program Files\Android\Android Studio\jbr") {
     "C:\Program Files\Android\Android Studio\jbr"
 } else { $env:JAVA_HOME }
-.\gradlew.bat :app:assembleGithubCarDebug
+.\gradlew.bat :app:assembleCarDebug
 
-$apkDirs = @(
-    "$Root\app\build\outputs\apk\githubCar\debug",
-    "$Root\app\build\outputs\apk\github\car\debug"
-)
-$apk = $null
-foreach ($dir in $apkDirs) {
-    if (Test-Path $dir) {
-        $apk = Get-ChildItem "$dir\*.apk" | Where-Object { $_.Name -notmatch "aligned|unsigned" } |
-            Sort-Object LastWriteTime -Descending | Select-Object -First 1
-        if ($apk) { break }
-    }
-}
-if (-not $apk) { throw "No githubCar debug APK found" }
+$apkDir = "$Root\app\build\outputs\apk\car\debug"
+$apk = Get-ChildItem "$apkDir\*.apk" -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -notmatch "aligned|unsigned" } |
+    Sort-Object LastWriteTime -Descending | Select-Object -First 1
+if (-not $apk) { throw "No car debug APK found in $apkDir" }
 
 $aligned = Join-Path $apk.DirectoryName "DiAuto-MG4-v$Version-aligned.apk"
 $signed = Join-Path $apk.DirectoryName "DiAuto-MG4-v$Version.apk"

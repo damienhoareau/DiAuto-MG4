@@ -95,6 +95,7 @@
         android:largeHeap="true"
         android:supportsRtl="true"
         android:localeConfig="@xml/locales_config"
+        tools:targetApi="33"
         tools:ignore="GoogleAppIndexingWarning">
 
         <activity
@@ -405,5 +406,14 @@
             android:exported="true"
             android:multiprocess="false"
             android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
+
+        <service
+            android:name=".aap.DummyVpnService"
+            android:permission="android.permission.BIND_VPN_SERVICE"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.net.VpnService" />
+            </intent-filter>
+        </service>
     </application>
 </manifest>

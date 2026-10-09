@@ -8,7 +8,7 @@ setlocal EnableDelayedExpansion
 ::    DiAuto-MG4_{versionName}.apk
 ::    DiAuto-MG4_{versionName}.apk.sha256
 ::
-::  1) Android Studio: Build Variant = githubCarDebug
+::  1) Android Studio: Build Variant = carDebug
 ::  2) Build > Make Project
 ::  3) Bu dosyayi calistir
 ::  4) publish_github_release.bat  veya  publish_github_prerelease.bat
@@ -17,24 +17,17 @@ setlocal EnableDelayedExpansion
 set SCRIPT_DIR=%~dp0
 set PROJECT_DIR=%SCRIPT_DIR%..
 set RELEASES_DIR=%SCRIPT_DIR%releases
+set APK_DIR=%PROJECT_DIR%\app\build\outputs\apk\car\debug
 
 set APK_IN=
-for /f "delims=" %%F in ('dir /b /o-d "%PROJECT_DIR%\app\build\outputs\apk\githubCar\debug\*.apk" 2^>nul') do (
+for /f "delims=" %%F in ('dir /b /o-d "%APK_DIR%\*.apk" 2^>nul') do (
     echo %%F | findstr /I "aligned unsigned signed" >nul
     if errorlevel 1 (
-        if not defined APK_IN set APK_IN=%PROJECT_DIR%\app\build\outputs\apk\githubCar\debug\%%F
-    )
-)
-if not defined APK_IN (
-    for /f "delims=" %%F in ('dir /b /o-d "%PROJECT_DIR%\app\build\outputs\apk\github\car\debug\*.apk" 2^>nul') do (
-        echo %%F | findstr /I "aligned unsigned signed" >nul
-        if errorlevel 1 (
-            if not defined APK_IN set APK_IN=%PROJECT_DIR%\app\build\outputs\apk\github\car\debug\%%F
-        )
+        if not defined APK_IN set APK_IN=%APK_DIR%\%%F
     )
 )
 
-set APK_OUT=%PROJECT_DIR%\app\build\outputs\apk\githubCar\debug\DiAuto-MG4-signed.apk
+set APK_OUT=%APK_DIR%\DiAuto-MG4-signed.apk
 set PLATFORM_PK8=%SCRIPT_DIR%platform.pk8
 set PLATFORM_PEM=%SCRIPT_DIR%platform.x509.pem
 
@@ -60,8 +53,8 @@ if not exist "%RELEASES_DIR%" mkdir "%RELEASES_DIR%"
 
 if not defined APK_IN (
     echo.
-    echo [HATA] githubCarDebug APK bulunamadi.
-    echo        Build Variant = githubCarDebug, Build ^> Make Project, tekrar dene.
+    echo [HATA] carDebug APK bulunamadi.
+    echo        Build Variant = carDebug, Build ^> Make Project, tekrar dene.
     pause & exit /b 1
 )
 
@@ -83,7 +76,7 @@ if not exist "%APKSIGNER_JAR%" (
     pause & exit /b 1
 )
 
-mkdir "%PROJECT_DIR%\app\build\outputs\apk\githubCar\debug" 2>nul
+mkdir "%APK_DIR%" 2>nul
 
 echo.
 echo ============================================================

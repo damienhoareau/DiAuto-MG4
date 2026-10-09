@@ -117,16 +117,9 @@ android {
         }
     }
 
-    flavorDimensions.addAll(listOf("distribution", "device"))
+    // Only device flavors — names stay short: carDebug / phoneDebug.
+    flavorDimensions += "device"
     productFlavors {
-        create("playstore") {
-            dimension = "distribution"
-            minSdk = 28
-        }
-        create("github") {
-            dimension = "distribution"
-            // Default minSdk 16 from defaultConfig is used
-        }
         // Platform-signed MG4 head unit (sharedUserId via src/car/AndroidManifest.xml).
         create("car") {
             dimension = "device"
@@ -139,12 +132,10 @@ android {
         }
     }
 
-    // Keep the Build Variants list short: only the two MG4 workflows.
-    // (githubCarDebug = araca platform-imza; githubPhoneDebug = normal telefon/demo)
     androidComponents {
         beforeVariants { variantBuilder ->
-            val keep = variantBuilder.name == "githubCarDebug" ||
-                variantBuilder.name == "githubPhoneDebug"
+            val keep = variantBuilder.name == "carDebug" ||
+                variantBuilder.name == "phoneDebug"
             variantBuilder.enable = keep
         }
     }
@@ -259,9 +250,7 @@ android {
 }
 
 dependencies {
-    // Conscrypt (Flavor specific: 2.6.1 for Playstore 16KB alignment; 2.5.3 for Github minSdk 16)
-    "playstoreImplementation"("org.conscrypt:conscrypt-android:2.6.1")
-    "githubImplementation"("org.conscrypt:conscrypt-android:2.5.3")
+    implementation("org.conscrypt:conscrypt-android:2.5.3")
 
     implementation("com.google.protobuf:protobuf-java:3.25.1")
     implementation("androidx.activity:activity-ktx:1.8.2")

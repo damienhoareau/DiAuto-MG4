@@ -33,7 +33,7 @@ powershell -File scripts\build_phone.ps1
 adb install -r ..\DiAuto-MG4-phone-debug.apk
 ```
 
-In Android Studio: open `DiAuto-MG4`, pick **githubPhoneDebug** or **githubCarDebug**.
+In Android Studio: open `DiAuto-MG4`, pick **phoneDebug** or **carDebug**.
 
 See [docs/MG4_TESTING.md](docs/MG4_TESTING.md) for the vehicle checklist.
 

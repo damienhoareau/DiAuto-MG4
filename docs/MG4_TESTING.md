@@ -9,7 +9,7 @@ Do **not** run DiPlay-MG4 CarPlay and DiAuto-MG4 Android Auto at the same time.
 
 1. Host smoke (JDK 17+, `local.properties` → `sdk.dir`):
    ```
-   .\gradlew.bat :app:compileGithubCarDebugKotlin :app:testGithubCarDebugUnitTest --tests com.andrerinas.openheadunit.vehicle.VehicleEnergyModelEncoderTest
+   .\gradlew.bat :app:compileCarDebugKotlin :app:testCarDebugUnitTest --tests com.andrerinas.openheadunit.vehicle.VehicleEnergyModelEncoderTest
    ```
 2. `$env:MG4_PLATFORM_KEYS_DIR = "<dir with platform.pk8 and platform.x509.pem>"`
 3. `powershell -File scripts\build_mg4.ps1`

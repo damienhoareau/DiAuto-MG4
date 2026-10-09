@@ -4,46 +4,25 @@ setlocal EnableDelayedExpansion
 :: ============================================================
 ::  DiAuto-MG4 — imzala ve arabaya kur (MG4_V3 ile aynı akış)
 ::
-::  1) Android Studio: Build Variant = githubCarDebug
+::  1) Android Studio: Build Variant = carDebug
 ::  2) Build > Make Project (veya Run)
 ::  3) Bu dosyaya cift tikla
 :: ============================================================
 
 set SCRIPT_DIR=%~dp0
 set PROJECT_DIR=%SCRIPT_DIR%..
-
-:: Studio'nun urettigi car debug APK (iki olasi klasor)
-set APK_IN=
-for %%P in (
-    "%PROJECT_DIR%\app\build\outputs\apk\githubCar\debug\*.apk"
-    "%PROJECT_DIR%\app\build\outputs\apk\github\car\debug\*.apk"
-) do (
-    if exist %%P (
-        echo %%~nxP | findstr /I /V "aligned unsigned signed" >nul
-        if not errorlevel 1 (
-            if not defined APK_IN set APK_IN=%%~fP
-        )
-    )
-)
+set APK_DIR=%PROJECT_DIR%\app\build\outputs\apk\car\debug
 
 :: En yeni uygun APK'yi sec
 set APK_IN=
-for /f "delims=" %%F in ('dir /b /o-d "%PROJECT_DIR%\app\build\outputs\apk\githubCar\debug\*.apk" 2^>nul') do (
+for /f "delims=" %%F in ('dir /b /o-d "%APK_DIR%\*.apk" 2^>nul') do (
     echo %%F | findstr /I "aligned unsigned signed" >nul
     if errorlevel 1 (
-        if not defined APK_IN set APK_IN=%PROJECT_DIR%\app\build\outputs\apk\githubCar\debug\%%F
-    )
-)
-if not defined APK_IN (
-    for /f "delims=" %%F in ('dir /b /o-d "%PROJECT_DIR%\app\build\outputs\apk\github\car\debug\*.apk" 2^>nul') do (
-        echo %%F | findstr /I "aligned unsigned signed" >nul
-        if errorlevel 1 (
-            if not defined APK_IN set APK_IN=%PROJECT_DIR%\app\build\outputs\apk\github\car\debug\%%F
-        )
+        if not defined APK_IN set APK_IN=%APK_DIR%\%%F
     )
 )
 
-set APK_OUT=%PROJECT_DIR%\app\build\outputs\apk\githubCar\debug\DiAuto-MG4-signed.apk
+set APK_OUT=%APK_DIR%\DiAuto-MG4-signed.apk
 
 :: Platform anahtarlari (tools\ icinde)
 set PLATFORM_PK8=%SCRIPT_DIR%platform.pk8
@@ -70,8 +49,8 @@ for /d %%v in ("%BUILD_TOOLS_BASE%\*") do (
 
 if not defined APK_IN (
     echo.
-    echo [HATA] githubCarDebug APK bulunamadi.
-    echo        Android Studio'da Build Variant = githubCarDebug sec,
+    echo [HATA] carDebug APK bulunamadi.
+    echo        Android Studio'da Build Variant = carDebug sec,
     echo        Build ^> Make Project yap, sonra tekrar dene.
     pause & exit /b 1
 )
@@ -94,7 +73,7 @@ if not exist "%APKSIGNER_JAR%" (
     pause & exit /b 1
 )
 
-mkdir "%PROJECT_DIR%\app\build\outputs\apk\githubCar\debug" 2>nul
+mkdir "%APK_DIR%" 2>nul
 
 echo.
 echo ============================================================
