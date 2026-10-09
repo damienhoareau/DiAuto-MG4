@@ -112,6 +112,8 @@
     <string name="projection_status">화면 출력 상태: %s</string>
     <string name="connected">연결됨</string>
     <string name="disconnected">연결 해제됨</string>
+    <string name="connection_failed">연결에 실패했습니다. 다시 시도하세요.</string>
+    <string name="connection_retry_limit_reached">자동 재연결이 중지되었습니다. 다시 시도하려면 수동으로 연결하세요.</string>
     <string name="running">실행 중</string>
     <string name="not_running">실행 중이 아님</string>
     <string name="no_android_auto_device_connected">Android Auto 기기가 연결되지 않았습니다. USB 연결을 확인하세요.</string>
@@ -414,9 +416,9 @@
     <string name="setup_welcome_msg">빠른 설정 마법사는 Android Auto를 더 원활하게 사용할 수 있도록 기기에 맞는 최적의 설정을 선택하는 데 도움을 줍니다.\n\n이 설정은 나중에 언제든지 변경할 수 있으며, 앱 설정에서 이 마법사를 다시 시작할 수도 있습니다.</string>
     <string name="setup_start">시작</string>
     <string name="setup_size_title">디스플레이 크기</string>
-    <string name="setup_size_phone">휴대폰 / 소형(4-6\")</string>
-    <string name="setup_size_small">소형 태블릿(7-8\")</string>
-    <string name="setup_size_standard">표준(9-10\")</string>
+    <string name="setup_size_phone">휴대폰 / 소형(4–6\")</string>
+    <string name="setup_size_small">소형 태블릿(7–8\")</string>
+    <string name="setup_size_standard">표준(9–10\")</string>
     <string name="setup_size_large">대형(11\" 이상)</string>
     <string name="setup_orientation_title">기기 방향</string>
     <string name="setup_orientation_landscape">가로</string>

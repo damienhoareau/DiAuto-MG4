@@ -22,8 +22,8 @@
     <string name="night_mode">Tmavý režim (Android Auto)</string>
     <string name="night_mode_threshold">Práh nočního režimu</string>
     <string name="enter_threshold_value">Zadejte hodnotu prahu</string>
-    <string name="threshold_lux_desc">Hodnota Lux (0-10000). Pod touto hodnotou = Noc.</string>
-    <string name="threshold_brightness_desc">Hodnota jasu (0-255). Pod touto hodnotou = Noc.</string>
+    <string name="threshold_lux_desc">Hodnota Lux (0–10000). Pod touto hodnotou = Noc.</string>
+    <string name="threshold_brightness_desc">Hodnota jasu (0–255). Pod touto hodnotou = Noc.</string>
     <string name="threshold_light_title">Citlivost na světlo</string>
     <string name="threshold_brightness_title">Úroveň jasu</string>
     <string name="threshold_light_hint">Tmavý režim se aktivuje, když okolní světlo klesne pod tuto úroveň</string>
@@ -99,6 +99,8 @@
     <string name="projection_status">Stav projekce: %s</string>
     <string name="connected">Připojeno</string>
     <string name="disconnected">Odpojeno</string>
+    <string name="connection_failed">Připojení selhalo. Zkuste to znovu.</string>
+    <string name="connection_retry_limit_reached">Automatické opětovné připojení bylo zastaveno. Pro opakování se připojte ručně.</string>
     <string name="running">Spuštěno</string>
     <string name="not_running">Nespuštěno</string>
     <string name="no_android_auto_device_connected">Není připojeno žádné zařízení Android Auto. Zkontrolujte připojení USB.</string>
@@ -342,9 +344,9 @@
     <string name="setup_welcome_msg">Tento průvodce vám pomůže vybrat nejlepší nastavení pro plynulý zážitek z Android Auto.\n\nTato nastavení můžete kdykoli změnit později v nastavení aplikace.</string>
     <string name="setup_start">Spustit</string>
     <string name="setup_size_title">Velikost displeje</string>
-    <string name="setup_size_phone">Telefon / Malý (4-6\")</string>
-    <string name="setup_size_small">Malý tablet (7-8\")</string>
-    <string name="setup_size_standard">Standardní (9-10\")</string>
+    <string name="setup_size_phone">Telefon / Malý (4–6\")</string>
+    <string name="setup_size_small">Malý tablet (7–8\")</string>
+    <string name="setup_size_standard">Standardní (9–10\")</string>
     <string name="setup_size_large">Velký (11\"+)</string>
     <string name="setup_orientation_title">Orientace zařízení</string>
     <string name="setup_orientation_landscape">Na šířku (horizontálně)</string>

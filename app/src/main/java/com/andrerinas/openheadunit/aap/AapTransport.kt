@@ -29,10 +29,8 @@ import com.andrerinas.openheadunit.main.BackgroundNotification
 import com.andrerinas.openheadunit.ssl.SingleKeyKeyManager
 import com.andrerinas.openheadunit.utils.AppLog
 import com.andrerinas.openheadunit.utils.Settings
-import com.andrerinas.openheadunit.aap.AapService
 import com.andrerinas.openheadunit.aap.protocol.proto.Control
 import com.andrerinas.openheadunit.aap.protocol.proto.MediaPlayback
-import javax.net.ssl.SSLEngineResult
 
 /**
  * Core AAP message pump.

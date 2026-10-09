@@ -104,6 +104,8 @@
     <string name="projection_status">Stare proiecție: %s</string>
     <string name="connected">Conectat</string>
     <string name="disconnected">Deconectat</string>
+    <string name="connection_failed">Conexiunea a eșuat. Încearcă din nou.</string>
+    <string name="connection_retry_limit_reached">Reconectarea automată s-a oprit. Conectează-te manual pentru a încerca din nou.</string>
     <string name="running">Rulează</string>
     <string name="not_running">Nu rulează</string>
     <string name="no_android_auto_device_connected">Niciun dispozitiv Android Auto conectat. Verifică conexiunea USB.</string>
@@ -359,9 +361,9 @@
     <string name="setup_welcome_msg">Acest asistent te ajută să alegi cele mai bune setări pentru o experiență Android Auto fluidă.\n\nPoți schimba oricând aceste setări mai târziu sau poți reporni asistentul din setările aplicației.</string>
     <string name="setup_start">Start</string>
     <string name="setup_size_title">Mărime ecran</string>
-    <string name="setup_size_phone">Telefon / Mic (4-6\")</string>
-    <string name="setup_size_small">Tabletă mică (7-8\")</string>
-    <string name="setup_size_standard">Standard (9-10\")</string>
+    <string name="setup_size_phone">Telefon / Mic (4–6\")</string>
+    <string name="setup_size_small">Tabletă mică (7–8\")</string>
+    <string name="setup_size_standard">Standard (9–10\")</string>
     <string name="setup_size_large">Mare (11\"+)</string>
     <string name="setup_orientation_title">Orientare dispozitiv</string>
     <string name="setup_orientation_landscape">Peisaj (Orizontal)</string>

@@ -440,9 +440,9 @@
     <string name="setup_welcome_msg">Bu sihirbaz, sorunsuz bir Android Auto deneyimi için en iyi ayarları seçmenize yardımcı olur.\n\nBu ayarları daha sonra istediğiniz zaman değiştirebilir veya uygulama ayarlarından bu sihirbazı yeniden başlatabilirsiniz.</string>
     <string name="setup_start">Başlat</string>
     <string name="setup_size_title">Ekran Boyutu</string>
-    <string name="setup_size_phone">Telefon / Küçük (4-6\")</string>
-    <string name="setup_size_small">Küçük Tablet (7-8\")</string>
-    <string name="setup_size_standard">Standart (9-10\")</string>
+    <string name="setup_size_phone">Telefon / Küçük (4–6\")</string>
+    <string name="setup_size_small">Küçük Tablet (7–8\")</string>
+    <string name="setup_size_standard">Standart (9–10\")</string>
     <string name="setup_size_large">Büyük (11\"+)</string>
     <string name="setup_orientation_title">Cihaz Yönü</string>
     <string name="setup_orientation_landscape">Yatay (Horizontal)</string>

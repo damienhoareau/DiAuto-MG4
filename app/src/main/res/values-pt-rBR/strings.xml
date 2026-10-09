@@ -22,8 +22,8 @@
     <string name="night_mode">Modo escuro (Android Auto)</string>
     <string name="night_mode_threshold">Limiar do Modo Noturno</string>
     <string name="enter_threshold_value">Inserir valor do limiar</string>
-    <string name="threshold_lux_desc">Valor Lux (0-10000). Abaixo disto = Noite.</string>
-    <string name="threshold_brightness_desc">Valor de brilho (0-255). Abaixo disto = Noite.</string>
+    <string name="threshold_lux_desc">Valor Lux (0–10000). Abaixo disto = Noite.</string>
+    <string name="threshold_brightness_desc">Valor de brilho (0–255). Abaixo disto = Noite.</string>
     <string name="threshold_light_title">Sensibilidade à luz</string>
     <string name="threshold_brightness_title">Nível de brilho</string>
     <string name="threshold_light_hint">O modo escuro é ativado quando a luz ambiente cai abaixo deste nível</string>
@@ -99,6 +99,8 @@
     <string name="projection_status">Status da projeção: %s</string>
     <string name="connected">Conectado</string>
     <string name="disconnected">Desconectado</string>
+    <string name="connection_failed">Falha na conexão. Tente novamente.</string>
+    <string name="connection_retry_limit_reached">A reconexão automática parou. Conecte manualmente para tentar de novo.</string>
     <string name="running">Em execução</string>
     <string name="not_running">Não em execução</string>
     <string name="no_android_auto_device_connected">Nenhum dispositivo Android Auto conectado. Verifique a conexão USB.</string>
@@ -340,9 +342,9 @@
     <string name="setup_welcome_msg">Este assistente ajuda você a escolher as melhores configurações para uma experiência fluida com o Android Auto.\n\nVocê sempre pode alterar essas configurações mais tarde nas configurações do aplicativo.</string>
     <string name="setup_start">Iniciar</string>
     <string name="setup_size_title">Tamanho da tela</string>
-    <string name="setup_size_phone">Smartphone / Pequeno (4-6\")</string>
-    <string name="setup_size_small">Tablet pequeno (7-8\")</string>
-    <string name="setup_size_standard">Padrão (9-10\")</string>
+    <string name="setup_size_phone">Smartphone / Pequeno (4–6\")</string>
+    <string name="setup_size_small">Tablet pequeno (7–8\")</string>
+    <string name="setup_size_standard">Padrão (9–10\")</string>
     <string name="setup_size_large">Grande (11\"+)</string>
     <string name="setup_orientation_title">Orientação do dispositivo</string>
     <string name="setup_orientation_landscape">Paisagem (horizontal)</string>

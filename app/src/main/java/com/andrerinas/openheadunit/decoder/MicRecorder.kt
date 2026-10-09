@@ -13,9 +13,10 @@ import android.media.MediaRecorder
 import android.media.audiofx.AcousticEchoCanceler
 import android.media.audiofx.AutomaticGainControl
 import android.media.audiofx.NoiseSuppressor
+import android.annotation.SuppressLint
+import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.ContextCompat
-import androidx.core.content.PermissionChecker
 import com.andrerinas.openheadunit.utils.AppLog
 import com.andrerinas.openheadunit.utils.Settings
 
@@ -160,7 +161,9 @@ class MicRecorder(private val micSampleRate: Int, private val context: Context) 
             return -4
         }
         
-        if (PermissionChecker.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PermissionChecker.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
             AppLog.e("MicRecorder: No RECORD_AUDIO permission")
             return -3
         }
@@ -181,7 +184,8 @@ class MicRecorder(private val micSampleRate: Int, private val context: Context) 
         
         // Check for BLUETOOTH_CONNECT permission on Android 12+ (API 31+)
         val hasBluetoothPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            PermissionChecker.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PermissionChecker.PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) ==
+                PackageManager.PERMISSION_GRANTED
         } else {
             true
         }
@@ -243,12 +247,13 @@ class MicRecorder(private val micSampleRate: Int, private val context: Context) 
         }
     }
 
+    @SuppressLint("MissingPermission") // RECORD_AUDIO checked immediately above / in start()
     private fun startRecording(source: Int) {
         try {
             if (audioRecord != null) return // Already recording
-            // Lint cannot see that start() already checked; SCO callbacks may also arrive later.
-            if (PermissionChecker.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO)
-                != PermissionChecker.PERMISSION_GRANTED
+            // SCO callbacks may arrive later; re-check before constructing AudioRecord.
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO)
+                != PackageManager.PERMISSION_GRANTED
             ) {
                 AppLog.e("MicRecorder: No RECORD_AUDIO permission when starting AudioRecord")
                 return

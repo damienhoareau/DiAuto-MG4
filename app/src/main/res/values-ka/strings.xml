@@ -113,6 +113,8 @@
     <string name="projection_status">პროექციის სტატუსი: %s</string>
     <string name="connected">დაკავშირებულია</string>
     <string name="disconnected">გათიშულია</string>
+    <string name="connection_failed">კავშირი ვერ დამყარდა. სცადეთ თავიდან.</string>
+    <string name="connection_retry_limit_reached">ავტომატური ხელახალი დაკავშირება შეჩერდა. ხელით დაუკავშირდით და თავიდან სცადეთ.</string>
     <string name="running">აქტიურია</string>
     <string name="not_running">არ არის აქტიური</string>
     <string name="no_android_auto_device_connected">Android Auto მოწყობილობა არ არის დაკავშირებული. გთხოვთ, შეამოწმოთ USB კავშირი.</string>
@@ -402,9 +404,9 @@
     <string name="setup_welcome_msg">ეს ასისტენტი დაგეხმარებათ შეარჩიოთ საუკეთესო პარამეტრები Android Auto-ს გამართული მუშაობისთვის.\n\nთქვენ ყოველთვის შეძლებთ ამ პარამეტრების შეცვლას ან ასისტენტის ხელახლა გაშვებას აპის პარამეტრებიდან.</string>
     <string name="setup_start">დაწყება</string>
     <string name="setup_size_title">ეკრანის ზომა</string>
-    <string name="setup_size_phone">ტელეფონი / მცირე (4-6\")</string>
-    <string name="setup_size_small">მცირე ტაბლეტი (7-8\")</string>
-    <string name="setup_size_standard">სტანდარტული (9-10\")</string>
+    <string name="setup_size_phone">ტელეფონი / მცირე (4–6\")</string>
+    <string name="setup_size_small">მცირე ტაბლეტი (7–8\")</string>
+    <string name="setup_size_standard">სტანდარტული (9–10\")</string>
     <string name="setup_size_large">დიდი (11\"+)</string>
     <string name="setup_orientation_title">მოწყობილობის ორიენტაცია</string>
     <string name="setup_orientation_landscape">ალბომური (ჰორიზონტალური)</string>

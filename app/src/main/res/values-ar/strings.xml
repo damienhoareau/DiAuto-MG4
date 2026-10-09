@@ -99,6 +99,8 @@
     <string name="projection_status">حالة الإسقاط: %s</string>
     <string name="connected">متصل</string>
     <string name="disconnected">غير متصل</string>
+    <string name="connection_failed">فشل الاتصال. حاول مرة أخرى.</string>
+    <string name="connection_retry_limit_reached">توقف إعادة الاتصال التلقائي. اتصل يدويًا للمحاولة مرة أخرى.</string>
     <string name="running">يعمل</string>
     <string name="not_running">لا يعمل</string>
     <string name="no_android_auto_device_connected">لا يوجد جهاز Android Auto متصل. يرجى التحقق من توصيل USB.</string>
@@ -342,9 +344,9 @@
     <string name="setup_welcome_msg">يساعدك هذا المعالج في اختيار أفضل الإعدادات لتجربة Android Auto سلسة.\n\nيمكنك دائمًا تغيير هذه الإعدادات لاحقًا من إعدادات التطبيق.</string>
     <string name="setup_start">بدء</string>
     <string name="setup_size_title">حجم الشاشة</string>
-    <string name="setup_size_phone">هاتف / صغير (4-6 بوصة)</string>
-    <string name="setup_size_small">جهاز لوحي صغير (7-8 بوصة)</string>
-    <string name="setup_size_standard">قياسي (9-10 بوصة)</string>
+    <string name="setup_size_phone">هاتف / صغير (4–6 بوصة)</string>
+    <string name="setup_size_small">جهاز لوحي صغير (7–8 بوصة)</string>
+    <string name="setup_size_standard">قياسي (9–10 بوصة)</string>
     <string name="setup_size_large">كبير (11+ بوصة)</string>
     <string name="setup_orientation_title">اتجاه الجهاز</string>
     <string name="setup_orientation_landscape">عرضي (أفقي)</string>

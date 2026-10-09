@@ -21,8 +21,8 @@
     <string name="night_mode">深色模式（Android Auto）</string>
     <string name="night_mode_threshold">夜间模式阈值</string>
     <string name="enter_threshold_value">输入阈值</string>
-    <string name="threshold_lux_desc">Lux 值 (0-10000)。低于此值 = 夜间。</string>
-    <string name="threshold_brightness_desc">亮度值 (0-255)。低于此值 = 夜间。</string>
+    <string name="threshold_lux_desc">Lux 值 (0–10000)。低于此值 = 夜间。</string>
+    <string name="threshold_brightness_desc">亮度值 (0–255)。低于此值 = 夜间。</string>
     <string name="threshold_light_title">光线敏感度</string>
     <string name="threshold_brightness_title">亮度等级</string>
     <string name="threshold_light_hint">当环境光线低于此等级时激活深色模式</string>
@@ -98,6 +98,8 @@
     <string name="projection_status">投射状态： %s</string>
     <string name="connected">已连接</string>
     <string name="disconnected">已断连</string>
+    <string name="connection_failed">连接失败。请重试。</string>
+    <string name="connection_retry_limit_reached">自动重连已停止。请手动连接后再试。</string>
     <string name="running">运行中</string>
     <string name="not_running">尚未运行</string>
     <string name="no_android_auto_device_connected">未连接 Android Auto 设备。 请检查 USB 连接。</string>
@@ -339,9 +341,9 @@
     <string name="setup_welcome_msg">此向导将协助您选择最佳设置，以获得流畅的 Android Auto 体验。\n\n您稍后随时可以在应用程序设置中更改这些设置。</string>
     <string name="setup_start">开始</string>
     <string name="setup_size_title">屏幕尺寸</string>
-    <string name="setup_size_phone">手机 / 小型 (4-6\")</string>
-    <string name="setup_size_small">小型平板 (7-8\")</string>
-    <string name="setup_size_standard">标准 (9-10\")</string>
+    <string name="setup_size_phone">手机 / 小型 (4–6\")</string>
+    <string name="setup_size_small">小型平板 (7–8\")</string>
+    <string name="setup_size_standard">标准 (9–10\")</string>
     <string name="setup_size_large">大型 (11\"+)</string>
     <string name="setup_orientation_title">设备方向</string>
     <string name="setup_orientation_landscape">横向</string>

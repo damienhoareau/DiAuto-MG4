@@ -1,15 +1,15 @@
 package com.andrerinas.openheadunit.main
 
-import android.Manifest
 import android.animation.ObjectAnimator
 import android.animation.PropertyValuesHolder
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.os.SystemClock
 import android.view.KeyEvent
 import android.view.View
 import android.widget.FrameLayout
@@ -32,9 +32,7 @@ import com.andrerinas.openheadunit.app.BaseActivity
 import com.andrerinas.openheadunit.connection.CommManager
 import com.andrerinas.openheadunit.utils.AppLog
 import com.andrerinas.openheadunit.utils.AppPermissions
-import android.content.res.Configuration
 import com.andrerinas.openheadunit.utils.Settings
-import android.os.SystemClock
 import com.andrerinas.openheadunit.utils.SystemUI
 import com.andrerinas.openheadunit.utils.ToastUtils
 import com.bumptech.glide.Glide

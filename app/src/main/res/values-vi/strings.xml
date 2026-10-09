@@ -109,6 +109,8 @@
     <string name="projection_status">Trạng thái chiếu: %s</string>
     <string name="connected">Đã kết nối</string>
     <string name="disconnected">Đã ngắt kết nối</string>
+    <string name="connection_failed">Kết nối thất bại. Hãy thử lại.</string>
+    <string name="connection_retry_limit_reached">Tự động kết nối lại đã dừng. Hãy kết nối thủ công để thử lại.</string>
     <string name="running">Đang chạy</string>
     <string name="not_running">Chưa chạy</string>
     <string name="no_android_auto_device_connected">Không có thiết bị Android Auto kết nối. Vui lòng kiểm tra kết nối USB.</string>
@@ -367,9 +369,9 @@
     <string name="setup_welcome_msg">Trình hướng dẫn này giúp bạn chọn cài đặt phù hợp nhất cho trải nghiệm Android Auto mượt mà.\n\nBạn có thể đổi sau hoặc chạy lại trình hướng dẫn từ cài đặt ứng dụng.</string>
     <string name="setup_start">Bắt đầu</string>
     <string name="setup_size_title">Kích thước màn hình</string>
-    <string name="setup_size_phone">Điện thoại / Nhỏ (4-6\")</string>
-    <string name="setup_size_small">Máy tính bảng nhỏ (7-8\")</string>
-    <string name="setup_size_standard">Tiêu chuẩn (9-10\")</string>
+    <string name="setup_size_phone">Điện thoại / Nhỏ (4–6\")</string>
+    <string name="setup_size_small">Máy tính bảng nhỏ (7–8\")</string>
+    <string name="setup_size_standard">Tiêu chuẩn (9–10\")</string>
     <string name="setup_size_large">Lớn (11\"+)</string>
     <string name="setup_orientation_title">Hướng thiết bị</string>
     <string name="setup_orientation_landscape">Ngang</string>

@@ -728,9 +728,9 @@
     <string name="setup_welcome_msg">This wizard helps you choose the best settings for a smooth Android Auto experience.\n\nYou can always change these settings later or restart this wizard from the app settings.</string>
     <string name="setup_start">Start</string>
     <string name="setup_size_title">Display Size</string>
-    <string name="setup_size_phone">Phone / Small (4-6\")</string>
-    <string name="setup_size_small">Small Tablet (7-8\")</string>
-    <string name="setup_size_standard">Standard (9-10\")</string>
+    <string name="setup_size_phone">Phone / Small (4–6\")</string>
+    <string name="setup_size_small">Small Tablet (7–8\")</string>
+    <string name="setup_size_standard">Standard (9–10\")</string>
     <string name="setup_size_large">Large (11\"+)</string>
     <string name="setup_orientation_title">Device Orientation</string>
     <string name="setup_orientation_landscape">Landscape (Horizontal)</string>

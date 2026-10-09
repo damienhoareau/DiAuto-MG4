@@ -22,8 +22,8 @@
     <string name="night_mode">Темний режим (Android Auto)</string>
     <string name="night_mode_threshold">Поріг нічного режиму</string>
     <string name="enter_threshold_value">Введіть порогове значення</string>
-    <string name="threshold_lux_desc">Значення люкс (0-10000). Нижче = Ніч.</string>
-    <string name="threshold_brightness_desc">Значення яскравості (0-255). Нижче = Ніч.</string>
+    <string name="threshold_lux_desc">Значення люкс (0–10000). Нижче = Ніч.</string>
+    <string name="threshold_brightness_desc">Значення яскравості (0–255). Нижче = Ніч.</string>
     <string name="threshold_light_title">Чутливість до світла</string>
     <string name="threshold_brightness_title">Рівень яскравості</string>
     <string name="threshold_light_hint">Темний режим активується, коли рівень навколишнього освітлення падає нижче цього значення</string>
@@ -99,6 +99,8 @@
     <string name="projection_status">Статус проєкції: %s</string>
     <string name="connected">Підключено</string>
     <string name="disconnected">Відключено</string>
+    <string name="connection_failed">Не вдалося підключитися. Спробуйте ще раз.</string>
+    <string name="connection_retry_limit_reached">Автоматичне перепідключення зупинено. Підключіться вручну, щоб спробувати знову.</string>
     <string name="running">Запущено</string>
     <string name="not_running">Не запущено</string>
     <string name="no_android_auto_device_connected">Пристрій Android Auto не підключений. Будь ласка, перевірте USB-зʼєднання.</string>
@@ -340,9 +342,9 @@
     <string name="setup_welcome_msg">Цей майстер допоможе вам вибрати найкращі налаштування для стабільної роботи Android Auto.\n\nВи завжди можете змінити ці параметри пізніше в налаштуваннях програми.</string>
     <string name="setup_start">Почати</string>
     <string name="setup_size_title">Розмір дисплея</string>
-    <string name="setup_size_phone">Смартфон / Маленький (4-6\")</string>
-    <string name="setup_size_small">Маленький планшет (7-8\")</string>
-    <string name="setup_size_standard">Стандартний (9-10\")</string>
+    <string name="setup_size_phone">Смартфон / Маленький (4–6\")</string>
+    <string name="setup_size_small">Маленький планшет (7–8\")</string>
+    <string name="setup_size_standard">Стандартний (9–10\")</string>
     <string name="setup_size_large">Великий (11\"+)</string>
     <string name="setup_orientation_title">Орієнтація пристрою</string>
     <string name="setup_orientation_landscape">Альбомна (горизонтально)</string>

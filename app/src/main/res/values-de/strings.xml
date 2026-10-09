@@ -23,8 +23,8 @@
     <string name="night_mode">Dunkelmodus (Android Auto)</string>
     <string name="night_mode_threshold">Nachtmodus Schwellenwert</string>
     <string name="enter_threshold_value">Schwellenwert eingeben</string>
-    <string name="threshold_lux_desc">Lux Wert (0-10000). Darunter = Nacht.</string>
-    <string name="threshold_brightness_desc">Helligkeit (0-255). Darunter = Nacht.</string>
+    <string name="threshold_lux_desc">Lux Wert (0–10000). Darunter = Nacht.</string>
+    <string name="threshold_brightness_desc">Helligkeit (0–255). Darunter = Nacht.</string>
     <string name="threshold_light_title">Lichtempfindlichkeit</string>
     <string name="threshold_brightness_title">Helligkeitsstufe</string>
     <string name="threshold_light_hint">Der Dunkelmodus wird aktiviert, wenn das Umgebungslicht unter diesen Wert fällt</string>
@@ -110,6 +110,8 @@
     <string name="projection_status">Projektions-Status: %s</string>
     <string name="connected">Verbunden</string>
     <string name="disconnected">Getrennt</string>
+    <string name="connection_failed">Verbindung fehlgeschlagen. Erneut versuchen.</string>
+    <string name="connection_retry_limit_reached">Automatische Wiederverbindung gestoppt. Manuell verbinden, um es erneut zu versuchen.</string>
     <string name="running">Läuft</string>
     <string name="not_running">Läuft nicht</string>
     <string name="no_android_auto_device_connected">Kein Android Auto Gerät verbunden. Bitte USB prüfen.</string>
@@ -380,9 +382,9 @@
     <string name="setup_welcome_msg">Dieser Wizard hilft dir, die besten Einstellungen für ein reibungsloses Android Auto Erlebnis zu finden.\n\nDu kannst diese Einstellungen jederzeit später ändern oder diesen Wizard in den App-Einstellungen neu starten.</string>
     <string name="setup_start">Starten</string>
     <string name="setup_size_title">Display-Größe</string>
-    <string name="setup_size_phone">Handy / Klein (4-6\")</string>
-    <string name="setup_size_small">Kleines Tablet (7-8\")</string>
-    <string name="setup_size_standard">Standard (9-10\")</string>
+    <string name="setup_size_phone">Handy / Klein (4–6\")</string>
+    <string name="setup_size_small">Kleines Tablet (7–8\")</string>
+    <string name="setup_size_standard">Standard (9–10\")</string>
     <string name="setup_size_large">Groß (11\"+)</string>
     <string name="setup_orientation_title">Geräte-Ausrichtung</string>
     <string name="setup_orientation_landscape">Querformat (Horizontal)</string>

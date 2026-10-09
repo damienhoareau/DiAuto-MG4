@@ -108,6 +108,8 @@
     <string name="projection_status">Stato Proiezione: %s</string>
     <string name="connected">Connesso</string>
     <string name="disconnected">Scollegato</string>
+    <string name="connection_failed">Connessione non riuscita. Riprova.</string>
+    <string name="connection_retry_limit_reached">Riconnessione automatica interrotta. Connettiti manualmente per riprovare.</string>
     <string name="running">In esecuzione</string>
     <string name="not_running">Non in esecuzione</string>
     <string name="no_android_auto_device_connected">Nessun dispositivo Android Auto connesso. Controllare la connessione USB.</string>
@@ -365,9 +367,9 @@
     <string name="setup_welcome_msg">Questa procedura guidata ti aiuta a scegliere le impostazioni migliori per un\'esperienza Android Auto fluida.\n\nPuoi sempre modificare queste impostazioni in seguito o riavviare questa procedura dalle impostazioni dell\'app.</string>
     <string name="setup_start">Inizia</string>
     <string name="setup_size_title">Dimensioni display</string>
-    <string name="setup_size_phone">Telefono / Piccolo (4-6\")</string>
-    <string name="setup_size_small">Tablet piccolo (7-8\")</string>
-    <string name="setup_size_standard">Standard (9-10\")</string>
+    <string name="setup_size_phone">Telefono / Piccolo (4–6\")</string>
+    <string name="setup_size_small">Tablet piccolo (7–8\")</string>
+    <string name="setup_size_standard">Standard (9–10\")</string>
     <string name="setup_size_large">Grande (11\"+)</string>
     <string name="setup_orientation_title">Orientamento dispositivo</string>
     <string name="setup_orientation_landscape">Orizzontale</string>

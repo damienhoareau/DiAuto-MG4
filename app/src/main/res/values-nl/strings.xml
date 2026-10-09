@@ -21,8 +21,8 @@
     <string name="night_mode">Donkere modus (Android Auto)</string>
     <string name="night_mode_threshold">Drempelwaarde nachtmodus</string>
     <string name="enter_threshold_value">Voer drempelwaarde in</string>
-    <string name="threshold_lux_desc">Lux waarde (0-10000). Hieronder = Nacht.</string>
-    <string name="threshold_brightness_desc">Helderheidswaarde (0-255). Hieronder = Nacht.</string>
+    <string name="threshold_lux_desc">Lux waarde (0–10000). Hieronder = Nacht.</string>
+    <string name="threshold_brightness_desc">Helderheidswaarde (0–255). Hieronder = Nacht.</string>
     <string name="threshold_light_title">Lichtgevoeligheid</string>
     <string name="threshold_brightness_title">Helderheidsniveau</string>
     <string name="threshold_light_hint">Donkere modus wordt geactiveerd wanneer het omgevingslicht onder dit niveau daalt</string>
@@ -98,6 +98,8 @@
     <string name="projection_status">Projectie Status: %s</string>
     <string name="connected">Verbonden</string>
     <string name="disconnected">Verbinding verbroken</string>
+    <string name="connection_failed">Verbinding mislukt. Probeer opnieuw.</string>
+    <string name="connection_retry_limit_reached">Automatisch opnieuw verbinden gestopt. Verbind handmatig om het opnieuw te proberen.</string>
     <string name="running">Gestart</string>
     <string name="not_running">Niet gestart</string>
     <string name="no_android_auto_device_connected">Geen Android Auto-apparaat aangesloten. Controleer de USB-verbinding.</string>
@@ -339,9 +341,9 @@
     <string name="setup_welcome_msg">Deze wizard helpt je bij het kiezen van de beste instellingen voor een soepele Android Auto-ervaring.\n\nJe kunt deze instellingen later altijd wijzigen in de app-instellingen.</string>
     <string name="setup_start">Starten</string>
     <string name="setup_size_title">Schermgrootte</string>
-    <string name="setup_size_phone">Telefoon / Klein (4-6\")</string>
-    <string name="setup_size_small">Kleine tablet (7-8\")</string>
-    <string name="setup_size_standard">Standaard (9-10\")</string>
+    <string name="setup_size_phone">Telefoon / Klein (4–6\")</string>
+    <string name="setup_size_small">Kleine tablet (7–8\")</string>
+    <string name="setup_size_standard">Standaard (9–10\")</string>
     <string name="setup_size_large">Groot (11\"+)</string>
     <string name="setup_orientation_title">Schermoriëntatie</string>
     <string name="setup_orientation_landscape">Liggend (horizontaal)</string>

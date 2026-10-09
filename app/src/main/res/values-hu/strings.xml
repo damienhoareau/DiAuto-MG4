@@ -98,6 +98,8 @@
     <string name="projection_status">Kivetítés állapota: %s</string>
     <string name="connected">Kapcsolódva</string>
     <string name="disconnected">Leválasztva</string>
+    <string name="connection_failed">A kapcsolat sikertelen. Próbálja újra.</string>
+    <string name="connection_retry_limit_reached">Az automatikus újracsatlakozás leállt. Próbálja meg manuálisan.</string>
     <string name="running">Fut</string>
     <string name="not_running">Nem fut</string>
     <string name="no_android_auto_device_connected">Nincs Android Auto eszköz csatlakoztatva. Ellenőrizd az USB kapcsolatot.</string>
@@ -341,9 +343,9 @@
     <string name="setup_welcome_msg">Ez a varázsló segít kiválasztani a legjobb beállításokat a zökkenőmentes Android Auto élményhez.\n\nEzeket a beállításokat bármikor módosíthatja később az alkalmazás beállításaiban.</string>
     <string name="setup_start">Indítás</string>
     <string name="setup_size_title">Kijelző mérete</string>
-    <string name="setup_size_phone">Telefon / Kicsi (4-6\")</string>
-    <string name="setup_size_small">Kis táblagép (7-8\")</string>
-    <string name="setup_size_standard">Normál (9-10\")</string>
+    <string name="setup_size_phone">Telefon / Kicsi (4–6\")</string>
+    <string name="setup_size_small">Kis táblagép (7–8\")</string>
+    <string name="setup_size_standard">Normál (9–10\")</string>
     <string name="setup_size_large">Nagy (11\"+)</string>
     <string name="setup_orientation_title">Eszköz tájolása</string>
     <string name="setup_orientation_landscape">Fekvő (vízszintes)</string>
