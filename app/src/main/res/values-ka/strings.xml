@@ -539,6 +539,9 @@
     <string name="audio_latency_multiplier">აუდიო დაყოვნების მულტიპლიკატორი</string>
     <string name="audio_latency_multiplier_description">აუდიო ბუფერის ზომის რეგულირება (დაბალი = ნაკლები დაყოვნება, მაღალი = ნაკლები წყვეტა)</string>
     <string name="audio_queue_capacity">აუდიო რიგის ტევადობა (Backpressure)</string>
+    <string name="media_audio_buffer">Wi‑Fi მედია აუდიო ბუფერი</string>
+    <string name="media_audio_buffer_description">წინასწარ აბუფერებს მუსიკას, როცა ის Wi‑Fi‑ით მიდის (არა მანქანის Bluetooth‑ით). უფრო მაღალი = ნაკლები წყვეტა, მეტი დაყოვნება. ნავიგაცია რჩება დაბალი დაყოვნებით.</string>
+    <string name="media_audio_buffer_ms">%d ms</string>
 
     <string name="loading_screen">ჩატვირთვის ეკრანი</string>
     <string name="loading_screen_default">ნაგულისხმევი</string>

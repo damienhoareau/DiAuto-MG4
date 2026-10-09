@@ -526,6 +526,9 @@
     <string name="audio_latency_multiplier">Множитель задержки звука</string>
     <string name="audio_latency_multiplier_description">Настройка размера аудио-буфера (Меньше = меньше задержка, Больше = меньше заиканий)</string>
     <string name="audio_queue_capacity">Емкость аудио-очереди (Backpressure)</string>
+    <string name="media_audio_buffer">Буфер аудио медиа по Wi‑Fi</string>
+    <string name="media_audio_buffer_description">Предварительно буферизует музыку при воспроизведении по Wi‑Fi (не через Bluetooth автомобиля). Выше = меньше заиканий, больше задержка. Навигация остаётся с низкой задержкой.</string>
+    <string name="media_audio_buffer_ms">%d мс</string>
     <string name="media_action_previous">Предыдущий</string>
     <string name="media_action_play">Воспроизвести</string>
     <string name="media_action_pause">Пауза</string>

@@ -578,6 +578,9 @@
     <string name="audio_latency_multiplier">Ses Gecikme Çarpanı</string>
     <string name="audio_latency_multiplier_description">Ses tampon boyutunu ayarlar (Düşük = Daha az gecikme, Yüksek = Daha az takılma)</string>
     <string name="audio_queue_capacity">Ses Kuyruğu Kapasitesi (Backpressure)</string>
+    <string name="media_audio_buffer">Wi‑Fi müzik ses tamponu</string>
+    <string name="media_audio_buffer_description">Müzik Wi‑Fi üzerinden giderken (araç Bluetooth’u değil) önceden biriktirir. Yüksek = daha az takılma, daha fazla gecikme. Navigasyon düşük gecikmede kalır.</string>
+    <string name="media_audio_buffer_ms">%d ms</string>
     <string name="media_action_previous">Önceki</string>
     <string name="media_action_play">Oynat</string>
     <string name="media_action_pause">Duraklat</string>

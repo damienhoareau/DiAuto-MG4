@@ -519,6 +519,9 @@
     <string name="audio_latency_multiplier">Audio-Latenz-Multiplikator</string>
     <string name="audio_latency_multiplier_description">Audio-Puffergröße anpassen (Niedriger = weniger Verzögerung, Höher = weniger Stottern)</string>
     <string name="audio_queue_capacity">Audio-Warteschlangenkapazität (Backpressure)</string>
+    <string name="media_audio_buffer">Wi‑Fi-Medien-Audiopuffer</string>
+    <string name="media_audio_buffer_description">Puffert Musik vor, wenn sie über Wi‑Fi läuft (nicht über Bluetooth des Autos). Höher = weniger Ruckeln, mehr Verzögerung. Navigation bleibt latenzarm.</string>
+    <string name="media_audio_buffer_ms">%d ms</string>
     <string name="media_action_previous">Zurück</string>
     <string name="media_action_play">Wiedergabe</string>
     <string name="media_action_pause">Pause</string>

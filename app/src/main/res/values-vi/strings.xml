@@ -512,6 +512,9 @@
     <string name="audio_latency_multiplier">Hệ số độ trễ âm thanh</string>
     <string name="audio_latency_multiplier_description">Điều chỉnh kích thước bộ đệm âm thanh (Thấp = ít lag, Cao = ít giật)</string>
     <string name="audio_queue_capacity">Sức chứa hàng đợi âm thanh (Backpressure)</string>
+    <string name="media_audio_buffer">Bộ đệm âm thanh media Wi‑Fi</string>
+    <string name="media_audio_buffer_description">Đệm trước nhạc khi phát qua Wi‑Fi (không qua Bluetooth xe). Cao hơn = ít giật hơn, trễ hơn. Điều hướng vẫn độ trễ thấp.</string>
+    <string name="media_audio_buffer_ms">%d ms</string>
     <string name="media_action_previous">Trước</string>
     <string name="media_action_play">Phát</string>
     <string name="media_action_pause">Tạm dừng</string>

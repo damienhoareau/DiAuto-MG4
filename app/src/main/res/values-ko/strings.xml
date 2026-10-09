@@ -560,6 +560,9 @@
     <string name="audio_latency_multiplier">오디오 지연 배율</string>
     <string name="audio_latency_multiplier_description">오디오 버퍼 크기를 조정합니다. 낮을수록 지연이 줄고, 높을수록 끊김이 줄어듭니다</string>
     <string name="audio_queue_capacity">오디오 큐 용량</string>
+    <string name="media_audio_buffer">Wi‑Fi 미디어 오디오 버퍼</string>
+    <string name="media_audio_buffer_description">차량 Bluetooth가 아닌 Wi‑Fi로 음악이 재생될 때 미리 버퍼링합니다. 값이 클수록 끊김은 줄고 지연은 늘어납니다. 내비게이션은 낮은 지연을 유지합니다.</string>
+    <string name="media_audio_buffer_ms">%d ms</string>
 
     <!-- Custom loading screen -->
     <string name="loading_screen">로딩 화면</string>

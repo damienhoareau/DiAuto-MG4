@@ -498,6 +498,9 @@
     <string name="audio_latency_multiplier">Multiplicador de latencia de audio</string>
     <string name="audio_latency_multiplier_description">Ajusta el tamaño del búfer de audio (Menor = menos lag, Mayor = menos entrecortado)</string>
     <string name="audio_queue_capacity">Capacidad de la cola de audio (Backpressure)</string>
+    <string name="media_audio_buffer">Búfer de audio multimedia Wi‑Fi</string>
+    <string name="media_audio_buffer_description">Prebúfer de música cuando se reproduce por Wi‑Fi (no por el Bluetooth del coche). Más alto = menos cortes, más retraso. La navegación sigue con baja latencia.</string>
+    <string name="media_audio_buffer_ms">%d ms</string>
     <string name="media_action_previous">Anterior</string>
     <string name="media_action_play">Reproducir</string>
     <string name="media_action_pause">Pausa</string>

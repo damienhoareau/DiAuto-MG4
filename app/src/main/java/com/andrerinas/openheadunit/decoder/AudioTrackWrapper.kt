@@ -28,7 +28,9 @@ class AudioTrackWrapper(
     private val audioQueueCapacity: Int = 0,
     private val mixer: AudioMixer? = null,
     private val channelId: Int = -1,
-    private val attachHwDspEqualizer: Boolean = false
+    private val attachHwDspEqualizer: Boolean = false,
+    /** >0 enables Wi‑Fi media jitter: larger track + delay play() until this many ms are queued. */
+    private val mediaBufferMillis: Int = 0,
 ) : Thread() {
 
     private data class AudioChunk(
@@ -97,14 +99,54 @@ class AudioTrackWrapper(
     // Track frames written for better draining
     private var framesWritten: Long = 0
     private val bytesPerFrame: Int = channelCount * (if (bitDepth == 16) 2 else 1)
+    private val mediaJitterStartBytes: Int
+    private var bytesWrittenBeforePlay: Int = 0
+    @Volatile private var mediaPlaybackStarted: Boolean = true
 
     init {
         this.name = "AudioPlaybackThread"
-        audioTrack = if (mixer == null) {
-            createAudioTrack(stream, sampleRateInHz, bitDepth, channelCount, audioLatencyMultiplier)
+        val plan = if (mixer == null && mediaBufferMillis > 0) {
+            val channelConfig =
+                if (channelCount == 2) AudioFormat.CHANNEL_OUT_STEREO else AudioFormat.CHANNEL_OUT_MONO
+            val dataFormat =
+                if (bitDepth == 16) AudioFormat.ENCODING_PCM_16BIT else AudioFormat.ENCODING_PCM_8BIT
+            val minBuffer = AudioTrack.getMinBufferSize(sampleRateInHz, channelConfig, dataFormat)
+            MediaAudioBuffer.plan(
+                isMedia = true,
+                sampleRate = sampleRateInHz,
+                channels = channelCount,
+                minBufferBytes = minBuffer.coerceAtLeast(0),
+                mediaMillis = mediaBufferMillis,
+            )
         } else {
             null
         }
+
+        audioTrack = if (mixer == null) {
+            createAudioTrack(
+                stream,
+                sampleRateInHz,
+                bitDepth,
+                channelCount,
+                audioLatencyMultiplier,
+                plan?.trackBufferBytes ?: 0,
+            )
+        } else {
+            null
+        }
+
+        mediaJitterStartBytes = run {
+            val track = audioTrack
+            val mediaPlan = plan
+            if (mediaPlan != null && track != null) {
+                val capacity = runCatching { track.bufferSizeInFrames * bytesPerFrame }
+                    .getOrDefault(mediaPlan.trackBufferBytes)
+                MediaAudioBuffer.startBytesFor(mediaPlan.startBytes, capacity, writeChunkBytes = 2048)
+            } else {
+                0
+            }
+        }
+        mediaPlaybackStarted = mediaJitterStartBytes <= 0
 
         if (mixer != null) {
             mixer.registerChannel(channelId, sampleRateInHz, channelCount)
@@ -113,7 +155,14 @@ class AudioTrackWrapper(
             setVolume(gain)
             audioTrack?.let { track ->
                 attachHwDspEqualizerQuietly(track.audioSessionId)
-                track.play()
+                if (mediaPlaybackStarted) {
+                    track.play()
+                } else {
+                    AppLog.i(
+                        "Media audio jitter: delaying play until ${mediaJitterStartBytes}B " +
+                            "(~${mediaBufferMillis}ms) buffered",
+                    )
+                }
             }
         }
 
@@ -225,9 +274,20 @@ class AudioTrackWrapper(
             framesWritten += size / bytesPerFrame
         } else {
             applyGain(buffer, size)
-            val result = audioTrack?.write(buffer, 0, size) ?: 0
+            val track = audioTrack ?: return
+            val result = track.write(buffer, 0, size)
             if (result > 0) {
                 framesWritten += result / bytesPerFrame
+                if (!mediaPlaybackStarted) {
+                    bytesWrittenBeforePlay += result
+                    if (bytesWrittenBeforePlay >= mediaJitterStartBytes) {
+                        track.play()
+                        mediaPlaybackStarted = true
+                        AppLog.i(
+                            "Media audio jitter: play() after ${bytesWrittenBeforePlay}B buffered",
+                        )
+                    }
+                }
             }
         }
     }
@@ -363,7 +423,8 @@ class AudioTrackWrapper(
         sampleRateInHz: Int,
         bitDepth: Int,
         channelCount: Int,
-        multiplier: Int
+        multiplier: Int,
+        mediaTrackBytes: Int = 0,
     ): AudioTrack {
         val channelConfig =
             if (channelCount == 2) AudioFormat.CHANNEL_OUT_STEREO else AudioFormat.CHANNEL_OUT_MONO
@@ -371,7 +432,8 @@ class AudioTrackWrapper(
             if (bitDepth == 16) AudioFormat.ENCODING_PCM_16BIT else AudioFormat.ENCODING_PCM_8BIT
 
         val minBufferSize = AudioTrack.getMinBufferSize(sampleRateInHz, channelConfig, dataFormat)
-        val bufferSize = if (minBufferSize > 0) minBufferSize * multiplier else minBufferSize
+        val multiplied = if (minBufferSize > 0) minBufferSize * multiplier else minBufferSize
+        val bufferSize = if (mediaTrackBytes > 0) maxOf(multiplied, mediaTrackBytes) else multiplied
 
         AppLog.i("Audio stream: $stream buffer size: $bufferSize (min: $minBufferSize) sampleRateInHz: $sampleRateInHz channelCount: $channelCount")
 

@@ -499,6 +499,9 @@
     <string name="audio_latency_multiplier">Multiplicador de latência de áudio</string>
     <string name="audio_latency_multiplier_description">Ajuste o tamanho do buffer de áudio (Menor = menos lag, Maior = menos engasgos)</string>
     <string name="audio_queue_capacity">Capacidade da fila de áudio (Backpressure)</string>
+    <string name="media_audio_buffer">Buffer de áudio de mídia Wi‑Fi</string>
+    <string name="media_audio_buffer_description">Pré-bufferiza a música quando ela toca pelo Wi‑Fi (não pelo Bluetooth do carro). Maior = menos engasgos, mais atraso. A navegação permanece com baixa latência.</string>
+    <string name="media_audio_buffer_ms">%d ms</string>
     <string name="media_action_previous">Anterior</string>
     <string name="media_action_play">Reproduzir</string>
     <string name="media_action_pause">Pausar</string>

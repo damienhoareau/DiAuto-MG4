@@ -499,6 +499,9 @@
     <string name="audio_latency_multiplier">Mnożnik opóźnienia dźwięku</string>
     <string name="audio_latency_multiplier_description">Dostosuj rozmiar bufora audio (Niższy = mniejsze opóźnienie, Wyższy = mniej zacinania)</string>
     <string name="audio_queue_capacity">Pojemność kolejki audio (Backpressure)</string>
+    <string name="media_audio_buffer">Bufor audio mediów Wi‑Fi</string>
+    <string name="media_audio_buffer_description">Wstępnie buforuje muzykę, gdy idzie przez Wi‑Fi (nie Bluetooth samochodu). Wyżej = mniej przycięć, większe opóźnienie. Nawigacja pozostaje z niską latencją.</string>
+    <string name="media_audio_buffer_ms">%d ms</string>
     <string name="media_action_previous">Poprzedni</string>
     <string name="media_action_play">Odtwórz</string>
     <string name="media_action_pause">Pauza</string>

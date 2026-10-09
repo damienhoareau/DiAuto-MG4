@@ -498,6 +498,9 @@
     <string name="audio_latency_multiplier">مضاعف زمن انتقال الصوت</string>
     <string name="audio_latency_multiplier_description">ضبط حجم مخزن الصوت (أقل = تأخير أقل، أعلى = تقطع أقل)</string>
     <string name="audio_queue_capacity">سعة قائمة انتظار الصوت (Backpressure)</string>
+    <string name="media_audio_buffer">ذاكرة التخزين المؤقت لصوت الوسائط عبر Wi‑Fi</string>
+    <string name="media_audio_buffer_description">يخزّن الموسيقى مؤقتًا مسبقًا عند التشغيل عبر Wi‑Fi (وليس Bluetooth السيارة). الأعلى = تقطّع أقل وتأخير أكبر. تبقى الملاحة بزمن استجابة منخفض.</string>
+    <string name="media_audio_buffer_ms">%d مللي ثانية</string>
     <string name="media_action_previous">السابق</string>
     <string name="media_action_play">تشغيل</string>
     <string name="media_action_pause">إيقاف مؤقت</string>

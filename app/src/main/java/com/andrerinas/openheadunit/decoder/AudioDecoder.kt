@@ -45,7 +45,20 @@ class AudioDecoder {
         }
     }
 
-    fun start(channel: Int, stream: Int, sampleRate: Int, numberOfBits: Int, numberOfChannels: Int, isAac: Boolean = false, gain: Float = 1.0f, audioLatencyMultiplier: Int = 8, audioQueueCapacity: Int = 0, staticAudioFocus: Boolean = false, attachHwDspEqualizer: Boolean = false) {
+    fun start(
+        channel: Int,
+        stream: Int,
+        sampleRate: Int,
+        numberOfBits: Int,
+        numberOfChannels: Int,
+        isAac: Boolean = false,
+        gain: Float = 1.0f,
+        audioLatencyMultiplier: Int = 8,
+        audioQueueCapacity: Int = 0,
+        staticAudioFocus: Boolean = false,
+        attachHwDspEqualizer: Boolean = false,
+        mediaBufferMillis: Int = 0,
+    ) {
         if (staticAudioFocus) {
             synchronized(this) {
                 if (mixer == null) {
@@ -66,7 +79,8 @@ class AudioDecoder {
             audioQueueCapacity = audioQueueCapacity,
             mixer = if (staticAudioFocus) mixer else null,
             channelId = channel,
-            attachHwDspEqualizer = attachHwDspEqualizer
+            attachHwDspEqualizer = attachHwDspEqualizer,
+            mediaBufferMillis = mediaBufferMillis,
         )
         audioTracks.put(channel, thread)
     }

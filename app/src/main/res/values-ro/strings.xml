@@ -499,6 +499,9 @@
     <string name="audio_latency_multiplier">Multiplicator latență audio</string>
     <string name="audio_latency_multiplier_description">Ajustare dimensiune buffer audio (Mai mic = latență mai mică, Mai mare = mai puține întreruperi)</string>
     <string name="audio_queue_capacity">Capacitate coadă audio (Backpressure)</string>
+    <string name="media_audio_buffer">Buffer audio media Wi‑Fi</string>
+    <string name="media_audio_buffer_description">Pre-bufferizează muzica când trece pe Wi‑Fi (nu pe Bluetooth-ul mașinii). Mai mare = mai puține întreruperi, mai multă întârziere. Navigația rămâne cu latență redusă.</string>
+    <string name="media_audio_buffer_ms">%d ms</string>
     <string name="media_action_previous">Anterior</string>
     <string name="media_action_play">Redare</string>
     <string name="media_action_pause">Pauză</string>

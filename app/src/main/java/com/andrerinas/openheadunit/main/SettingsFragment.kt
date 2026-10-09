@@ -80,7 +80,7 @@ class SettingsFragment : Fragment() {
     // Wireless items here only appear in Basic when the user connects wirelessly (see filterSettings).
     private val basicSettingIds = setOf(
         "staticBSSID", "appLanguage", "autoStartSettings", "autoConnectSettings", "resolution",
-        "dpiPixelDensity", "viewMode", "fpsLimit", "musicViaBluetooth", "enableAudioSink", "micSettings", "audioVolumeOffsets",
+        "dpiPixelDensity", "viewMode", "fpsLimit", "musicViaBluetooth", "enableAudioSink", "mediaAudioBuffer", "micSettings", "audioVolumeOffsets",
         "keymap", "version", "about", "otaBeta", "otaStatus", "otaCheck",
     )
 
@@ -111,6 +111,7 @@ class SettingsFragment : Fragment() {
     private var pendingEnableRotary: Boolean? = null
     private var pendingMediaKeyRouting: MediaKeyRoutingPolicy.Mode? = null
     private var pendingAudioLatencyMultiplier: Int? = null
+    private var pendingMediaAudioBufferMillis: Int? = null
     private var pendingUseLibusb: Boolean? = null
     private var pendingAudioQueueCapacity: Int? = null
     private var pendingShowFpsCounter: Boolean? = null
@@ -237,6 +238,7 @@ class SettingsFragment : Fragment() {
         pendingEnableRotary = settings.enableRotary
         pendingMediaKeyRouting = settings.mediaKeyRouting
         pendingAudioLatencyMultiplier = settings.audioLatencyMultiplier
+        pendingMediaAudioBufferMillis = settings.mediaAudioBufferMillis
         pendingAudioQueueCapacity = settings.audioQueueCapacity
         pendingShowFpsCounter = settings.showFpsCounter
         pendingShowToastMessages = settings.showToastMessages
@@ -374,6 +376,7 @@ class SettingsFragment : Fragment() {
         pendingEnableRotary = settings.enableRotary
         pendingMediaKeyRouting = settings.mediaKeyRouting
         pendingAudioLatencyMultiplier = settings.audioLatencyMultiplier
+        pendingMediaAudioBufferMillis = settings.mediaAudioBufferMillis
         pendingAudioQueueCapacity = settings.audioQueueCapacity
         pendingShowFpsCounter = settings.showFpsCounter
         pendingShowToastMessages = settings.showToastMessages
@@ -499,6 +502,7 @@ class SettingsFragment : Fragment() {
         pendingEnableRotary?.let { settings.enableRotary = it }
         pendingMediaKeyRouting?.let { settings.mediaKeyRouting = it }
         pendingAudioLatencyMultiplier?.let { settings.audioLatencyMultiplier = it }
+        pendingMediaAudioBufferMillis?.let { settings.mediaAudioBufferMillis = it }
         pendingAudioQueueCapacity?.let { settings.audioQueueCapacity = it }
         pendingShowFpsCounter?.let { settings.showFpsCounter = it }
         pendingShowToastMessages?.let { settings.showToastMessages = it }
@@ -621,6 +625,7 @@ class SettingsFragment : Fragment() {
                         pendingEnableRotary != settings.enableRotary ||
                         pendingMediaKeyRouting != settings.mediaKeyRouting ||
                         pendingAudioLatencyMultiplier != settings.audioLatencyMultiplier ||
+                        pendingMediaAudioBufferMillis != settings.mediaAudioBufferMillis ||
                         pendingAudioQueueCapacity != settings.audioQueueCapacity ||
                         pendingShowFpsCounter != settings.showFpsCounter ||
                         pendingShowToastMessages != settings.showToastMessages ||
@@ -673,6 +678,7 @@ class SettingsFragment : Fragment() {
                           pendingUseAacAudio != settings.useAacAudio ||
                           pendingAttachHwDspEqualizer != settings.attachHwDspEqualizer ||
                           pendingAudioLatencyMultiplier != settings.audioLatencyMultiplier ||
+                          pendingMediaAudioBufferMillis != settings.mediaAudioBufferMillis ||
                           pendingAudioQueueCapacity != settings.audioQueueCapacity ||
                           pendingInsetLeft != settings.insetLeft ||
                           pendingInsetTop != settings.insetTop ||
@@ -1786,6 +1792,32 @@ class SettingsFragment : Fragment() {
                     .show()
             }
         ))
+
+        // Only relevant when music can ride Wi‑Fi (BT music off + audio sink on).
+        if (pendingEnableAudioSink == true && !pendingMusicViaBluetooth) {
+            val bufferMs = pendingMediaAudioBufferMillis
+                ?: com.andrerinas.openheadunit.decoder.MediaAudioBuffer.DEFAULT_MILLIS
+            items.add(SettingItem.SettingEntry(
+                stableId = "mediaAudioBuffer",
+                nameResId = R.string.media_audio_buffer,
+                value = getString(R.string.media_audio_buffer_ms, bufferMs),
+                searchKeywords = getString(R.string.media_audio_buffer_description),
+                onClick = { _ ->
+                    val values = com.andrerinas.openheadunit.decoder.MediaAudioBuffer.presets
+                    val labels = values.map { getString(R.string.media_audio_buffer_ms, it) }.toTypedArray()
+                    val currentIndex = values.indexOf(bufferMs).coerceAtLeast(0)
+                    AlertDialog.Builder(requireContext())
+                        .setTitle(R.string.media_audio_buffer)
+                        .setSingleChoiceItems(labels, currentIndex) { dialog, which ->
+                            pendingMediaAudioBufferMillis = values[which]
+                            checkChanges()
+                            dialog.dismiss()
+                            updateSettingsList()
+                        }
+                        .show()
+                }
+            ))
+        }
 
         items.add(SettingItem.SettingEntry(
             stableId = "audioQueueCapacity",

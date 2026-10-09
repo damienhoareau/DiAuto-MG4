@@ -507,6 +507,9 @@
     <string name="audio_latency_multiplier">オーディオ遅延倍率</string>
     <string name="audio_latency_multiplier_description">オーディオバッファサイズの調整（低 = 遅延減、高 = 音飛び減）</string>
     <string name="audio_queue_capacity">オーディオキュー容量 (Backpressure)</string>
+    <string name="media_audio_buffer">Wi‑Fiメディア音声バッファ</string>
+    <string name="media_audio_buffer_description">車のBluetoothではなくWi‑Fiで音楽を再生するときに事前バッファします。値が高いほど途切れは減り遅延は増えます。ナビは低遅延のままです。</string>
+    <string name="media_audio_buffer_ms">%d ms</string>
     <string name="media_action_previous">前へ</string>
     <string name="media_action_play">再生</string>
     <string name="media_action_pause">一時停止</string>

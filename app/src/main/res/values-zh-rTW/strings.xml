@@ -498,6 +498,9 @@
     <string name="audio_latency_multiplier">音訊延遲倍增器</string>
     <string name="audio_latency_multiplier_description">調整音訊緩衝區大小 (低 = 低延遲, 高 = 低斷斷續續)</string>
     <string name="audio_queue_capacity">音訊佇列容量 (Backpressure)</string>
+    <string name="media_audio_buffer">Wi‑Fi 媒體音訊緩衝</string>
+    <string name="media_audio_buffer_description">音樂透過 Wi‑Fi 播放（而非車輛藍牙）時預先緩衝。數值越高卡頓越少、延遲越大。導航仍保持低延遲。</string>
+    <string name="media_audio_buffer_ms">%d 毫秒</string>
     <string name="media_action_previous">上一首</string>
     <string name="media_action_play">播放</string>
     <string name="media_action_pause">暫停</string>

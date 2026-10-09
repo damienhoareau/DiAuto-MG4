@@ -683,10 +683,13 @@ class Settings(private val context: Context) {
         get() = prefs.getBoolean("enable-audio-sink", true)
         set(value) { prefs.edit().putBoolean("enable-audio-sink", value).apply() }
 
-    /** BYD manages A2DP outside Android's normal Bluetooth profile reporting. */
+    /**
+     * Keep media on the car Bluetooth/A2DP player; DiAuto does not advertise the AA MEDIA sink.
+     * Key renamed so upgrades drop the old DiLink5.1-only default and start ON (Wi‑Fi video + BT music).
+     */
     var musicViaBluetooth: Boolean
-        get() = prefs.getBoolean("music-via-bluetooth", Build.MODEL == "DiLink5.1")
-        set(value) { prefs.edit().putBoolean("music-via-bluetooth", value).apply() }
+        get() = prefs.getBoolean(KEY_MUSIC_VIA_BLUETOOTH, true)
+        set(value) { prefs.edit().putBoolean(KEY_MUSIC_VIA_BLUETOOTH, value).apply() }
 
     val effectivePlaybackFocusMode: PlaybackFocusPolicy.Mode
         get() = if (musicViaBluetooth) PlaybackFocusPolicy.Mode.NEVER else playbackFocusMode
@@ -731,6 +734,21 @@ class Settings(private val context: Context) {
     var audioLatencyMultiplier: Int
         get() = prefs.getInt("audio-latency-multiplier", 8)
         set(value) { prefs.edit().putInt("audio-latency-multiplier", value).apply() }
+
+    /**
+     * Wi‑Fi MEDIA channel jitter before play() (ms). Used when music is not via car Bluetooth.
+     * Presets match DiPlay: 500 / 750 / 1000. Nav and speech stay low-latency.
+     */
+    var mediaAudioBufferMillis: Int
+        get() = com.andrerinas.openheadunit.decoder.MediaAudioBuffer.sanitize(
+            prefs.getInt(KEY_MEDIA_AUDIO_BUFFER_MS, com.andrerinas.openheadunit.decoder.MediaAudioBuffer.DEFAULT_MILLIS),
+        )
+        set(value) {
+            prefs.edit().putInt(
+                KEY_MEDIA_AUDIO_BUFFER_MS,
+                com.andrerinas.openheadunit.decoder.MediaAudioBuffer.sanitize(value),
+            ).apply()
+        }
 
     // Chunks the audio thread may hold before it starts dropping, or 0 for no limit. Bounded by
     // default: with no limit a link that stalls for a few hundred milliseconds hands over the
@@ -1105,6 +1123,9 @@ class Settings(private val context: Context) {
         const val KEY_LOG_LEVEL = "log-level-v2"
         const val KEY_LOG_SOURCE = "log-source"
         const val KEY_LOG_LOCATION = "log-location"
+        // Was "music-via-bluetooth" (default only DiLink5.1). Renamed so upgrades start ON.
+        const val KEY_MUSIC_VIA_BLUETOOTH = "music-via-bluetooth-v2"
+        const val KEY_MEDIA_AUDIO_BUFFER_MS = "media-audio-buffer-ms"
         /** Persist whether log capture should be active across restarts. */
         const val KEY_LOG_CAPTURE_ENABLED = "log-capture-enabled"
 

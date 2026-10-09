@@ -499,6 +499,9 @@
     <string name="audio_latency_multiplier">Множник затримки аудіо</string>
     <string name="audio_latency_multiplier_description">Налаштування розміру аудіо-буфера (Менше = менше затримка, Більше = менше заїкань)</string>
     <string name="audio_queue_capacity">Ємність аудіо-черги (Backpressure)</string>
+    <string name="media_audio_buffer">Буфер аудіо медіа Wi‑Fi</string>
+    <string name="media_audio_buffer_description">Попередньо буферизує музику, коли вона йде через Wi‑Fi (не Bluetooth авто). Вище = менше заїкань, більша затримка. Навігація лишається з низькою затримкою.</string>
+    <string name="media_audio_buffer_ms">%d мс</string>
     <string name="media_action_previous">Попередній</string>
     <string name="media_action_play">Відтворити</string>
     <string name="media_action_pause">Пауза</string>

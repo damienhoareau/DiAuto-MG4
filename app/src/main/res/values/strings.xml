@@ -890,6 +890,9 @@
     <string name="audio_latency_multiplier">Audio Latency Multiplier</string>
     <string name="audio_latency_multiplier_description">Adjust audio buffer size (Lower = Less Lag, Higher = Less Stutter)</string>
     <string name="audio_queue_capacity">Audio Queue Capacity (Backpressure)</string>
+    <string name="media_audio_buffer">Wi‑Fi media audio buffer</string>
+    <string name="media_audio_buffer_description">Pre-buffers music when it plays over Wi‑Fi (not car Bluetooth). Higher = fewer stutters, more delay. Navigation stays low-latency.</string>
+    <string name="media_audio_buffer_ms">%d ms</string>
 
     <!-- Custom loading screen -->
     <string name="loading_screen">Loading screen</string>

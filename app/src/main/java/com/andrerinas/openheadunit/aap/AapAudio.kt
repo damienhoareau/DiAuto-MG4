@@ -12,6 +12,7 @@ import com.andrerinas.openheadunit.aap.protocol.AudioConfigs
 import com.andrerinas.openheadunit.aap.protocol.Channel
 import com.andrerinas.openheadunit.aap.protocol.proto.Control
 import com.andrerinas.openheadunit.decoder.AudioDecoder
+import com.andrerinas.openheadunit.decoder.MediaAudioBuffer
 import com.andrerinas.openheadunit.utils.AppLog
 import com.andrerinas.openheadunit.utils.BluetoothHelper
 import com.andrerinas.openheadunit.utils.Settings
@@ -32,6 +33,7 @@ internal class AapAudio(
     private val audioQueueCapacity = settings.audioQueueCapacity
     private val enableAudioSink = settings.enableAudioSink
     private val attachHwDspEqualizer = settings.attachHwDspEqualizer
+    private val mediaBufferMillis = settings.mediaAudioBufferMillis
     private val playbackFocusMode = settings.effectivePlaybackFocusMode
 
     private var audioFocusRequest: AudioFocusRequest? = null
@@ -296,14 +298,39 @@ internal class AapAudio(
         val gain = (1.0f + (offset / 100.0f)).coerceIn(0.0f, 2.0f)
 
         // Voice and Navigation benefit from lower latency. Cap the multiplier for those channels.
+        // MEDIA over Wi‑Fi also gets a DiPlay-style jitter start buffer (nav/speech stay immediate).
         val effectiveMultiplier = if (channel == Channel.ID_AUD) {
             audioLatencyMultiplier
         } else {
             audioLatencyMultiplier.coerceAtMost(4)
         }
+        val jitterMs = if (channel == Channel.ID_AUD) {
+            MediaAudioBuffer.sanitize(mediaBufferMillis)
+        } else {
+            0
+        }
 
-        AppLog.i("AudioDecoder.start: channel=$channel, stream=$stream, gain=$gain, sampleRate=${config.sampleRate}, numberOfBits=${config.numberOfBits}, numberOfChannels=${config.numberOfChannels}, isAac=$useAacAudio, latencyMultiplier=$effectiveMultiplier, queueCapacity=$audioQueueCapacity, attachHwDspEqualizer=$attachHwDspEqualizer")
-        audioDecoder.start(channel, stream, config.sampleRate, config.numberOfBits, config.numberOfChannels, useAacAudio, gain, effectiveMultiplier, audioQueueCapacity, staticAudioFocus, attachHwDspEqualizer)
+        AppLog.i(
+            "AudioDecoder.start: channel=$channel, stream=$stream, gain=$gain, " +
+                "sampleRate=${config.sampleRate}, numberOfBits=${config.numberOfBits}, " +
+                "numberOfChannels=${config.numberOfChannels}, isAac=$useAacAudio, " +
+                "latencyMultiplier=$effectiveMultiplier, queueCapacity=$audioQueueCapacity, " +
+                "mediaJitterMs=$jitterMs, attachHwDspEqualizer=$attachHwDspEqualizer",
+        )
+        audioDecoder.start(
+            channel,
+            stream,
+            config.sampleRate,
+            config.numberOfBits,
+            config.numberOfChannels,
+            useAacAudio,
+            gain,
+            effectiveMultiplier,
+            audioQueueCapacity,
+            staticAudioFocus,
+            attachHwDspEqualizer,
+            mediaBufferMillis = jitterMs,
+        )
         onAudioPlaybackStarted(channel)
     }
 

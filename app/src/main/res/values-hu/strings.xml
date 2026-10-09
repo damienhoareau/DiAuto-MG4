@@ -497,6 +497,9 @@
     <string name="audio_latency_multiplier">Audio késleltetési szorzó</string>
     <string name="audio_latency_multiplier_description">Audió pufferméret beállítása (Alacsonyabb = kisebb késleltetés, Magasabb = kevesebb akadozás)</string>
     <string name="audio_queue_capacity">Audió sor kapacitása (Backpressure)</string>
+    <string name="media_audio_buffer">Wi‑Fi média hangpuffer</string>
+    <string name="media_audio_buffer_description">Előre puffereli a zenét, ha Wi‑Fi‑n megy (nem az autó Bluetoothján). Magasabb = kevesebb akadozás, több késleltetés. A navigáció alacsony késleltetésű marad.</string>
+    <string name="media_audio_buffer_ms">%d ms</string>
     <string name="media_action_previous">Előző</string>
     <string name="media_action_play">Lejátszás</string>
     <string name="media_action_pause">Szünet</string>

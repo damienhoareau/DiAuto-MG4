@@ -498,6 +498,9 @@
     <string name="audio_latency_multiplier">Audiovertraging vermenigvuldiger</string>
     <string name="audio_latency_multiplier_description">Audio-buffergrootte aanpassen (Lager = minder vertraging, Hoger = minder stotteren)</string>
     <string name="audio_queue_capacity">Audio-wachtrijcapaciteit (Backpressure)</string>
+    <string name="media_audio_buffer">Wi‑Fi media-audiobuffer</string>
+    <string name="media_audio_buffer_description">Buffert muziek vooraf wanneer die over Wi‑Fi gaat (niet via Bluetooth van de auto). Hoger = minder haperingen, meer vertraging. Navigatie blijft lage latentie.</string>
+    <string name="media_audio_buffer_ms">%d ms</string>
     <string name="media_action_previous">Vorige</string>
     <string name="media_action_play">Afspelen</string>
     <string name="media_action_pause">Pauze</string>

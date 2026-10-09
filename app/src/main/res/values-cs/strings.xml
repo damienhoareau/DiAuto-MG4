@@ -498,6 +498,9 @@
     <string name="audio_latency_multiplier">Násobitel latence zvuku</string>
     <string name="audio_latency_multiplier_description">Úprava velikosti zvukové vyrovnávací paměti (Nižší = menší zpoždění, Vyšší = méně sekání)</string>
     <string name="audio_queue_capacity">Kapacita zvukové fronty (Backpressure)</string>
+    <string name="media_audio_buffer">Wi‑Fi buffer mediálního zvuku</string>
+    <string name="media_audio_buffer_description">Přednačítá hudbu, když jde přes Wi‑Fi (ne Bluetooth auta). Vyšší = méně trhání, větší zpoždění. Navigace zůstává s nízkou latencí.</string>
+    <string name="media_audio_buffer_ms">%d ms</string>
     <string name="media_action_previous">Předchozí</string>
     <string name="media_action_play">Přehrát</string>
     <string name="media_action_pause">Pozastavit</string>
