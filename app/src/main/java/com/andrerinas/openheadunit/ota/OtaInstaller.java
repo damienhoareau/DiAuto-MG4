@@ -31,7 +31,8 @@ import java.nio.charset.StandardCharsets;
 /**
  * İndirilen APK'yı önce uygulama cache'ine kopyalar, doğrular, sonra kurar.
  * Doğrudan Downloads URI ile kurulum araçta sık "paket ayrıştırılamadı" verir.
- * Platform/system UID'de önce {@code pm install -r} denenir (MG4'te en güvenilir yol).
+ * Platform/system UID'de önce {@code pm install -r -f} denenir (MG4'te en güvenilir yol;
+ * {@code -f} OEM "internal storage" volume redini bypass eder).
  */
 final class OtaInstaller {
 
@@ -110,9 +111,10 @@ final class OtaInstaller {
     }
 
     private static void installWithPm(File apk) throws Exception {
-        // -r replace, -d allow downgrade (test builds), -t allow test packages if present
+        // -r replace, -f force internal flash (bypasses MG4 volume policy that rejects
+        // non-system apps on internal storage), -d allow downgrade, -t allow test packages.
         java.lang.Process process = new ProcessBuilder(
-                "pm", "install", "-r", "-d", "-t", apk.getAbsolutePath()
+                "pm", "install", "-r", "-f", "-d", "-t", apk.getAbsolutePath()
         ).redirectErrorStream(true).start();
 
         StringBuilder out = new StringBuilder();
@@ -193,6 +195,8 @@ final class OtaInstaller {
         PackageInstaller.SessionParams params =
                 new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);
         params.setSize(apk.length());
+        // PackageManager.INSTALL_LOCATION_INTERNAL_ONLY (=1) is not in the public SDK.
+        params.setInstallLocation(1);
         if (Build.VERSION.SDK_INT >= 31) {
             params.setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED);
         }

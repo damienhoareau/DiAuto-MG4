@@ -246,7 +246,14 @@ class MicRecorder(private val micSampleRate: Int, private val context: Context) 
     private fun startRecording(source: Int) {
         try {
             if (audioRecord != null) return // Already recording
-            
+            // Lint cannot see that start() already checked; SCO callbacks may also arrive later.
+            if (PermissionChecker.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO)
+                != PermissionChecker.PERMISSION_GRANTED
+            ) {
+                AppLog.e("MicRecorder: No RECORD_AUDIO permission when starting AudioRecord")
+                return
+            }
+
             AppLog.i("MicRecorder: Initializing AudioRecord with source: ${getAudioSourceName(source)} ($source), SampleRate: $micSampleRate, BufferSize: $micBufferSize")
             audioRecord = AudioRecord(source, micSampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, micBufferSize)
             
