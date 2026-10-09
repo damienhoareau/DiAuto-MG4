@@ -169,7 +169,11 @@ class Settings(private val context: Context) {
         }
 
     var exporterLogLevel: LogExporter.LogLevel
-        get() = LogExporter.LogLevel.entries.getOrElse(prefs.getInt(KEY_LOG_LEVEL, LogExporter.LogLevel.INFO.ordinal)) { LogExporter.LogLevel.INFO }
+        // Default Silent. Key renamed so existing installs drop the old Info default
+        // and pick up Silent without a prefs migration.
+        get() = LogExporter.LogLevel.entries.getOrElse(
+            prefs.getInt(KEY_LOG_LEVEL, LogExporter.LogLevel.SILENT.ordinal)
+        ) { LogExporter.LogLevel.SILENT }
         set(value) { prefs.edit().putInt(KEY_LOG_LEVEL, value.ordinal).apply() }
 
     enum class LogSource {
@@ -1097,7 +1101,8 @@ class Settings(private val context: Context) {
         const val KEY_SYNC_MEDIA_SESSION_AA_METADATA = "sync-media-session-aa-metadata"
 
         /** SharedPreferences key; also used by [AapService] for change listener. */
-        const val KEY_LOG_LEVEL = "log-level"
+        // Was "log-level" (default Info). Renamed so upgrades reset to Silent.
+        const val KEY_LOG_LEVEL = "log-level-v2"
         const val KEY_LOG_SOURCE = "log-source"
         const val KEY_LOG_LOCATION = "log-location"
         /** Persist whether log capture should be active across restarts. */

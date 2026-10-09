@@ -457,7 +457,7 @@ class AudioTrackWrapper(
     }
 
     fun setGain(gain: Float) {
-        AppLog.d("AudioTrackWrapper: updating gain to $gain")
+        if (AppLog.LOG_DEBUG) AppLog.d("AudioTrackWrapper: updating gain to $gain")
         setVolume(gain)
     }
 

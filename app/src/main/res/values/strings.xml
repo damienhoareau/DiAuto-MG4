@@ -319,9 +319,9 @@
     <string name="press_back_again_to_exit">Press back again to exit</string>
     <string name="back">Back</string>
     <string name="debug_mode">Debug Mode</string>
-    <string name="debug_mode_description">Toggle more Logging</string>
+    <string name="debug_mode_description">Extra logging. Leave off while driving — Debug/Verbose can lower FPS on the head unit.</string>
     <string name="log_level">Log Level</string>
-    <string name="log_level_description">Filter log level when exporting</string>
+    <string name="log_level_description">Filter log level when exporting. Prefer Info for normal use; Verbose can reduce FPS.</string>
     <string name="log_source">Log Source</string>
     <string name="log_source_logcat">Logcat</string>
     <string name="log_source_applog_file">Direct to file</string>
@@ -329,7 +329,7 @@
     <string name="log_location_default">Default (App Storage)</string>
     <string name="log_location_downloads">Downloads Folder</string>
     <string name="start_log_capture">Start Capturing Logs</string>
-    <string name="start_log_capture_description">Begin recording full logs for debugging</string>
+    <string name="start_log_capture_description">Record logs for debugging. Stop capture when finished — continuous capture can reduce FPS.</string>
     <string name="start_log_capture_in_applog_file">Log messages are written to a file only while capture is active</string>
     <string name="start_log_capture_in_silent">Unable to start recording: Silent logging level selected</string>
     <string name="stop_log_capture">Stop Capturing Logs</string>

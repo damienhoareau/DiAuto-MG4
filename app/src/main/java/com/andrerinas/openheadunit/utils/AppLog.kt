@@ -272,11 +272,10 @@ object AppLog {
             e("IllegalFormatException: formatString='%s' numArgs=%d", msg, array.size)
             formatted = "$msg (An error occurred while formatting the message.)"
         }
-        // Caller stack walking allocates on every audio/video log. Reserve it for
-        // explicit verbose diagnostics; normal operation retains the thread and message.
-        if (LOG_LEVEL > Log.DEBUG) return "[${Thread.currentThread().id}] $formatted"
-        // Throwable's constructor already fills in the stack trace; calling fillInStackTrace()
-        // again captured the whole thing a second time, per emitted line.
+        // Stack walking allocates a Throwable on every line. That used to run for DEBUG as well
+        // as VERBOSE and is enough, on a busy AAP/video path, to steal frames on weaker SoCs.
+        // Keep caller method names only for VERBOSE captures; INFO/DEBUG keep the thread id.
+        if (!LOG_VERBOSE) return "[${Thread.currentThread().id}] $formatted"
         val stackTrace = Throwable().stackTrace
         var string = "<unknown>"
         for (i in 2 until stackTrace.size) {

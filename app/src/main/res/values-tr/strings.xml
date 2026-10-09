@@ -143,9 +143,9 @@
     <string name="press_back_again_to_exit">Çıkmak için tekrar geri basın</string>
     <string name="back">Geri</string>
     <string name="debug_mode">Hata Ayıklama Modu</string>
-    <string name="debug_mode_description">Daha fazla günlük kaydı (Log) tut</string>
+    <string name="debug_mode_description">Ekstra log. Sürüşte kapalı tut — Debug/Verbose head unit’te FPS düşürebilir.</string>
     <string name="log_level">Günlük Seviyesi</string>
-    <string name="log_level_description">Dışa aktarırken günlük seviyesini filtrele</string>
+    <string name="log_level_description">Dışa aktarırken log seviyesini filtrele. Normal kullanımda Info; Verbose FPS düşürebilir.</string>
     <string name="log_source">Günlük kaynağı</string>
     <string name="log_source_logcat">Logcat</string>
     <string name="log_source_applog_file">Doğrudan dosyaya</string>
@@ -153,7 +153,7 @@
     <string name="log_location_default">Varsayılan (Uygulama Depolaması)</string>
     <string name="log_location_downloads">İndirilenler Klasörü</string>
     <string name="start_log_capture">Günlük Kaydını Başlat</string>
-    <string name="start_log_capture_description">Hata ayıklama için tam günlükleri kaydetmeye başla</string>
+    <string name="start_log_capture_description">Hata ayıklama için log kaydet. Bitince durdur — sürekli kayıt FPS düşürebilir.</string>
     <string name="start_log_capture_in_applog_file">Log mesajları yalnızca yakalama etkin olduğunda bir dosyaya yazılır</string>
     <string name="start_log_capture_in_silent">Kayıt başlatılamıyor: Sessiz günlükleme seviyesi seçildi</string>
     <string name="stop_log_capture">Günlük Kaydını Durdur</string>

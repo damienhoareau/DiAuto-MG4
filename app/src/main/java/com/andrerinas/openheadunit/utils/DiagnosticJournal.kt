@@ -1,6 +1,7 @@
 package com.andrerinas.openheadunit.utils
 
 import android.content.Context
+import android.util.Log
 import java.io.File
 import java.util.ArrayDeque
 import java.util.concurrent.LinkedBlockingDeque
@@ -40,6 +41,10 @@ internal object DiagnosticJournal {
 
     fun record(priority: Int, message: String) {
         if (directory == null) return
+        // DEBUG/VERBOSE can be many lines per frame; journaling them stalls the producer path
+        // (redact + synchronized deque + disk queue) and shows up as lost FPS on the head unit.
+        // Crash/diagnostic exports still get INFO and above, which is what we need.
+        if (priority < Log.INFO) return
         // Keep the timestamp before queueing; avoid retaining credentials/payloads even on disk.
         val timestamp = System.currentTimeMillis()
         message.lineSequence().take(40).forEach { raw ->
