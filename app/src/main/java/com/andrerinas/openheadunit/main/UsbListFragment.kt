@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.hardware.usb.UsbManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.text.TextUtils
 import android.view.LayoutInflater
@@ -198,6 +200,16 @@ class UsbListFragment : Fragment() {
                                 "manual USB list (AOA switch)",
                                 MainActivity.ConnectionUiMode.OVERLAY
                             )
+                            // Soft reconnect / some HUs never fire USB_ATTACH after AOA switch
+                            // while the cable stays plugged. Follow up with a forced USB check.
+                            Handler(Looper.getMainLooper()).postDelayed({
+                                ContextCompat.startForegroundService(
+                                    mContext,
+                                    Intent(mContext, AapService::class.java).apply {
+                                        action = AapService.ACTION_CHECK_USB
+                                    }
+                                )
+                            }, 1500L)
                         } else {
                             Toast.makeText(mContext, R.string.switch_failed, Toast.LENGTH_SHORT).show()
                         }

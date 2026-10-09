@@ -2094,7 +2094,14 @@ class AapService : Service(), UsbReceiver.Listener {
                 // Caller already invoked commManager.connect(socket); the connectionState
                 // observer in observeConnectionState() handles the rest — nothing to do here.
             }
-            ACTION_CHECK_USB             -> checkAlreadyConnectedUsb(force = true)
+            ACTION_CHECK_USB             -> {
+                // Manual USB reconnect (list tap / AOA switch follow-up). Clear the user-exit
+                // latch that otherwise waits for a physical unplug — soft reconnect never
+                // produces USB_ATTACH while the cable stays in.
+                userExitedAA = false
+                userExitCooldownUntil = 0L
+                checkAlreadyConnectedUsb(force = true)
+            }
             else                         -> {
                 if (intent?.action == null || intent.action == Intent.ACTION_MAIN) {
                     checkAlreadyConnectedUsb()
@@ -2471,6 +2478,75 @@ class AapService : Service(), UsbReceiver.Listener {
             commManager.connect(device)
             success = commManager.connectionState.value is CommManager.ConnectionState.Connected
             retryCount++
+        }
+
+        // Soft disconnect leaves the phone in AOA with a dead host session. openDevice can
+        // succeed while the phone never speaks again, or fail until the bus is reset — the
+        // physical unplug/replug users resort to. Force a USB reset so the phone re-enumerates
+        // and onUsbAttach can complete a clean reconnect without touching the cable.
+        if (!success && UsbDeviceCompat.isInAccessoryMode(device)) {
+            AppLog.w(
+                "USB connect failed on accessory ${UsbDeviceCompat(device).uniqueName} — " +
+                    "bus-resetting for soft re-enumeration"
+            )
+            if (resetAccessoryUsbDevice(device)) {
+                delay(2000)
+                if (!commManager.isConnected) checkAlreadyConnectedUsb(force = true)
+            }
+        }
+    }
+
+    /**
+     * Opens [device] briefly and issues a USB bus reset so a phone stuck in AOA after a soft
+     * host disconnect re-enumerates (same effect as unplug/replug for reconnect purposes).
+     */
+    private fun resetAccessoryUsbDevice(device: UsbDevice): Boolean {
+        val usbManager = getSystemService(Context.USB_SERVICE) as UsbManager
+        if (!usbManager.hasPermission(device)) {
+            AppLog.w("resetAccessoryUsbDevice: no permission for ${UsbDeviceCompat(device).uniqueName}")
+            return false
+        }
+        var connection: android.hardware.usb.UsbDeviceConnection? = null
+        var native: com.andrerinas.openheadunit.connection.UsbNative? = null
+        return try {
+            connection = usbManager.openDevice(device) ?: run {
+                AppLog.w("resetAccessoryUsbDevice: openDevice returned null")
+                return false
+            }
+            if (device.interfaceCount <= 0) return false
+            val iface = device.getInterface(0)
+            if (!connection.claimInterface(iface, true)) {
+                AppLog.w("resetAccessoryUsbDevice: claimInterface failed")
+                return false
+            }
+            var epIn = -1
+            var epOut = -1
+            for (i in 0 until iface.endpointCount) {
+                val ep = iface.getEndpoint(i)
+                if (ep.direction == android.hardware.usb.UsbConstants.USB_DIR_IN) {
+                    if (epIn < 0) epIn = ep.address
+                } else {
+                    if (epOut < 0) epOut = ep.address
+                }
+            }
+            if (epIn < 0 || epOut < 0) {
+                AppLog.w("resetAccessoryUsbDevice: missing bulk endpoints")
+                return false
+            }
+            native = com.andrerinas.openheadunit.connection.UsbNative()
+            if (!native.wrap(connection, epIn, epOut)) {
+                AppLog.w("resetAccessoryUsbDevice: UsbNative.wrap failed")
+                return false
+            }
+            native.reset()
+            AppLog.i("resetAccessoryUsbDevice: bus reset issued for ${UsbDeviceCompat(device).uniqueName}")
+            true
+        } catch (t: Throwable) {
+            AppLog.e("resetAccessoryUsbDevice failed: ${t.message}", t)
+            false
+        } finally {
+            try { native?.close() } catch (_: Throwable) {}
+            try { connection?.close() } catch (_: Throwable) {}
         }
     }
 
