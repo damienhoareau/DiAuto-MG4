@@ -231,7 +231,7 @@ class NativeAaHandshakeManager(
     private suspend fun awaitWirelessServerListening(timeoutMs: Long): Boolean {
         val advertisedIp = credentials?.ip
         AppLog.i(
-            "NativeAA: Waiting up to ${timeoutMs}ms for TCP :5288 ready" +
+            "NativeAA: Waiting up to ${timeoutMs}ms for TCP :${context.wirelessPort} ready" +
                 (advertisedIp?.let { " on SoftAP $it" } ?: " (wildcard OK)") +
                 "."
         )
@@ -239,7 +239,7 @@ class NativeAaHandshakeManager(
         while (true) {
             if (context.isWirelessServerReadyFor(advertisedIp)) {
                 AppLog.i(
-                    "NativeAA: TCP :5288 ready" +
+                    "NativeAA: TCP :${context.wirelessPort} ready" +
                         (advertisedIp?.let { " on SoftAP $it" } ?: "") +
                         " before Type 3."
                 )
@@ -247,7 +247,7 @@ class NativeAaHandshakeManager(
             }
             if (SystemClock.elapsedRealtime() >= deadline) {
                 AppLog.w(
-                    "NativeAA: TCP :5288 not SoftAP-ready after ${timeoutMs}ms " +
+                    "NativeAA: TCP :${context.wirelessPort} not SoftAP-ready after ${timeoutMs}ms " +
                         "(want=${advertisedIp ?: "wildcard"}, listening=${context.isWirelessServerListening()})."
                 )
                 return false
@@ -1035,7 +1035,7 @@ class NativeAaHandshakeManager(
                     }
                     WppAction.SendStartRequest -> {
                         AppLog.i("NativeAA: [TX] Sending WifiStartRequest (Type 1)")
-                        sendWifiStartRequest(output, credIp, 5288)
+                        sendWifiStartRequest(output, credIp, context.wirelessPort)
                         spokeToPhone = true
                     }
                     WppAction.SendInfoResponse -> {
@@ -1280,17 +1280,21 @@ class NativeAaHandshakeManager(
                 // mode re-initialisation - so this abort repeated every few seconds, forever, with
                 // the phone woken each time and told nothing.
                 if (!context.ensureWirelessServerListening("the Bluetooth handshake", PORT_ENSURE_MS)) {
-                    AppLog.e("NativeAA: Handshake aborted — nothing is listening on port 5288 after ${PORT_WAIT_MS / 1000}s, and starting it here did not work either, so the phone would join the network and find no head unit. Restart the app if this persists.")
+                    AppLog.e("NativeAA: Handshake aborted — nothing is listening on port ${context.wirelessPort} after ${PORT_WAIT_MS / 1000}s, and starting it here did not work either, so the phone would join the network and find no head unit. Restart the app if this persists.")
                     abortedLocally = true
                     feed(WppEvent.CredentialsUnavailable)
                     return@withContext
                 }
-                AppLog.i("NativeAA: port 5288 was not bound, and is now. Carrying on with the handshake.")
+                AppLog.i("NativeAA: port ${context.wirelessPort} was not bound, and is now. Carrying on with the handshake.")
             }
 
+            // MG4: The car's kernel drops all inbound ARP requests (arp_ignore=8), preventing 
+            // the phone from reaching our IP. We send broadcast ARP requests to force it to 
+            // learn our MAC address.
+            if (CarNetworkQuirks.needsArpNudge()) ArpNudger.start(scope, credIp)
             AppLog.i("NativeAA: Starting Handshake Exchange:")
             AppLog.i("  > Target SSID: $credSsid")
-            AppLog.i("  > Target IP:   $credIp:5288")
+            AppLog.i("  > Target IP:   $credIp:${context.wirelessPort}")
             AppLog.i("  > BSSID:       ${credBssid.ifEmpty { "<none>" }}")
             AppLog.i("  > PSK length:  ${credPsk.length} (value not logged)")
             AppLog.i(
@@ -1379,7 +1383,7 @@ class NativeAaHandshakeManager(
                     if (st == 0) {
                         AppLog.i(
                             "NativeAA: Phone is on our WiFi. Now waiting for TCP Incoming on " +
-                                "${credentials?.ip ?: "?"}:5288 " +
+                                "${credentials?.ip ?: "?"}:${context.wirelessPort} " +
                                 "(listenerReady=${context.isWirelessServerReadyFor(credentials?.ip)}). " +
                                 "If Incoming never arrives, the car SoftAP likely blocks phone→headunit " +
                                 "traffic — not a closed app port."
