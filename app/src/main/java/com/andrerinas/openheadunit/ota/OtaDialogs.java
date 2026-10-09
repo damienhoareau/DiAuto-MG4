@@ -1,14 +1,19 @@
 package com.andrerinas.openheadunit.ota;
 
+import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
+import android.os.Build;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.util.Log;
+import android.view.WindowManager;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
@@ -16,6 +21,7 @@ import com.andrerinas.openheadunit.R;
 
 final class OtaDialogs {
 
+    private static final String TAG = "OtaDialogs";
     private static final int ACCENT_COLOR = 0xFF03A9F4;
 
     private OtaDialogs() {
@@ -124,12 +130,39 @@ final class OtaDialogs {
     }
 
     private static void showCentered(Dialog dialog, int widthDp) {
-        dialog.show();
+        if (!canShowDialog(dialog.getContext())) {
+            Log.w(TAG, "skip show — host activity is finishing or destroyed");
+            return;
+        }
+        try {
+            dialog.show();
+        } catch (WindowManager.BadTokenException e) {
+            Log.w(TAG, "BadTokenException showing dialog (activity gone)");
+            return;
+        }
         Window window = dialog.getWindow();
         if (window == null) return;
         float density = dialog.getContext().getResources().getDisplayMetrics().density;
         int widthPx = (int) (widthDp * density);
         window.setLayout(widthPx, ViewGroup.LayoutParams.WRAP_CONTENT);
+    }
+
+    private static boolean canShowDialog(Context context) {
+        Activity activity = findActivity(context);
+        if (activity == null) return true;
+        if (activity.isFinishing()) return false;
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR1 || !activity.isDestroyed();
+    }
+
+    private static Activity findActivity(Context context) {
+        Context current = context;
+        while (current instanceof ContextWrapper) {
+            if (current instanceof Activity) {
+                return (Activity) current;
+            }
+            current = ((ContextWrapper) current).getBaseContext();
+        }
+        return null;
     }
 
     private static void stylePrimaryButton(Context context, TextView button) {
