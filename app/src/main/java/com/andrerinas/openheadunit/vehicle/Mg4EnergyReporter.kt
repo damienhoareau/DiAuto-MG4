@@ -65,6 +65,8 @@ object Mg4EnergyReporter {
         val transport = transportRef.get() ?: return
         val snap = Mg4EnergyProvider.snapshot() ?: run {
             AppLog.i("$TAG VEM skip: no battery snapshot yet")
+            // Kick a poll so the next 1s tick can send without waiting for the 5s cadence.
+            Mg4EnergyProvider.refresh()
             return
         }
         val encoded = VehicleEnergyModelEncoder.Snapshot(

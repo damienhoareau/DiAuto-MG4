@@ -312,6 +312,8 @@
     <string name="projection_status">Projection Status: %s</string>
     <string name="connected">Connected</string>
     <string name="disconnected">Disconnected</string>
+    <string name="connection_failed">Connection failed. Try again.</string>
+    <string name="connection_retry_limit_reached">Automatic reconnect stopped. Connect manually to try again.</string>
     <string name="running">Running</string>
     <string name="not_running">Not Running</string>
     <string name="no_android_auto_device_connected">No Android Auto Device connected. Please check USB connection.</string>

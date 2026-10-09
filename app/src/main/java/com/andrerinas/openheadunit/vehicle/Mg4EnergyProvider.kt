@@ -19,6 +19,9 @@ object Mg4EnergyProvider {
     private const val TAG = "DiAuto-MG4"
     private const val POLL_MS = 5_000L
     private const val STALE_MS = 3 * 60_000L
+    /** SAIC/VHAL bridges often need a few hundred ms after init before SoC is readable. */
+    private const val INITIAL_READ_TIMEOUT_MS = 8_000L
+    private const val INITIAL_RETRY_MS = 500L
 
     data class EnergySnapshot(
         val capacityWh: Int,
@@ -72,7 +75,9 @@ object Mg4EnergyProvider {
                 try {
                     EVHardware.init(context.applicationContext)
                     initialized = true
-                    poll()
+                    // First Service Discovery / VEM request often races a still-empty bridge.
+                    // Retry quickly so Maps sees SoC without needing a reconnect.
+                    primeFirstReading()
                 } catch (error: Throwable) {
                     AppLog.e("$TAG EVHardware init failed; EV energy disabled: ${error.message}")
                 }
@@ -138,6 +143,21 @@ object Mg4EnergyProvider {
         } catch (error: Throwable) {
             AppLog.e("$TAG telemetry read failed: ${error.message}")
         }
+    }
+
+    private fun primeFirstReading() {
+        val deadline = SystemClock.elapsedRealtime() + INITIAL_READ_TIMEOUT_MS
+        do {
+            pollSafely()
+            if (latest != null) return
+            try {
+                Thread.sleep(INITIAL_RETRY_MS)
+            } catch (_: InterruptedException) {
+                Thread.currentThread().interrupt()
+                return
+            }
+        } while (SystemClock.elapsedRealtime() < deadline)
+        AppLog.i("$TAG first SoC/range still pending after ${INITIAL_READ_TIMEOUT_MS}ms; periodic poll continues")
     }
 
     private fun pollSafely() {

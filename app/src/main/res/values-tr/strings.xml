@@ -136,6 +136,8 @@
     <string name="projection_status">Yansıtma Durumu: %s</string>
     <string name="connected">Bağlı</string>
     <string name="disconnected">Bağlantı Kesildi</string>
+    <string name="connection_failed">Bağlantı başarısız. Tekrar deneyin.</string>
+    <string name="connection_retry_limit_reached">Otomatik yeniden bağlanma durdu. Tekrar denemek için elle bağlanın.</string>
     <string name="running">Çalışıyor</string>
     <string name="not_running">Çalışmıyor</string>
     <string name="no_android_auto_device_connected">Android Auto cihazı bağlı değil. Lütfen USB bağlantısını kontrol edin.</string>

@@ -62,7 +62,9 @@ class AapSslContext(keyManager: SingleKeyKeyManager): AapSsl {
                             // Read another AAP message and append it.
                             val nextMessage = readAapMessage(connection) ?: return false
                             pendingTlsData += nextMessage
-                            AppLog.d("SSL Handshake: buffered ${pendingTlsData.size} B after underflow")
+                            if (AppLog.LOG_DEBUG) {
+                                AppLog.d("SSL Handshake: buffered ${pendingTlsData.size} B after underflow")
+                            }
                         }
                         else -> {
                             AppLog.e("SSL Handshake: unwrap failed with status ${result.status}")

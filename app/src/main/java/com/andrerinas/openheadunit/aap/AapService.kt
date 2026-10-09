@@ -301,6 +301,12 @@ class AapService : Service(), UsbReceiver.Listener {
     private var userExitedAA = false
     @Volatile private var userExitCooldownUntil = 0L
 
+    /**
+     * Automatic reconnect / discovery restarts after unexpected disconnects.
+     * Reset on a successful handshake so a later mid-drive drop can retry again.
+     */
+    @Volatile private var automaticReconnectAttempts = 0
+
     private val commManager get() = App.provide(this).commManager
 
     fun updateMediaSessionState(isPlaying: Boolean) {
@@ -861,11 +867,13 @@ class AapService : Service(), UsbReceiver.Listener {
                 when (state) {
                     is CommManager.ConnectionState.Connected -> onConnected()
                     is CommManager.ConnectionState.HandshakeComplete -> {
+                        automaticReconnectAttempts = 0
                         launchAapProjectionActivity()
                     }
                     is CommManager.ConnectionState.TransportStarted -> {
                         hasEverConnected = true
                         accessoryHandshakeFailures = 0
+                        automaticReconnectAttempts = 0
                         sendBroadcast(Intent(ACTION_REQUEST_NIGHT_MODE_UPDATE).apply {
                             setPackage(packageName)
                         })
@@ -1111,7 +1119,9 @@ class AapService : Service(), UsbReceiver.Listener {
 
                     if (keyEvent != null) {
                         val actionStr = if (keyEvent.action == android.view.KeyEvent.ACTION_DOWN) "DOWN" else "UP"
-                        AppLog.d("MediaButtonEvent: Received key ${keyEvent.keyCode} ($actionStr)")
+                        if (AppLog.LOG_DEBUG) {
+                            AppLog.d("MediaButtonEvent: Received key ${keyEvent.keyCode} ($actionStr)")
+                        }
 
                         // Only handle ACTION_DOWN to prevent double triggers from standard Android behavior.
                         // Physical double triggers are handled by CommManager.sendKey deduplication.
@@ -1342,7 +1352,11 @@ class AapService : Service(), UsbReceiver.Listener {
                 AppLog.i("AapService: User exit with wirelessServer active. Not restarting discovery.")
                 return
             }
-            AppLog.i("AapService: Disconnected. Restarting discovery loop in 2s...")
+            if (!noteAutomaticReconnect("wireless discovery restart")) return
+            AppLog.i(
+                "AapService: Disconnected. Restarting discovery loop in 2s " +
+                    "(attempt $automaticReconnectAttempts/$MAX_AUTOMATIC_RECONNECT_ATTEMPTS)...",
+            )
             serviceScope.launch {
                 delay(2000)
                 if (!commManager.isConnected) {
@@ -1383,7 +1397,11 @@ class AapService : Service(), UsbReceiver.Listener {
                 AppLog.i("AapService: USB disconnect after user Exit with reopenOnReconnection enabled. Will reconnect on next USB attach.")
                 return
             }
-            AppLog.i("AapService: USB disconnect. Scheduling reconnect check in ${USB_RECONNECT_DELAY_MS}ms...")
+            if (!noteAutomaticReconnect("USB reconnect")) return
+            AppLog.i(
+                "AapService: USB disconnect. Scheduling reconnect check in ${USB_RECONNECT_DELAY_MS}ms " +
+                    "(attempt $automaticReconnectAttempts/$MAX_AUTOMATIC_RECONNECT_ATTEMPTS)...",
+            )
             serviceScope.launch {
                 delay(USB_RECONNECT_DELAY_MS)
                 if (!commManager.isConnected) checkAlreadyConnectedUsb(force = true)
@@ -1393,13 +1411,37 @@ class AapService : Service(), UsbReceiver.Listener {
         if (!state.isClean) {
             val mode = settings.wifiConnectionMode
             if (mode == 1 && lastType != Settings.CONNECTION_TYPE_USB) {
-                AppLog.i("AapService: Unclean WiFi disconnect in Auto Mode. Retrying discovery in 2s...")
+                if (!noteAutomaticReconnect("WiFi Auto Mode discovery")) return
+                AppLog.i(
+                    "AapService: Unclean WiFi disconnect in Auto Mode. Retrying discovery in 2s " +
+                        "(attempt $automaticReconnectAttempts/$MAX_AUTOMATIC_RECONNECT_ATTEMPTS)...",
+                )
                 serviceScope.launch {
                     delay(2000)
                     if (!commManager.isConnected) startDiscovery(oneShot = true)
                 }
             }
         }
+    }
+
+    /**
+     * @return false when the automatic retry budget is exhausted (caller must not schedule more).
+     */
+    private fun noteAutomaticReconnect(reason: String): Boolean {
+        if (automaticReconnectAttempts >= MAX_AUTOMATIC_RECONNECT_ATTEMPTS) {
+            AppLog.w(
+                "AapService: automatic reconnect limit reached ($MAX_AUTOMATIC_RECONNECT_ATTEMPTS) " +
+                    "for $reason; stopping retries until the user connects again",
+            )
+            ToastUtils.showToast(
+                this,
+                getString(R.string.connection_retry_limit_reached),
+                Toast.LENGTH_LONG,
+            )
+            return false
+        }
+        automaticReconnectAttempts++
+        return true
     }
 
     override fun attachBaseContext(newBase: Context) {
@@ -1527,7 +1569,9 @@ class AapService : Service(), UsbReceiver.Listener {
                 AppLog.w("NetworkMonitor: Network lost: $network")
             }
             override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) {
-                AppLog.d("NetworkMonitor: Capabilities changed: $network → $caps")
+                if (AppLog.LOG_DEBUG) {
+                    AppLog.d("NetworkMonitor: Capabilities changed: $network → $caps")
+                }
             }
         }
         networkCallback = callback
@@ -3601,6 +3645,9 @@ class AapService : Service(), UsbReceiver.Listener {
 
         /** Delay before retrying USB connection after an unexpected disconnect. */
         private const val USB_RECONNECT_DELAY_MS = 3000L
+
+        /** Cap automatic reconnect / discovery restarts after unexpected disconnects. */
+        private const val MAX_AUTOMATIC_RECONNECT_ATTEMPTS = 5
 
         /**
          * `NetworkCallback.onAvailable` fires per network and again on re-validation, so a

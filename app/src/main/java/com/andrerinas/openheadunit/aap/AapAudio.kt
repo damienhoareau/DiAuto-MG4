@@ -382,8 +382,10 @@ internal class AapAudio(
         }
 
         selfDefeatingStops++
-        AppLog.d("AapAudio: media stopped ${elapsedMs}ms after taking audio focus " +
-                "($selfDefeatingStops/${PlaybackFocusPolicy.SELF_DEFEATING_LIMIT})")
+        if (AppLog.LOG_DEBUG) {
+            AppLog.d("AapAudio: media stopped ${elapsedMs}ms after taking audio focus " +
+                    "($selfDefeatingStops/${PlaybackFocusPolicy.SELF_DEFEATING_LIMIT})")
+        }
         if (selfDefeatingStops >= PlaybackFocusPolicy.SELF_DEFEATING_LIMIT) {
             selfDefeatingLatched = true
             AppLog.w("AapAudio: taking system audio focus is stopping the phone's own playback " +

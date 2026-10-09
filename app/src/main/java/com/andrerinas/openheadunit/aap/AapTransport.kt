@@ -603,7 +603,9 @@ class AapTransport(
                 }
             }
 
-            AppLog.d("Handshake: Starting version request. TS: ${SystemClock.elapsedRealtime()}")
+            if (AppLog.LOG_DEBUG) {
+                AppLog.d("Handshake: Starting version request. TS: ${SystemClock.elapsedRealtime()}")
+            }
             val version = Messages.versionRequest
             var ret = -1
             var attempt = 0
@@ -623,7 +625,9 @@ class AapTransport(
                 }
                 attempt++
                 ret = connection.sendBlocking(version, version.size, 2000)
-                AppLog.d("Handshake: Version request sent. ret: $ret. attempt: $attempt. TS: ${SystemClock.elapsedRealtime()}")
+                if (AppLog.LOG_DEBUG) {
+                    AppLog.d("Handshake: Version request sent. ret: $ret. attempt: $attempt. TS: ${SystemClock.elapsedRealtime()}")
+                }
                 if (ret < 0) {
                     AppLog.w("Handshake: Version request send failed (ret=$ret), attempt $attempt")
                     transportError = true
@@ -631,7 +635,9 @@ class AapTransport(
                     continue
                 }
 
-                AppLog.d("Handshake: Waiting for version response. TS: ${SystemClock.elapsedRealtime()}")
+                if (AppLog.LOG_DEBUG) {
+                    AppLog.d("Handshake: Waiting for version response. TS: ${SystemClock.elapsedRealtime()}")
+                }
                 // Inner loop: drain messages until we see channel=0 type=2 (VERSION_RESPONSE).
                 // On first connection the phone may send a proactive message (e.g. a ping or a
                 // status) before the version response arrives. Accepting any non-empty read as
@@ -682,27 +688,35 @@ class AapTransport(
             }
             AppLog.i("Handshake: Version response recv ret: %d", ret)
 
-            AppLog.d("Handshake: Starting SSL handshake via performHandshake(). TS: ${SystemClock.elapsedRealtime()}")
+            if (AppLog.LOG_DEBUG) {
+                AppLog.d("Handshake: Starting SSL handshake via performHandshake(). TS: ${SystemClock.elapsedRealtime()}")
+            }
             if (!ssl.performHandshake(connection)) {
                 AppLog.e("Handshake: SSL performHandshake failed.")
                 return false
             }
 
             ssl.postHandshakeReset()
-            AppLog.d("Handshake: SSL buffers reset after handshake.")
+            if (AppLog.LOG_DEBUG) AppLog.d("Handshake: SSL buffers reset after handshake.")
 
-            AppLog.d("Handshake: SSL handshake complete. TS: ${SystemClock.elapsedRealtime()}")
+            if (AppLog.LOG_DEBUG) {
+                AppLog.d("Handshake: SSL handshake complete. TS: ${SystemClock.elapsedRealtime()}")
+            }
             // Status = OK
             val status = Messages.statusOk
             ret = connection.sendBlocking(status, status.size, 2000)
-            AppLog.d("Handshake: Status OK sent. ret: $ret. TS: ${SystemClock.elapsedRealtime()}")
+            if (AppLog.LOG_DEBUG) {
+                AppLog.d("Handshake: Status OK sent. ret: $ret. TS: ${SystemClock.elapsedRealtime()}")
+            }
             if (ret < 0) {
                 AppLog.e("Handshake: Status request sendEncrypted ret: $ret")
                 return false
             }
 
             AppLog.i("Handshake: Status OK sent: %d", ret)
-            AppLog.d("Handshake: Handshake successful. TS: ${SystemClock.elapsedRealtime()}")
+            if (AppLog.LOG_DEBUG) {
+                AppLog.d("Handshake: Handshake successful. TS: ${SystemClock.elapsedRealtime()}")
+            }
 
             lastHandshakeFailure = HandshakeFailure.NONE
             return true

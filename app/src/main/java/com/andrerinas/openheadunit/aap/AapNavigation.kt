@@ -34,13 +34,13 @@ class AapNavigation(
 
         return when (message.type) {
             NavigationStatus.MsgType.INSTRUMENT_CLUSTER_START_VALUE -> {
-                AppLog.d("Nav: Instrument cluster start")
+                if (AppLog.LOG_DEBUG) AppLog.d("Nav: Instrument cluster start")
                 clearAccumulatedData()
                 scheduleDebouncedBroadcast(NAV_EVENT_TYPE_START)
                 true
             }
             NavigationStatus.MsgType.INSTRUMENT_CLUSTER_STOP_VALUE -> {
-                AppLog.d("Nav: Instrument cluster stop")
+                if (AppLog.LOG_DEBUG) AppLog.d("Nav: Instrument cluster stop")
                 clearAccumulatedData()
                 scheduleDebouncedBroadcast(NAV_EVENT_TYPE_STOP)
                 helper.cancelNotification()
@@ -49,7 +49,7 @@ class AapNavigation(
             NavigationStatus.MsgType.INSTRUMENT_CLUSTER_NAVIGATION_STATUS_VALUE -> {
                 try {
                     val status = message.parse(NavigationStatus.NavigationClusterStatus.newBuilder()).build()
-                    AppLog.d("Nav: Navigation status=${status.status}")
+                    if (AppLog.LOG_DEBUG) AppLog.d("Nav: Navigation status=${status.status}")
                     updateClusterStatus(status)
                     scheduleDebouncedBroadcast(NAV_EVENT_TYPE_STATUS)
                     true
@@ -66,10 +66,12 @@ class AapNavigation(
                     road?.let {
                         snapshot.currentStreet = AapNavigationHelper.TimedMessage(it, helper.nowElapsedRealtimeMs())
                     }
-                    AppLog.d(
-                        "Nav: NextTurnDetail road=${detail.road} " +
-                                "hasNextTurn=${detail.hasNextTurn()} nextTurn=${detail.nextTurn}"
-                    )
+                    if (AppLog.LOG_DEBUG) {
+                        AppLog.d(
+                            "Nav: NextTurnDetail road=${detail.road} " +
+                                    "hasNextTurn=${detail.hasNextTurn()} nextTurn=${detail.nextTurn}"
+                        )
+                    }
                     scheduleDebouncedBroadcast(NAV_EVENT_TYPE_TURN)
                     if (settings.showNavigationNotifications) {
                         helper.showNotificationForSnapshot(snapshot, distanceMeters = null)
@@ -85,11 +87,13 @@ class AapNavigation(
                     val event = message.parse(NavigationStatus.NextTurnDistanceEvent.newBuilder()).buildPartial()
                     snapshot.nextTurnDistance = AapNavigationHelper.TimedMessage(event, helper.nowElapsedRealtimeMs())
                     val distanceMeters = event.distanceMeters.takeIf { it >= 0 }
-                    AppLog.d(
-                        "Nav: NextTurnDistanceEvent hasDistance=${event.hasDistanceMeters()} " +
-                                "distance=${event.distanceMeters} hasTime=${event.hasTimeToTurnSeconds()} " +
-                                "time=${event.timeToTurnSeconds}"
-                    )
+                    if (AppLog.LOG_DEBUG) {
+                        AppLog.d(
+                            "Nav: NextTurnDistanceEvent hasDistance=${event.hasDistanceMeters()} " +
+                                    "distance=${event.distanceMeters} hasTime=${event.hasTimeToTurnSeconds()} " +
+                                    "time=${event.timeToTurnSeconds}"
+                        )
+                    }
                     scheduleDebouncedBroadcast(NAV_EVENT_TYPE_TURN)
                     if (settings.showNavigationNotifications) {
                         helper.showNotificationForSnapshot(snapshot, distanceMeters = distanceMeters)
@@ -140,7 +144,7 @@ class AapNavigation(
                 }
             }
             else -> {
-                AppLog.d("Nav: passthrough type ${message.type}")
+                if (AppLog.LOG_DEBUG) AppLog.d("Nav: passthrough type ${message.type}")
                 false
             }
         }

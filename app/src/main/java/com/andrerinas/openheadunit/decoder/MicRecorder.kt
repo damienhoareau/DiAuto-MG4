@@ -218,7 +218,7 @@ class MicRecorder(private val micSampleRate: Int, private val context: Context) 
             scoReceiver = object : BroadcastReceiver() {
                 override fun onReceive(context: Context, intent: Intent) {
                     val state = intent.getIntExtra(AudioManager.EXTRA_SCO_AUDIO_STATE, -1)
-                    AppLog.d("MicRecorder: SCO State change: $state")
+                    if (AppLog.LOG_DEBUG) AppLog.d("MicRecorder: SCO State change: $state")
                     
                     if (state == AudioManager.SCO_AUDIO_STATE_CONNECTED) {
                         AppLog.i("MicRecorder: SCO Connected. Starting AudioRecord.")

@@ -36,6 +36,7 @@ import android.content.res.Configuration
 import com.andrerinas.openheadunit.utils.Settings
 import android.os.SystemClock
 import com.andrerinas.openheadunit.utils.SystemUI
+import com.andrerinas.openheadunit.utils.ToastUtils
 import com.bumptech.glide.Glide
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -312,12 +313,10 @@ class MainActivity : BaseActivity() {
     private fun cancelAutoConnect() {
         if (!autoConnectInProgress) return
         AppLog.i("Auto-connect: cancelled by user")
-        // disconnect() handles all states including the Connecting state where
-        // ACTION_DISCONNECT in AapService used to be a no-op. Setting state to
-        // Disconnected here also feeds the observer, but we end the UI
-        // immediately rather than waiting for the round-trip.
+        // End UI first so the Disconnected observer cannot toast a user cancel
+        // as a failed connection, then tear down the in-flight attempt.
+        endAutoConnect(success = false, notifyFailure = false)
         App.provide(this).commManager.disconnect()
-        endAutoConnect(success = false)
     }
 
     /**
@@ -377,7 +376,7 @@ class MainActivity : BaseActivity() {
         }
     }
 
-    private fun endAutoConnect(success: Boolean) {
+    private fun endAutoConnect(success: Boolean, notifyFailure: Boolean = !success) {
         autoConnectWatchdog?.cancel()
         autoConnectWatchdog = null
         autoConnectInProgress = false
@@ -408,6 +407,9 @@ class MainActivity : BaseActivity() {
             autoConnectKenBurnsAnim = null
         } else {
             hideAutoConnectOverlay()
+            if (notifyFailure) {
+                ToastUtils.showToast(this, R.string.connection_failed, Toast.LENGTH_LONG)
+            }
         }
     }
 
@@ -441,7 +443,11 @@ class MainActivity : BaseActivity() {
         autoConnectWatchdog = lifecycleScope.launch {
             delay(AUTO_CONNECT_WATCHDOG_MS)
             if (autoConnectInProgress) {
-                AppLog.w("Auto-connect overlay: watchdog timeout, hiding")
+                AppLog.w(
+                    "Auto-connect overlay: watchdog timeout after ${AUTO_CONNECT_WATCHDOG_MS}ms, giving up",
+                )
+                // Cancel the in-flight attempt so the service does not keep retrying quietly.
+                App.provide(this@MainActivity).commManager.disconnect()
                 endAutoConnect(success = false)
             }
         }
@@ -1008,10 +1014,10 @@ class MainActivity : BaseActivity() {
         /**
          * Hard upper bound for how long the auto-connect overlay may stay visible
          * without the connection state advancing through the success path. Covers
-         * USB open hangs and silent AOA-mode-switch failures, which today produce
-         * no event for the observer to react to.
+         * USB open hangs, silent AOA-mode-switch failures, and slow wireless
+         * startups (hotspot + RFCOMM + Wi‑Fi handoff can exceed 40 s on MG4).
          */
-        private const val AUTO_CONNECT_WATCHDOG_MS = 30_000L
+        private const val AUTO_CONNECT_WATCHDOG_MS = 125_000L
 
         /**
          * `true` while the loading indicator should be (or is) covering the home
