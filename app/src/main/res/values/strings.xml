@@ -502,7 +502,7 @@
     <string name="separate_audio_streams">Separate Audio Streams</string>
     <string name="separate_audio_streams_description">Separate audio channels for music, calls, and notifications instead of a single multimedia stream (may not work correctly on some devices).</string>
     <string name="use_aac_audio">Use AAC Audio</string>
-    <string name="use_aac_audio_description">AAC uses less Wi‑Fi bandwidth than PCM — try this when music is over Android Auto (hybrid Bluetooth music off). Turn off if the phone will not start audio.</string>
+    <string name="use_aac_audio_description">AAC uses less Wi‑Fi bandwidth than PCM — try this when music is over Android Auto. Turn off if the phone will not start audio.</string>
     <string name="attach_hw_dsp_equalizer">Hardware DSP Equalizer Trigger</string>
     <string name="attach_hw_dsp_equalizer_description">Attaches a dummy Equalizer effect to the audio session to force hardware DSP routing on specific headunits. Keep disabled if using ViPER4Android / ViperFX or if sound is muffled on older Android versions.</string>
     <string name="audio_volume_offset">Audio Volume Offset</string>

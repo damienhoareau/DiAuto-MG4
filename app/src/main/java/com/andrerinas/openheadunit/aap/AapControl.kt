@@ -397,7 +397,7 @@ internal class AapControlService(
                 val isRelease = notification.request.number ==
                         Control.AudioFocusRequestNotification.AudioFocusRequestType.RELEASE_VALUE
                 if (aapAudio.shouldHonourProtocolFocusRequest(isRelease)) {
-                    val separate = settings.separateAudioStreams || settings.musicViaBluetooth
+                    val separate = settings.separateAudioStreams
                     aapAudio.requestFocusChange(
                         AudioConfigs.stream(channel, separate),
                         notification.request.number,

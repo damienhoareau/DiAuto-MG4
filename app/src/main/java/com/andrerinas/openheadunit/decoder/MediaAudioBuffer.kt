@@ -5,8 +5,7 @@ package com.andrerinas.openheadunit.decoder
  * MG4/SWI69 wireless often delivers media in bursts separated by 400–600 ms; music needs a
  * start buffer that outlasts those gaps. Speech / navigation keep the low-latency path.
  *
- * Higher presets (1250 / 1500) are for trying Wi‑Fi music without hybrid Bluetooth — more
- * delay, fewer underruns when SoftAP is busy with video.
+ * Higher presets (1250 / 1500) add delay for fewer underruns when SoftAP is busy with video.
  */
 object MediaAudioBuffer {
     const val DEFAULT_MILLIS = 1000

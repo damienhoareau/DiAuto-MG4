@@ -34,6 +34,4 @@
     <string name="da_about_hint">版本、许可证和开源致谢。</string>
     <string name="da_saved_hint">视频设置更改将在下次连接时生效。</string>
     <string name="da_settings_subtitle">调整显示、声音和连接。</string>
-    <string name="da_bluetooth_music">通过车辆蓝牙播放音乐</string>
-    <string name="da_bluetooth_music_hint">让音乐通过车辆蓝牙播放器播放。DiAuto 不改变其音频焦点；导航和助手音频仍可使用。更改此选项后请重新连接 Android Auto。</string>
 </resources>

@@ -33,9 +33,7 @@ internal class AapAudio(
         SaicCarAudioSource.audioManager(context) ?: audioManager
 
     private val staticAudioFocus = settings.staticAudioFocus
-    // Hybrid Bluetooth music: keep assistant/nav off STREAM_MUSIC so Gemini is not lost under A2DP.
-    private val separateAudioStreams =
-        settings.separateAudioStreams || settings.musicViaBluetooth
+    private val separateAudioStreams = settings.separateAudioStreams
     private val mediaVolumeOffset = settings.mediaVolumeOffset
     private val assistantVolumeOffset = settings.assistantVolumeOffset
     private val navigationVolumeOffset = settings.navigationVolumeOffset
@@ -46,19 +44,6 @@ internal class AapAudio(
     private val attachHwDspEqualizer = settings.attachHwDspEqualizer
     private val mediaBufferMillis = settings.mediaAudioBufferMillis
     private fun playbackFocusMode() = settings.effectivePlaybackFocusMode(context)
-
-    /**
-     * Hybrid sets focus mode NEVER so A2DP music is not AVRCP-paused. Assistant (AU1) and
-     * system/nav (AU2) still need focus or Gemini/TTS stays on the phone speaker.
-     */
-    private fun playbackFocusModeForChannel(channel: Int) =
-        if (settings.musicViaBluetooth &&
-            (channel == Channel.ID_AU1 || channel == Channel.ID_AU2)
-        ) {
-            PlaybackFocusPolicy.Mode.ALWAYS
-        } else {
-            playbackFocusMode()
-        }
 
     private var audioFocusRequest: AudioFocusRequest? = null
     private var legacyFocusListener: AudioManager.OnAudioFocusChangeListener? = null
@@ -147,13 +132,7 @@ internal class AapAudio(
         if (isRelease) return true
 
         val btMediaLinkActive = BluetoothHelper.isA2dpMediaLinkActive(context)
-        // Hybrid NEVER is for media/A2DP only. Protocol focus (Gemini, nav prompts) must still
-        // duck the car so TTS is not left on the phone speaker.
-        val mode = if (settings.musicViaBluetooth) {
-            PlaybackFocusPolicy.Mode.ALWAYS
-        } else {
-            playbackFocusMode()
-        }
+        val mode = playbackFocusMode()
         val honour = PlaybackFocusPolicy.shouldAcquire(
                 mode = mode,
                 staticAudioFocus = staticAudioFocus,
@@ -337,7 +316,7 @@ internal class AapAudio(
             }
         }
         val btMediaLinkActive = BluetoothHelper.isA2dpMediaLinkActive(context)
-        val mode = playbackFocusModeForChannel(channel)
+        val mode = playbackFocusMode()
         val acquire = PlaybackFocusPolicy.shouldAcquire(
             mode = mode,
             staticAudioFocus = staticAudioFocus,
@@ -469,7 +448,7 @@ internal class AapAudio(
         if (!wasEmpty) return
 
         val btMediaLinkActive = BluetoothHelper.isA2dpMediaLinkActive(context)
-        val mode = playbackFocusModeForChannel(channel)
+        val mode = playbackFocusMode()
         val acquire = PlaybackFocusPolicy.shouldAcquire(
                 mode = mode,
                 staticAudioFocus = staticAudioFocus,

@@ -34,6 +34,4 @@
     <string name="da_about_hint">Версия, лицензии и благодарности авторам открытого ПО.</string>
     <string name="da_saved_hint">Изменения настроек видео вступят в силу при следующем подключении.</string>
     <string name="da_settings_subtitle">Настройте экран, звук и подключение.</string>
-    <string name="da_bluetooth_music">Музыка через Bluetooth автомобиля</string>
-    <string name="da_bluetooth_music_hint">Оставьте музыку в Bluetooth-проигрывателе автомобиля. DiAuto не меняет его аудиофокус; звук навигации и ассистента остаётся доступен. После изменения переподключите Android Auto.</string>
 </resources>

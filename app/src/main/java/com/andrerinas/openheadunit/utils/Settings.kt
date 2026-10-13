@@ -706,30 +706,11 @@ class Settings(private val context: Context) {
         get() = prefs.getBoolean("enable-audio-sink", true)
         set(value) { prefs.edit().putBoolean("enable-audio-sink", value).apply() }
 
-    /**
-     * Hybrid: AA video over Wi‑Fi, music on car Bluetooth/A2DP (MEDIA sink omitted — Wi‑Fi
-     * media PCM stutters on MG4). Key bumped to v4 so upgrades pick up default ON.
-     */
-    var musicViaBluetooth: Boolean
-        get() = prefs.getBoolean(KEY_MUSIC_VIA_BLUETOOTH, true)
-        set(value) { prefs.edit().putBoolean(KEY_MUSIC_VIA_BLUETOOTH, value).apply() }
-
-    /**
-     * When hybrid ([musicViaBluetooth]) is on and AA connects, ask SAIC media to select
-     * Bluetooth Music (`requestBtAudioFocus` then `play`) — same as the home music card.
-     * Default off; test toggle for MG4 / SAIC.
-     */
-    var forceBtMusicOnConnect: Boolean
-        get() = prefs.getBoolean(KEY_FORCE_BT_MUSIC_ON_CONNECT, false)
-        set(value) { prefs.edit().putBoolean(KEY_FORCE_BT_MUSIC_ON_CONNECT, value).apply() }
-
     // On the MG4 the stock Android Auto app always takes focus (tagged with the Android Auto source
     // type, see CarAudioAttributes), and a car left on the radio / Bluetooth source stays silent, so
-    // AUTO means ALWAYS there. An explicit NEVER (or music via Bluetooth) is still respected.
+    // AUTO means ALWAYS there. An explicit NEVER is still respected.
     fun effectivePlaybackFocusMode(context: Context): PlaybackFocusPolicy.Mode =
-        if (musicViaBluetooth) {
-            PlaybackFocusPolicy.Mode.NEVER
-        } else if (CarAudioAttributes.isCarBuild && playbackFocusMode == PlaybackFocusPolicy.Mode.AUTO) {
+        if (CarAudioAttributes.isCarBuild && playbackFocusMode == PlaybackFocusPolicy.Mode.AUTO) {
             PlaybackFocusPolicy.Mode.ALWAYS
         } else {
             playbackFocusMode
@@ -808,8 +789,8 @@ class Settings(private val context: Context) {
         set(value) { prefs.edit().putInt("audio-queue-capacity", value).apply() }
 
     /**
-     * AAC-LC for AA audio sinks. Less Wi‑Fi bandwidth than PCM — preferred when trying music
-     * over Wi‑Fi (hybrid off). Phone must accept the codec; turn off if audio fails to start.
+     * AAC-LC for AA audio sinks. Less Wi‑Fi bandwidth than PCM — preferred when music rides
+     * Wi‑Fi. Phone must accept the codec; turn off if audio fails to start.
      */
     var useAacAudio: Boolean
         get() = prefs.getBoolean(KEY_USE_AAC_AUDIO, true)
@@ -1170,15 +1151,12 @@ class Settings(private val context: Context) {
         const val KEY_LOG_LEVEL = "log-level-v2"
         const val KEY_LOG_SOURCE = "log-source"
         const val KEY_LOG_LOCATION = "log-location"
-        // Was music-via-bluetooth / v2 (ON) / v3 (OFF). v4 resets upgrades to ON (hybrid default).
-        const val KEY_MUSIC_VIA_BLUETOOTH = "music-via-bluetooth-v4"
         // Was connection-modes (WiFi-only via NATIVE_AA default). v2 defaults to USB+WiFi.
         const val KEY_CONNECTION_MODES = "connection-modes-v2"
         // Was stretch_to_fill (default ON). v2 resets upgrades to OFF.
         const val KEY_STRETCH_TO_FILL = "stretch-to-fill-v2"
         // Was auto-enable-hotspot (default OFF). v2 resets upgrades to ON.
         const val KEY_AUTO_ENABLE_HOTSPOT = "auto-enable-hotspot-v2"
-        const val KEY_FORCE_BT_MUSIC_ON_CONNECT = "force-bt-music-on-connect"
         const val KEY_MEDIA_AUDIO_BUFFER_MS = "media-audio-buffer-ms"
         /** Bumped key so upgrades pick AAC default on for Wi‑Fi audio trials. */
         const val KEY_USE_AAC_AUDIO = "use-aac-audio-v2"

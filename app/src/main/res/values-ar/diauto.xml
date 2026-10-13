@@ -34,6 +34,4 @@
     <string name="da_about_hint">الإصدار والتراخيص ومساهمو المصادر المفتوحة.</string>
     <string name="da_saved_hint">تُطبق تغييرات إعدادات الفيديو عند الاتصال التالي.</string>
     <string name="da_settings_subtitle">اضبط الشاشة والصوت والاتصال.</string>
-    <string name="da_bluetooth_music">الموسيقى عبر Bluetooth السيارة</string>
-    <string name="da_bluetooth_music_hint">أبقِ الموسيقى في مشغّل Bluetooth السيارة. لا يغيّر DiAuto تركيزه الصوتي؛ ويظل صوت الملاحة والمساعد متاحاً. أعد توصيل Android Auto بعد تغيير هذا الخيار.</string>
 </resources>
