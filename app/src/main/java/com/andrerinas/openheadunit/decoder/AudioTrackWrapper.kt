@@ -14,6 +14,7 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.os.Process
 import com.andrerinas.openheadunit.utils.AppLog
+import com.andrerinas.openheadunit.utils.CarAudioAttributes
 import java.util.concurrent.Executors
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
@@ -454,8 +455,11 @@ class AudioTrackWrapper(
                 )
             }
 
+            // On the MG4 the tracks carry the same usages as the stock Allgo app: media,
+            // navigation guidance and assistant.
+            val trackUsage = if (CarAudioAttributes.isCarBuild) CarAudioAttributes.usageForStream(stream) else usage
             val attrBuilder = AudioAttributes.Builder()
-                .setUsage(usage)
+                .setUsage(trackUsage)
                 .setContentType(contentType)
                 .setLegacyStreamType(stream)
             // Tag every AA sink (media, Gemini/AU1, nav/notification/AU2) as Android Auto
