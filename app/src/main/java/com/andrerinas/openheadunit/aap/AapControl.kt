@@ -403,6 +403,7 @@ internal class AapControlService(
                         notification.request.number,
                         AudioManager.OnAudioFocusChangeListener {
                             AppLog.i("System audio focus changed: $it ${systemFocusName[it]}")
+                            aapAudio.noteSystemFocusChange(it)
                         },
                     )
                 }

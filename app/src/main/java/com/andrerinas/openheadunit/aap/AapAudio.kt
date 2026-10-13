@@ -66,6 +66,34 @@ internal class AapAudio(
     private val activeAudioChannels = mutableSetOf<Int>()
     private val playbackFocusListener = AudioManager.OnAudioFocusChangeListener {
         AppLog.i("AapAudio: playback audio focus changed: $it")
+        noteSystemFocusChange(it)
+    }
+
+    /**
+     * Set by the transport: tells the phone that focus on the head unit changed hands, so that it
+     * pauses when something else (the car radio) takes over and asks again when the user plays.
+     */
+    @Volatile
+    var focusNotifier: ((Control.AudioFocusNotification.AudioFocusStateType) -> Unit)? = null
+
+    @Volatile
+    private var lastOwnFocusRequestAtMs = 0L
+    @Volatile
+    private var focusLostToOtherApp = false
+
+    /** Called with every change the system reports for a focus request this app holds. */
+    fun noteSystemFocusChange(change: Int) {
+        val sinceOwnRequestMs = SystemClock.elapsedRealtime() - lastOwnFocusRequestAtMs
+        val forward = SystemFocusForwardPolicy.forwardFor(change, focusLostToOtherApp, sinceOwnRequestMs)
+        val state = when (forward) {
+            SystemFocusForwardPolicy.Forward.NONE -> return
+            SystemFocusForwardPolicy.Forward.LOSS -> Control.AudioFocusNotification.AudioFocusStateType.STATE_LOSS
+            SystemFocusForwardPolicy.Forward.LOSS_TRANSIENT -> Control.AudioFocusNotification.AudioFocusStateType.STATE_LOSS_TRANSIENT
+            SystemFocusForwardPolicy.Forward.GAIN -> Control.AudioFocusNotification.AudioFocusStateType.STATE_GAIN
+        }
+        focusLostToOtherApp = forward != SystemFocusForwardPolicy.Forward.GAIN
+        AppLog.i("AapAudio: another app on the head unit changed the audio focus ($change); telling the phone: $state")
+        focusNotifier?.invoke(state)
     }
 
     @Volatile
@@ -160,6 +188,9 @@ internal class AapAudio(
                 focusRequest
             }
         AppLog.i("Audio Focus Request: stream=$stream, type=$effectiveFocus")
+        if (effectiveFocus != Control.AudioFocusRequestNotification.AudioFocusRequestType.RELEASE_VALUE) {
+            lastOwnFocusRequestAtMs = SystemClock.elapsedRealtime()
+        }
 
         var result = AudioManager.AUDIOFOCUS_REQUEST_FAILED
 
@@ -238,6 +269,7 @@ internal class AapAudio(
         } else {
             AudioManager.AUDIOFOCUS_GAIN_TRANSIENT
         }
+        lastOwnFocusRequestAtMs = SystemClock.elapsedRealtime()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val attrs = if (speech) {
                 val usage = if (channel == Channel.ID_AU1) {
@@ -347,6 +379,7 @@ internal class AapAudio(
         // The latch is a property of one connection, not of the head unit: re-arm it so a session
         // that reconnects with Bluetooth off gets the car-radio behaviour back.
         holdingPlaybackFocus = false
+        focusLostToOtherApp = false
         focusAcquiredAtMs = 0L
         selfDefeatingStops = 0
         selfDefeatingLatched = false

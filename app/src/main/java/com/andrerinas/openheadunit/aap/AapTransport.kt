@@ -406,6 +406,14 @@ class AapTransport(
     init {
         micRecorder.listener = this
         aapAudio = AapAudio(audioDecoder, audioManager, settings, context)
+        aapAudio.focusNotifier = { state ->
+            val notification = Control.AudioFocusNotification.newBuilder()
+                .setFocusState(state)
+                .setUnsolicited(true)
+                .build()
+            send(AapMessage(Channel.ID_CTR, Control.ControlMsgType.MESSAGE_AUDIO_FOCUS_NOTIFICATION_VALUE, notification))
+            onAudioFocusStateChanged?.invoke(state == Control.AudioFocusNotification.AudioFocusStateType.STATE_GAIN)
+        }
         aapVideo = AapVideo(videoDecoder, settings) {
             triggerFocusCycleRecovery(escalatable = false)
         }
