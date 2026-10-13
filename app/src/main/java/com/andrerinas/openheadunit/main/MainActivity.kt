@@ -222,7 +222,6 @@ class MainActivity : BaseActivity() {
         // installs; for users who already finished onboarding we request them from checkSetupFlow().
         viewModel.register()
         handleLaunchIntent(intent)
-        setupWifiDirectInfo()
 
         ContextCompat.registerReceiver(
             this, finishReceiver,
@@ -722,23 +721,6 @@ class MainActivity : BaseActivity() {
                     overlay.visibility = View.GONE
                 }
                 .start()
-        }
-    }
-
-    private fun setupWifiDirectInfo() {
-        val tvInfo = findViewById<android.widget.TextView>(R.id.wifi_direct_info)
-        val settings = Settings(this)
-
-        lifecycleScope.launch {
-            AapService.wifiDirectName.collectLatest { name ->
-                val isHelperMode = settings.wifiConnectionMode == 2
-                if (isHelperMode && name != null) {
-                    tvInfo.text = "WiFi Direct: $name"
-                    tvInfo.visibility = View.VISIBLE
-                } else {
-                    tvInfo.visibility = View.GONE
-                }
-            }
         }
     }
 

@@ -8,14 +8,14 @@ import com.andrerinas.openheadunit.aap.ApBand
 import com.andrerinas.openheadunit.aap.SoftApBandPolicy
 
 /**
- * Compatibility helper for Android 11+ (API 30) hotspot configuration using
- * the SoftApConfiguration API via reflection.
+ * Hotspot configuration: the SoftApConfiguration API via reflection on Android 11+ (API 30), and
+ * [CarHotspotConfigurator] (5 GHz, WPA2-PSK, fixed channel, as the OEM stack does) before that.
  */
 object SoftApConfigCompat {
     private const val TAG = "SoftApConfigCompat"
 
     /**
-     * Enables a Wi‑Fi hotspot with a configurable SSID and a default WPA2‑PSK password.
+     * Configures the hotspot for [band], keeping its existing name and passphrase.
      * Returns true if the hotspot was successfully configured, false otherwise.
      *
      * The caller must ensure that Wi‑Fi is disabled beforehand (handled by HotspotManager).
@@ -23,13 +23,7 @@ object SoftApConfigCompat {
     fun enableHotspot(context: Context, enabled: Boolean, band: ApBand = ApBand.BAND_5GHZ): Boolean {
         if (!enabled) return false // disabling handled by legacy path
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
-            // The car install writes the whole configuration the OEM stack expects (5 GHz, WPA2-PSK);
-            // any other install only sets the band, as before.
-            return if (CarHotspotConfigurator.isSystemInstall()) {
-                CarHotspotConfigurator.apply(context, band)
-            } else {
-                configureLegacyBand(context, band)
-            }
+            return CarHotspotConfigurator.apply(context, band)
         }
 
         // Ensure location permission (required for hotspot config on API 30+)
@@ -47,7 +41,6 @@ object SoftApConfigCompat {
         AppLog.i("SoftApConfigCompat: enableHotspot called (API=${Build.VERSION.SDK_INT})")
         return try {
             val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-            val settings = Settings(context)
 
             // Build SoftApConfiguration via reflection, from the one already on the device where
             // there is one. This access point is usually the user's, and it is the one whose name
@@ -57,38 +50,15 @@ object SoftApConfigCompat {
             // below; only this branch was inventing values.
             val builderClass = Class.forName("android.net.wifi.SoftApConfiguration\$Builder")
             val existing = readSoftApConfiguration(wifiManager)
-            if (existing == null && settings.hotspotSsid.isEmpty()) {
-                // Nothing to copy and nothing the user named: an empty builder would hand the
-                // framework a configuration with no SSID at all, which is how a working access
-                // point loses its name. The caller starts the hotspot regardless of this; it only
-                // goes up on whatever band the device chooses.
-                AppLog.w("SoftApConfigCompat: cannot read this device's access point configuration and no name is set in the app, so the band cannot be requested without risking the existing one. Starting the hotspot unconfigured.")
+            if (existing == null) {
+                // Nothing to copy: an empty builder would hand the framework a configuration with
+                // no SSID at all, which is how a working access point loses its name.
+                AppLog.w("SoftApConfigCompat: cannot read this device's access point configuration, so the band cannot be requested without risking the existing one. Starting the hotspot unconfigured.")
                 return false
             }
-            val builder = if (existing != null) {
-                builderClass
-                    .getDeclaredConstructor(Class.forName("android.net.wifi.SoftApConfiguration"))
-                    .newInstance(existing)
-            } else {
-                builderClass.getDeclaredConstructor().newInstance()
-            }
-
-            // The user's explicit overrides only, and nothing invented in their absence. The name
-            // and passphrase this route hands the phone are whatever the device's own access point
-            // has — SoftApCredentialsProvider reads them back rather than assuming — so a made-up
-            // pair here would rename a working hotspot to something nobody was told about.
-            // hotspotSsid, not autoStartWifiSsid: that one names the network this unit joins as a
-            // client, which has never had anything to do with the one it hosts.
-            val ssid = settings.hotspotSsid
-            if (ssid.isNotEmpty()) {
-                builderClass.getMethod("setSsid", String::class.java).invoke(builder, ssid)
-            }
-            val password = settings.hotspotPassword
-            if (password.isNotEmpty()) {
-                // 1 = SECURITY_TYPE_WPA2_PSK
-                builderClass.getMethod("setPassphrase", String::class.java, Int::class.javaPrimitiveType)
-                    .invoke(builder, password, 1)
-            }
+            val builder = builderClass
+                .getDeclaredConstructor(Class.forName("android.net.wifi.SoftApConfiguration"))
+                .newInstance(existing)
 
             // Ask for the band the link needs. Not fatal if the platform refuses the call: the
             // caller confirms the access point afterwards and retries on the other band, so a
@@ -111,7 +81,7 @@ object SoftApConfigCompat {
                 Class.forName("android.net.wifi.SoftApConfiguration")
             )
             val result = setConfigMethod.invoke(wifiManager, softApConfig) as Boolean
-            AppLog.i("SoftApConfiguration applied (SSID=${ssid.ifEmpty { "unchanged" }}). Success=$result")
+            AppLog.i("SoftApConfiguration applied. Success=$result")
             result
         } catch (e: Exception) {
             // Expected on plenty of head units, which refuse setSoftApConfiguration() outright with
@@ -128,34 +98,5 @@ object SoftApConfigCompat {
     } catch (e: Exception) {
         AppLog.d("SoftApConfigCompat: could not read the current access point configuration: ${e.message}")
         null
-    }
-
-    /**
-     * Sets the band on pre-Android-11 devices, where the access point is described by a
-     * `WifiConfiguration` and its band lives in the hidden `apBand` field.
-     *
-     * Reads the current configuration and writes it back with only that field changed, so the
-     * SSID and passphrase the user (or the vendor) set stay as they are — this path never owned
-     * them, and inventing values here would rename someone's hotspot behind their back.
-     */
-    private fun configureLegacyBand(context: Context, band: ApBand): Boolean = try {
-        val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-        val config = wifiManager.javaClass.getMethod("getWifiApConfiguration").invoke(wifiManager)
-        if (config == null) {
-            AppLog.w("SoftApConfigCompat: no existing AP configuration to set the band on.")
-            false
-        } else {
-            val field = config.javaClass.getField("apBand")
-            field.setInt(config, SoftApBandPolicy.legacyApBand(band))
-            val applied = wifiManager.javaClass.getMethod(
-                "setWifiApConfiguration", android.net.wifi.WifiConfiguration::class.java
-            ).invoke(wifiManager, config) as? Boolean ?: false
-            AppLog.i("SoftApConfigCompat: requested ${SoftApBandPolicy.describe(band)} via WifiConfiguration.apBand. Success=$applied")
-            applied
-        }
-    } catch (e: Exception) {
-        // Expected on plenty of ROMs — the field is hidden and some vendors drop it entirely.
-        AppLog.w("SoftApConfigCompat: could not set ${SoftApBandPolicy.describe(band)} on this API level: ${e.message}")
-        false
     }
 }

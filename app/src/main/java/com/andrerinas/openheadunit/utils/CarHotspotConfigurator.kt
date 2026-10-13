@@ -19,13 +19,6 @@ object CarHotspotConfigurator {
 
     private const val CHANNEL_PROPERTY = "persist.sys.connectivity.defaultwifichannel"
 
-    /**
-     * True on the platform-signed car install (`android.uid.system`), the only one that holds the
-     * tethering privilege and may read and write the access point configuration. Everything that
-     * takes charge of the hotspot is limited to it; any other install behaves as it always did.
-     */
-    fun isSystemInstall(): Boolean = android.os.Process.myUid() == android.os.Process.SYSTEM_UID
-
     private fun wifiManager(context: Context) =
         context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
 

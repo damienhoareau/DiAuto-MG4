@@ -6,13 +6,10 @@ package com.andrerinas.openheadunit.aap
  *
  * The phone still has to associate, run WPS and get a DHCP lease after Type 3 goes out —
  * measured at 21 s on slow hardware, far longer than the handshake itself. Touching the Bluetooth
- * radio or taking the P2P group owner off-channel in that window makes the phone abandon the
+ * radio or restarting the hotspot in that window makes the phone abandon the
  * join, which it shows as "Obtaining IP address" forever.
  *
- * Split out as a pure object so the timing rules are unit-testable without Android, and so
- * [com.andrerinas.openheadunit.connection.NativeAaHandshakeManager] and
- * [com.andrerinas.openheadunit.connection.WifiDirectManager] share one definition instead of
- * re-deriving it.
+ * Split out as a pure object so the timing rules are unit-testable without Android.
  */
 object NativeHandoffPolicy {
 
@@ -28,7 +25,7 @@ object NativeHandoffPolicy {
     const val MAX_SETTLE_MS = 90_000L
 
     /** Longest a single credential exchange can legitimately take: the up-to-60 s wait for the
-     *  P2P group's credentials, plus the 15 s wait for the phone's Type 2, plus slack. Past this
+     *  hotspot's credentials, plus the 15 s wait for the phone's Type 2, plus slack. Past this
      *  the exchange is over however it ended, so treating it as live only suppresses recovery. */
     const val HANDSHAKE_TIMEOUT_MS = 90_000L
 
@@ -48,7 +45,7 @@ object NativeHandoffPolicy {
      * not merely as a belt-and-braces measure: on head units where closing the Bluetooth socket
      * does not unblock a pending `readFully()`, the handshake coroutine never reaches its cleanup.
      * A plain boolean latched true there for the life of the process, stopping the wake poke and
-     * making `WifiDirectManager`'s join watchdog defer recovery forever.
+     * making the recovery logic defer forever.
      */
     fun isHandshaking(startedAtMs: Long, nowMs: Long, timeoutMs: Long = HANDSHAKE_TIMEOUT_MS): Boolean =
         isWithinWindow(startedAtMs, nowMs, timeoutMs)
@@ -115,22 +112,11 @@ object NativeHandoffPolicy {
         consecutiveFailures < MAX_CONSECUTIVE_HANDSHAKE_FAILURES
 
     /**
-     * Whether a client leaving the P2P group should restart the peer-discovery loop.
-     *
-     * Never on the Native AA path: we run a *quiet* host there and the phone finds us by SSID
-     * from the credentials we handed it over Bluetooth, never by discovery. `discoverPeers()`
-     * takes the group owner off-channel every 10 s, which is precisely what stops a retrying
-     * phone from ever completing DHCP.
-     */
-    fun shouldRestartDiscovery(nativeAaMode: Boolean, hadClient: Boolean, hasClient: Boolean): Boolean =
-        hadClient && !hasClient && !nativeAaMode
-
-    /**
      * Whether an incoming Bluetooth reconnect should be dropped so a still-viable earlier
      * handshake can keep waiting for this head unit's WiFi credentials.
      *
      * Honor / Samsung phones often open a fresh AA RFCOMM every ~12 s while the HU is still
-     * bringing up a P2P group. Replacing the wait each time cancels the only coroutine that
+     * bringing up its hotspot. Replacing the wait each time cancels the only coroutine that
      * would have delivered Type 3 once credentials appear, and the log fills with
      * "closing the previous session" forever. Once credentials are ready the older rule stands:
      * a reconnect means the earlier handoff failed, so the new socket wins.

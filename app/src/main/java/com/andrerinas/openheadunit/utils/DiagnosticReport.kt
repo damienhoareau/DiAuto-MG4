@@ -20,8 +20,10 @@ object DiagnosticReport {
 
     fun build(context: Context): String {
         val settings = Settings(context)
-        val ssid = settings.hotspotSsid
-        val password = settings.hotspotPassword
+        // The live hotspot credentials, only so they can be scrubbed from the logs.
+        val hotspot = HotspotConfigReader.getSystemHotspotConfig(context)
+        val ssid = hotspot?.first.orEmpty()
+        val password = hotspot?.second.orEmpty()
         val lines = ArrayDeque<String>()
         fun accept(line: String) {
             DiagnosticReportRedactor.redact(line, ssid, password)?.let {
@@ -50,9 +52,8 @@ object DiagnosticReport {
             appendLine("DiAuto ${context.packageManager.getPackageInfo(context.packageName, 0).versionName} - diagnostic report")
             appendLine("Android=${Build.VERSION.RELEASE}; API=${Build.VERSION.SDK_INT}")
             appendLine("Head unit: ${Build.MANUFACTURER} ${Build.MODEL}; board=${Build.BOARD}; build=${Build.DISPLAY}")
-            appendLine("Wireless mode=${settings.wifiConnectionMode}; native transport=${settings.nativeApTransport}")
-            appendLine("Hotspot auto-enable=${settings.autoEnableHotspot}; hotspot state=${SoftApStateReader.read(context)}")
-            appendLine("Hotspot name saved=${settings.hotspotSsid.isNotBlank()}; password saved=${settings.hotspotPassword.isNotEmpty()}")
+            appendLine("Wireless mode=${settings.wifiConnectionMode}; hotspot state=${SoftApStateReader.read(context)}")
+            appendLine("Hotspot configuration readable=${hotspot != null}")
             appendLine("Logging level=${settings.exporterLogLevel}; source=${settings.logSource}")
             appendLine("Saved credentials, network addresses and protocol payloads are omitted.")
             appendLine("--- Recent app logs (up to 6000 lines) ---")

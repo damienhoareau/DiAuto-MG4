@@ -1,6 +1,5 @@
 package com.andrerinas.openheadunit.aap
 
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -19,61 +18,22 @@ class NativeCredentialsPolicyTest {
     }
 
     @Test
-    fun `WiFi Direct aborts rather than send credentials the phone will reject`() {
-        // Measured behaviour, not caution: a masked BSSID on the P2P path means the join fails
-        // anyway, and the usual cause — location services off — is something the user can fix
-        // once the log tells them to.
-        assertEquals(
-            UnusableBssidAction.ABORT,
-            NativeCredentialsPolicy.onUnusableBssid(NativeTransport.WIFI_DIRECT)
-        )
-    }
-
-    @Test
-    fun `the hotspot route sends them anyway, without the field`() {
-        // aa-proxy-rs omits the BSSID when it has none, and the OEM ZLink app ships without one:
-        // an ordinary access point is identified by SSID. Aborting here would make the route
-        // unusable on every device whose AP MAC is masked, which is most of them.
-        assertEquals(
-            UnusableBssidAction.SEND_WITH_EMPTY_BSSID,
-            NativeCredentialsPolicy.onUnusableBssid(NativeTransport.HOTSPOT)
-        )
-    }
-
-    @Test
     fun `an interface we guessed at is not advertised when no access point is running`() {
         // Measured on a Unisoc unit: with the real AP down, the cellular bridge seth_lte0 was the
         // only interface up with a private address, so the right network name went out paired with
         // an address no phone could reach — and the log said SUCCESS.
-        assertFalse(NativeCredentialsPolicy.shouldPublishCredentials(SoftApState.NOT_ENABLED, false))
-    }
-
-    @Test
-    fun `naming the interface overrides the state read`() {
-        // The escape hatch for a vendor that starts hostapd outside the framework, where the state
-        // read is silent while the access point is plainly there.
-        assertTrue(NativeCredentialsPolicy.shouldPublishCredentials(SoftApState.NOT_ENABLED, true))
+        assertFalse(NativeCredentialsPolicy.shouldPublishCredentials(SoftApState.NOT_ENABLED))
     }
 
     @Test
     fun `not being able to ask is never treated as an answer`() {
         // getWifiApState is not public API and is blocked outright on some devices. Refusing there
         // would break the route on every one of them.
-        assertTrue(NativeCredentialsPolicy.shouldPublishCredentials(SoftApState.UNKNOWN, false))
-        assertTrue(NativeCredentialsPolicy.shouldPublishCredentials(SoftApState.UNKNOWN, true))
+        assertTrue(NativeCredentialsPolicy.shouldPublishCredentials(SoftApState.UNKNOWN))
     }
 
     @Test
-    fun `a running access point publishes however the interface was chosen`() {
-        assertTrue(NativeCredentialsPolicy.shouldPublishCredentials(SoftApState.ENABLED, false))
-        assertTrue(NativeCredentialsPolicy.shouldPublishCredentials(SoftApState.ENABLED, true))
-    }
-
-    @Test
-    fun `the transport setting maps over, and anything unrecognised stays on the default`() {
-        assertEquals(NativeTransport.WIFI_DIRECT, NativeTransport.fromSetting(0))
-        assertEquals(NativeTransport.HOTSPOT, NativeTransport.fromSetting(1))
-        assertEquals(NativeTransport.WIFI_DIRECT, NativeTransport.fromSetting(-1))
-        assertEquals(NativeTransport.WIFI_DIRECT, NativeTransport.fromSetting(99))
+    fun `a running access point publishes`() {
+        assertTrue(NativeCredentialsPolicy.shouldPublishCredentials(SoftApState.ENABLED))
     }
 }
