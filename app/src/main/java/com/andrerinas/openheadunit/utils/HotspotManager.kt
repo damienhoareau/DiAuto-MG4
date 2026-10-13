@@ -43,6 +43,9 @@ object HotspotManager {
      */
     @Volatile private var startInFlight = false
 
+    /** Set while an invalid running access point is being fixed, so the restart cannot loop back here. */
+    @Volatile private var reconfiguring = false
+
     /**
      * Takes the access point down and brings it straight back up.
      *
@@ -105,8 +108,25 @@ object HotspotManager {
         // DiPlay CarHotspotController.enable(): if SoftAP is already up, leave it alone.
         // Re-applying SoftAp configuration on a live SAIC MG4 AP bounces it mid-handshake.
         if (isApUp(context)) {
-            AppLog.i("HotspotManager: Access point already up; not reconfiguring or restarting it.")
-            return true
+            // Like the OEM stack's CarWifiMgr: an access point that is up but not 5 GHz / WPA2 is
+            // reconfigured and restarted, because the phone cannot use it. One that is already
+            // right is left strictly alone. Only on the car install, which can read and write it.
+            if (!CarHotspotConfigurator.isSystemInstall() ||
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.R ||
+                reconfiguring ||
+                CarHotspotConfigurator.isValid(context)
+            ) {
+                AppLog.i("HotspotManager: Access point already up; not reconfiguring or restarting it.")
+                return true
+            }
+            AppLog.w("HotspotManager: The running access point is not what wireless Android Auto needs; reconfiguring and restarting it.")
+            reconfiguring = true
+            try {
+                CarHotspotConfigurator.apply(context, ApBand.BAND_5GHZ)
+                return restart(context)
+            } finally {
+                reconfiguring = false
+            }
         }
 
         // Claimed before anything slow runs, or a second caller walks past while the first is
@@ -207,7 +227,8 @@ object HotspotManager {
         // The remaining reflection paths (startTethering / setWifiApEnabled) require the special
         // "Modify system settings" access (WRITE_SETTINGS). Without it the framework throws a
         // SecurityException, so check first and surface a clear, actionable message instead.
-        if (AppPermissions.isWriteSettingsGranted(context)) {
+        // The platform-signed car install holds the tethering privilege instead of WRITE_SETTINGS.
+        if (CarHotspotConfigurator.isSystemInstall() || AppPermissions.isWriteSettingsGranted(context)) {
             attempted = tryConnectivityManager(context, enabled) || attempted
             attempted = tryLegacyWifiManager(context, enabled) || attempted
         } else {
@@ -260,6 +281,9 @@ object HotspotManager {
     }
 
     /** Whether a soft AP is running right now, by framework state or, failing that, by interface. */
+    /** Whether an access point is on air right now. */
+    fun isAccessPointUp(context: Context): Boolean = isApUp(context)
+
     private fun isApUp(context: Context): Boolean = when (SoftApStateReader.read(context)) {
         SoftApState.ENABLED -> true
         SoftApState.NOT_ENABLED -> false

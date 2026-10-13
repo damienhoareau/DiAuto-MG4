@@ -1199,6 +1199,11 @@ class NativeAaHandshakeManager(
             feed(WppEvent.SocketReady)
 
             AppLog.i("NativeAA: Phone connected. Current credentials state: SSID=${credentials?.ssid ?: "<null>"}, IP=${credentials?.ip ?: "<null>"}")
+            // The phone cannot join the hotspot while the head unit is itself a Wi-Fi client, so the
+            // client goes off now. A hotspot that was started while it was on is restarted, which
+            // drops the credentials: the wait just below picks up the republished ones.
+            com.andrerinas.openheadunit.utils.CarWifiClient.suspendForWirelessSession(context)
+
             AppLog.i("NativeAA: Waiting for WiFi credentials to be ready (Max ${CREDENTIALS_WAIT_MS / 1000}s)...")
 
             // Wait for credentials (P2P group / hotspot bring-up can be slow), servicing the
