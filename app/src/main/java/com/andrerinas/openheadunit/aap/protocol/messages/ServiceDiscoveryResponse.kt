@@ -7,7 +7,6 @@ import com.andrerinas.openheadunit.App
 import com.andrerinas.openheadunit.R
 import com.andrerinas.openheadunit.aap.AapMessage
 import com.andrerinas.openheadunit.aap.AapService
-import com.andrerinas.openheadunit.aap.HybridMusicPolicy
 import com.andrerinas.openheadunit.aap.KeyCode
 import com.andrerinas.openheadunit.aap.protocol.AudioConfigs
 import com.andrerinas.openheadunit.aap.protocol.Channel
@@ -223,47 +222,7 @@ class ServiceDiscoveryResponse(private val context: Context)
                     services.add(audio1)
                 }
 
-                // Hybrid: never put media PCM on Wi‑Fi AA (stutters on MG4). Music stays on
-                // car Bluetooth.
-                val omitMedia = HybridMusicPolicy.omitAaMediaSink(settings.musicViaBluetooth)
-                if (omitMedia) {
-                    val a2dpBefore = BluetoothHelper.a2dpMediaLinkState(context)
-                    AppLog.i(
-                        "[ServiceDiscovery] hybrid music: omitting AA MEDIA sink " +
-                            "(a2dpBefore=$a2dpBefore)",
-                    )
-                    // A2DP for music + HFP for call UI/audio on the car Bluetooth stack.
-                    val hfpBefore = BluetoothHelper.handsFreeLinkState(context)
-                    if (HybridMusicPolicy.needsBluetoothMediaLink(true, a2dpBefore) ||
-                        hfpBefore != true
-                    ) {
-                        val asked = BluetoothHelper.ensureCarBluetoothAudioLink(
-                            context,
-                            settings.bluetoothAddress,
-                        )
-                        AppLog.i(
-                            "[ServiceDiscovery] hybrid: ensureCarBluetoothAudioLink → asked=$asked " +
-                                "(a2dpBefore=$a2dpBefore hfpBefore=$hfpBefore)",
-                        )
-                    }
-                    val a2dpAfter = BluetoothHelper.a2dpMediaLinkState(context)
-                    val hfpAfter = BluetoothHelper.handsFreeLinkState(context)
-                    if (HybridMusicPolicy.needsBluetoothMediaLink(true, a2dpAfter) ||
-                        hfpAfter != true
-                    ) {
-                        AppLog.w(
-                            "[ServiceDiscovery] hybrid: car Bluetooth incomplete " +
-                                "(a2dp=$a2dpAfter hfp=$hfpAfter) — music/calls may stay on the phone",
-                        )
-                        ToastUtils.showToast(
-                            context,
-                            R.string.da_hybrid_bt_music_needed,
-                            android.widget.Toast.LENGTH_LONG,
-                            force = true,
-                        )
-                    }
-                }
-                if (!AapService.selfMode && !omitMedia) {
+                if (!AapService.selfMode) {
                     // Do not release A2DP here: Native AA still rides BT until Wi‑Fi lands.
                     // AapService releases media profiles after TransportStarted settles.
                     AppLog.i(

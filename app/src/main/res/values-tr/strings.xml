@@ -293,7 +293,7 @@
     <string name="separate_audio_streams">Ayrı Ses Akışları</string>
     <string name="separate_audio_streams_description">Tek bir multimedya akışının yerine müzik, aramalar ve bildirimler için ses kanallarını ayırın (bazı cihazlarda düzgün çalışmayabilir).</string>
     <string name="use_aac_audio">AAC Ses Kullan</string>
-    <string name="use_aac_audio_description">AAC, PCM’den daha az Wi‑Fi kullanır — müzik Android Auto üzerindenyken (hibrit Bluetooth müzik kapalıyken) dene. Telefon sesi başlatmazsa kapat.</string>
+    <string name="use_aac_audio_description">AAC, PCM’den daha az Wi‑Fi kullanır — müzik Android Auto üzerindenyken dene. Telefon sesi başlatmazsa kapat.</string>
     <string name="attach_hw_dsp_equalizer">Donanım DSP Ekolayzır Tetikleyici</string>
     <string name="attach_hw_dsp_equalizer_description">Belirli multimedya cihazlarında donanım DSP yönlendirmesini zorlamak için ses oturumuna sahte bir ekolayzır efekti ekler. ViPER4Android / ViperFX kullanıyorsanız veya eski Android sürümlerinde ses boğuk çıkıyorsa kapalı tutun.</string>
     <string name="audio_volume_offset">Ses Seviyesi Dengesi (Offset)</string>

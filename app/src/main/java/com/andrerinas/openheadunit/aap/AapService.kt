@@ -1069,7 +1069,6 @@ class AapService : Service(), UsbReceiver.Listener {
         // real connection is beginning.
         requestPermanentAudioFocus()
 
-        maybeSwitchCarToBtMusic()
         // Wi‑Fi music: claim SAIC Android Auto source early (Allgo-style medya yayını) and
         // keep it sticky; A2DP release below re-claims after the BT handoff settles.
         startSaicAndroidAutoMediaPublication()
@@ -1084,32 +1083,11 @@ class AapService : Service(), UsbReceiver.Listener {
     }
 
     /**
-     * Optional hybrid test: SAIC launcher path (`requestBtAudioFocus` then `play`) so the car
-     * amp is on Bluetooth Music while AA video stays on Wi‑Fi. Requires hybrid
-     * ([Settings.musicViaBluetooth]) and [Settings.forceBtMusicOnConnect].
-     */
-    private fun maybeSwitchCarToBtMusic() {
-        if (!settings.musicViaBluetooth || !settings.forceBtMusicOnConnect) return
-        serviceScope.launch(Dispatchers.IO) {
-            SaicMediaPlayer.connectBluetooth(this@AapService)
-            repeat(12) { attempt ->
-                if (SaicMediaPlayer.switchToBluetooth()) {
-                    AppLog.i("AapService: car media source switched to BT Music (attempt ${attempt + 1})")
-                    return@launch
-                }
-                delay(250)
-            }
-            AppLog.w("AapService: could not switch car to BT Music (SAIC BT music service not ready)")
-        }
-    }
-
-    /**
      * Wi‑Fi AA media: drop car A2DP/AVRCP only after Native AA has left the BT bootstrap path.
      * Releasing during Service Discovery / early connect tears the phone session (EOF).
      * MG may re-attach A2DP after RFCOMM close — retry a few times. HFP stays up.
      */
     private fun maybeReleaseCarBtMediaForWifiAudio() {
-        if (settings.musicViaBluetooth) return
         serviceScope.launch(Dispatchers.IO) {
             // Wait for AAP TransportStarted, then settle past BT→Wi‑Fi handoff.
             val started = withTimeoutOrNull(20_000L) {
@@ -1128,13 +1106,12 @@ class AapService : Service(), UsbReceiver.Listener {
             }
             delay(3_000L)
             for (attempt in 1..3) {
-                if (settings.musicViaBluetooth) return@launch
                 if (commManager.connectionState.value !is CommManager.ConnectionState.TransportStarted) {
                     AppLog.i("AapService: Wi‑Fi media A2DP release stopped — session gone")
                     return@launch
                 }
                 val state = BluetoothHelper.a2dpMediaLinkState(this@AapService)
-                if (!HybridMusicPolicy.needsReleaseBluetoothMediaLink(false, state)) {
+                if (state == false) {
                     AppLog.i("AapService: Wi‑Fi media A2DP already down (attempt $attempt)")
                     break
                 }
@@ -1190,13 +1167,11 @@ class AapService : Service(), UsbReceiver.Listener {
      */
     private fun startSaicAndroidAutoMediaPublication() {
         saicAaMediaClaimJob?.cancel()
-        if (settings.musicViaBluetooth) return
         saicAaMediaClaimJob = serviceScope.launch(Dispatchers.IO) {
             silenceSaicRadioForWifiAudio()
             claimSaicAndroidAutoMediaSource()
             while (isActive) {
                 delay(8_000L)
-                if (settings.musicViaBluetooth) return@launch
                 when (commManager.connectionState.value) {
                     is CommManager.ConnectionState.Disconnected,
                     is CommManager.ConnectionState.Error -> return@launch

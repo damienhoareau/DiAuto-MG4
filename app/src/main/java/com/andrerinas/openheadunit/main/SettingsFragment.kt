@@ -80,7 +80,7 @@ class SettingsFragment : Fragment() {
     // Wireless items here only appear in Basic when the user connects wirelessly (see filterSettings).
     private val basicSettingIds = setOf(
         "staticBSSID", "appLanguage", "autoStartSettings", "autoConnectSettings", "resolution",
-        "dpiPixelDensity", "viewMode", "fpsLimit", "musicViaBluetooth", "forceBtMusicOnConnect",
+        "dpiPixelDensity", "viewMode", "fpsLimit",
         "enableAudioSink", "mediaAudioBuffer", "micSettings", "audioVolumeOffsets",
         "keymap", "version", "about", "otaBeta", "otaStatus", "otaCheck",
     )
@@ -100,8 +100,6 @@ class SettingsFragment : Fragment() {
     private var pendingVideoCodec: String? = null
     private var pendingFpsLimit: Int? = null
     private var pendingBluetoothAddress: String? = null
-    private var pendingMusicViaBluetooth: Boolean = false
-    private var pendingForceBtMusicOnConnect: Boolean = false
     private var pendingEnableAudioSink: Boolean? = null
     private var pendingStaticAudioFocus: Boolean? = null
     private var pendingPlaybackFocusMode: PlaybackFocusPolicy.Mode? = null
@@ -227,8 +225,6 @@ class SettingsFragment : Fragment() {
         pendingVideoCodec = settings.videoCodec
         pendingFpsLimit = settings.fpsLimit
         pendingBluetoothAddress = settings.bluetoothAddress
-        pendingMusicViaBluetooth = settings.musicViaBluetooth
-        pendingForceBtMusicOnConnect = settings.forceBtMusicOnConnect
         pendingEnableAudioSink = settings.enableAudioSink
         pendingStaticAudioFocus = settings.staticAudioFocus
         pendingPlaybackFocusMode = settings.playbackFocusMode
@@ -366,8 +362,6 @@ class SettingsFragment : Fragment() {
         pendingVideoCodec = settings.videoCodec
         pendingFpsLimit = settings.fpsLimit
         pendingBluetoothAddress = settings.bluetoothAddress
-        pendingMusicViaBluetooth = settings.musicViaBluetooth
-        pendingForceBtMusicOnConnect = settings.forceBtMusicOnConnect
         pendingEnableAudioSink = settings.enableAudioSink
         pendingStaticAudioFocus = settings.staticAudioFocus
         pendingPlaybackFocusMode = settings.playbackFocusMode
@@ -491,8 +485,6 @@ class SettingsFragment : Fragment() {
         pendingVideoCodec?.let { settings.videoCodec = it }
         pendingFpsLimit?.let { settings.fpsLimit = it }
         pendingBluetoothAddress?.let { settings.bluetoothAddress = it }
-        settings.musicViaBluetooth = pendingMusicViaBluetooth
-        settings.forceBtMusicOnConnect = pendingForceBtMusicOnConnect
         pendingEnableAudioSink?.let { settings.enableAudioSink = it }
         pendingStaticAudioFocus?.let { settings.staticAudioFocus = it }
         pendingPlaybackFocusMode?.let { settings.playbackFocusMode = it }
@@ -614,8 +606,6 @@ class SettingsFragment : Fragment() {
                         pendingVideoCodec != settings.videoCodec ||
                         pendingFpsLimit != settings.fpsLimit ||
                         pendingBluetoothAddress != settings.bluetoothAddress ||
-                        pendingMusicViaBluetooth != settings.musicViaBluetooth ||
-                        pendingForceBtMusicOnConnect != settings.forceBtMusicOnConnect ||
                         pendingEnableAudioSink != settings.enableAudioSink ||
                         pendingStaticAudioFocus != settings.staticAudioFocus ||
                         pendingPlaybackFocusMode != settings.playbackFocusMode ||
@@ -671,7 +661,6 @@ class SettingsFragment : Fragment() {
                           pendingForceSoftware != settings.forceSoftwareDecoding ||
                           pendingSoftwareVideoDecoder != settings.softwareVideoDecoder ||
                           pendingEnableRotary != settings.enableRotary ||
-                          pendingMusicViaBluetooth != settings.musicViaBluetooth ||
                         pendingEnableAudioSink != settings.enableAudioSink ||
                           pendingStaticAudioFocus != settings.staticAudioFocus ||
                           pendingPlaybackFocusMode != settings.playbackFocusMode ||
@@ -1603,41 +1592,6 @@ class SettingsFragment : Fragment() {
         items.add(SettingItem.CategoryHeader("audio", R.string.category_audio))
 
         items.add(SettingItem.ToggleSettingEntry(
-            stableId = "musicViaBluetooth",
-            nameResId = R.string.da_bluetooth_music,
-            descriptionResId = R.string.da_bluetooth_music_hint,
-            isChecked = pendingMusicViaBluetooth,
-            onCheckedChanged = { enabled ->
-                pendingMusicViaBluetooth = enabled
-                checkChanges()
-                updateSettingsList()
-            }
-        ))
-
-        if (pendingMusicViaBluetooth) {
-            items.add(SettingItem.InfoBanner(
-                stableId = "hybridBtCallsHint",
-                textResId = R.string.da_hybrid_bt_calls_hint,
-            ))
-            items.add(SettingItem.ToggleSettingEntry(
-                stableId = "forceBtMusicOnConnect",
-                nameResId = R.string.da_force_bt_music_on_connect,
-                descriptionResId = R.string.da_force_bt_music_on_connect_hint,
-                isChecked = pendingForceBtMusicOnConnect,
-                onCheckedChanged = { enabled ->
-                    pendingForceBtMusicOnConnect = enabled
-                    checkChanges()
-                    updateSettingsList()
-                },
-            ))
-        } else if (pendingEnableAudioSink == true) {
-            items.add(SettingItem.InfoBanner(
-                stableId = "wifiMusicTrialHint",
-                textResId = R.string.da_wifi_music_trial_hint,
-            ))
-        }
-
-        items.add(SettingItem.ToggleSettingEntry(
             stableId = "enableAudioSink",
             nameResId = R.string.enable_audio_sink,
             descriptionResId = R.string.enable_audio_sink_description,
@@ -1649,7 +1603,7 @@ class SettingsFragment : Fragment() {
             }
         ))
 
-        if (pendingEnableAudioSink == true && !pendingMusicViaBluetooth) {
+        if (pendingEnableAudioSink == true) {
             items.add(SettingItem.ToggleSettingEntry(
                 stableId = "staticAudioFocus",
                 nameResId = R.string.static_audio_focus,
@@ -1794,8 +1748,8 @@ class SettingsFragment : Fragment() {
             }
         ))
 
-        // Only relevant when music can ride Wi‑Fi (BT music off + audio sink on).
-        if (pendingEnableAudioSink == true && !pendingMusicViaBluetooth) {
+        // Music rides Wi‑Fi, so the jitter buffer matters whenever the audio sink is on.
+        if (pendingEnableAudioSink == true) {
             val bufferMs = pendingMediaAudioBufferMillis
                 ?: com.andrerinas.openheadunit.decoder.MediaAudioBuffer.DEFAULT_MILLIS
             items.add(SettingItem.SettingEntry(
