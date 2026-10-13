@@ -649,10 +649,9 @@ class AapService : Service(), UsbReceiver.Listener {
 
         val settings = App.provide(this).settings
 
-        if (settings.autoStartOnBoot) {
-            AppLog.i("WakeDetect: launching UI (trigger=$trigger)")
-            launchMainActivityOnBoot()
-        }
+        // The service works in the background: waking never brings the app to the screen. Only
+        // a connected phone shows something (the projection), and the user opens the app by hand.
+        AppLog.i("WakeDetect: staying in the background (trigger=$trigger)")
 
         if (settings.autoStartOnUsb) {
             AppLog.i("WakeDetect: checking USB devices (trigger=$trigger)")
@@ -719,9 +718,8 @@ class AapService : Service(), UsbReceiver.Listener {
             return
         }
 
-        // Not connected — launch UI (which triggers auto-connect via HomeFragment)
-        AppLog.i("WakeDetect: launching UI on screen on")
-        launchMainActivityOnBoot()
+        // Not connected: stay in the background, do not bring the app to the screen.
+        AppLog.i("WakeDetect: screen on, not connected; staying in the background")
 
         val settings = App.provide(this).settings
         if (settings.autoStartOnUsb) {
@@ -1982,7 +1980,7 @@ class AapService : Service(), UsbReceiver.Listener {
         if (intent?.getBooleanExtra(BootCompleteReceiver.EXTRA_BOOT_START, false) == true) {
             // Mark wake as handled so the dynamic wakeDetectReceiver doesn't double-trigger
             lastWakeHandledTimestamp = SystemClock.elapsedRealtime()
-            launchMainActivityOnBoot()
+            // Started for its background work only; the app is not shown on boot.
         }
 
         when (intent?.action) {
