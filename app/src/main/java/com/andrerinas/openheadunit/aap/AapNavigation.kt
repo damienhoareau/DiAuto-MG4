@@ -36,12 +36,14 @@ class AapNavigation(
             NavigationStatus.MsgType.INSTRUMENT_CLUSTER_START_VALUE -> {
                 if (AppLog.LOG_DEBUG) AppLog.d("Nav: Instrument cluster start")
                 clearAccumulatedData()
+                AaStatusBus.navigation.tryEmit(AaStatusBus.Navigation("Navigation Status:Active", 1))
                 scheduleDebouncedBroadcast(NAV_EVENT_TYPE_START)
                 true
             }
             NavigationStatus.MsgType.INSTRUMENT_CLUSTER_STOP_VALUE -> {
                 if (AppLog.LOG_DEBUG) AppLog.d("Nav: Instrument cluster stop")
                 clearAccumulatedData()
+                AaStatusBus.navigation.tryEmit(AaStatusBus.Navigation("Navigation Status:In-active", 0))
                 scheduleDebouncedBroadcast(NAV_EVENT_TYPE_STOP)
                 helper.cancelNotification()
                 true

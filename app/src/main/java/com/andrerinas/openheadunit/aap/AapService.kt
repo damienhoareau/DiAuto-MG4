@@ -389,6 +389,7 @@ class AapService : Service(), UsbReceiver.Listener {
 
     private fun onAaPlaybackStatusFromPhone(status: MediaPlayback.MediaPlaybackStatus) {
         if (isDestroying) return
+        if (status.hasState()) AaStatusBus.playback.value = AaStatusBus.playbackCode(status.state)
         if (status.hasPlaybackSeconds()) {
             lastAaPlaybackPositionMs = status.playbackSeconds.protoUint32ToLong() * 1000L
         }
