@@ -9,7 +9,7 @@ import java.util.Locale
  * IPv6 link-local address. Reverse the modified EUI-64 encoding (RFC 4291 Appendix A).
  * Opaque/privacy IPv6 identifiers cannot be decoded and must not become a BSSID.
  */
-internal object P2pInterfaceBssid {
+internal object InterfaceBssid {
     fun read(interfaceName: String?): String? {
         // The caller must pass the active local GO/AP interface, never a station or peer.
         if (interfaceName.isNullOrBlank()) return null

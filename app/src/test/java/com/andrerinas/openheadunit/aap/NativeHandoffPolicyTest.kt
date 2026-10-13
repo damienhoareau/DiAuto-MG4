@@ -235,36 +235,4 @@ class NativeHandoffPolicyTest {
         // failure recovers on its own rather than tripping the backoff.
         assertTrue(maxFailures >= 3)
     }
-
-    @Test
-    fun `discovery restarts when a client leaves a non-native group`() {
-        assertTrue(
-            NativeHandoffPolicy.shouldRestartDiscovery(
-                nativeAaMode = false, hadClient = true, hasClient = false
-            )
-        )
-    }
-
-    @Test
-    fun `discovery never restarts on the native quiet-host path`() {
-        assertFalse(
-            NativeHandoffPolicy.shouldRestartDiscovery(
-                nativeAaMode = true, hadClient = true, hasClient = false
-            )
-        )
-    }
-
-    @Test
-    fun `discovery does not restart unless a client actually left`() {
-        assertFalse(
-            NativeHandoffPolicy.shouldRestartDiscovery(
-                nativeAaMode = false, hadClient = false, hasClient = false
-            )
-        )
-        assertFalse(
-            NativeHandoffPolicy.shouldRestartDiscovery(
-                nativeAaMode = false, hadClient = true, hasClient = true
-            )
-        )
-    }
 }

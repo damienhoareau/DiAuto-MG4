@@ -504,7 +504,6 @@
     <string name="kill_on_disconnect_boot_warning">\"Açılışta başlat\" seçeneği etkin. Uygulama bağlantı kesildiğinde kapanırsa ve bu cihaz kapanmak yerine hazırda bekletilirse (hibernate), hiçbir önyükleme (boot) olayı tetiklenmediği için uygulama bir sonraki kontak açılışında otomatik olarak açılmayabilir — cihaz sadece uykudan uyanır.</string>
     <string name="kill_on_disconnect_screen_on_warning">\"Ekran açıldığında başlat\" seçeneği etkin. Bu ayar, ekran her açıldığında uygulamayı açar. Bağlantı kesildiğinde kapatma ile birleştiğinde uygulama bağlantı kesildikten sonra kapanacak ancak ekran tekrar açıldığında hemen yeniden açılarak bir döngü oluşturacaktır.</string>
 
-    <string name="wifi_disabled_info">Bilgi: Wi-Fi devre dışı.</string>
     <string name="bt_not_enabled">Bluetooth devre dışı</string>
 
     <string name="vehicle_info_settings">Araç bilgileri</string>
@@ -533,21 +532,12 @@
     <string name="vehicle_year_error_max">Yıl %1$d değerinden sonra olamaz</string>
     <string name="vehicle_info_restart_note">Bu veriler her bağlandığınızda Android Auto\'ya gönderilir.</string>
 
-    <string name="auto_enable_hotspot">Araç erişim noktasını otomatik aç</string>
-    <string name="auto_enable_hotspot_description">Kablosuz Android Auto için DiAuto gerektiğinde araç Wi‑Fi erişim noktasını açar. MG4’te varsayılan açık.</string>
-    <string name="hotspot_warning_title">Deneysel Özellik</string>
-    <string name="hotspot_warning_message">Bu özellik yansıma (reflection) kullanır ve tüm cihazlarda çalışmayabilir. Ayrıca \"Sistem ayarlarını değiştir\" izninin manuel olarak verilmesini gerektirebilir.</string>
-    <string name="hotspot_permission_title">İzin Gerekli</string>
-    <string name="hotspot_permission_message">Erişim noktası özelliği \"Sistem ayarlarını değiştir\" iznini gerektirir. Lütfen bir sonraki ekranda bu izni etkinleştirin.</string>
 
     <string name="supported_nativeaa">Gelişmiş Kablosuz Desteği</string>
     <string name="supported_nativeaa_desc">Harika haber! Cihazınız, daha sorunsuz bir Android Auto deneyimi sağlayan \"Native Wireless\" (Yerel Kablosuz) modunu destekliyor. \n\nBunu etkinleştirmek için Bluetooth önbelleğinizi yenilememiz gerekiyor. Lütfen: \n1. Telefonunuzdaki mevcut eşleşmeyi kaldırın \n2. Bluetooth\'u yeniden başlatmak için Tamam\'a tıklayın \n3. Telefonunuzu tekrar eşleştirin \n\nŞimdi Native AA moduna geçmek ister misiniz?</string>
     <string name="not_supported_nativeaa">Yerel Kablosuz desteklenmiyor gibi görünüyor</string>
     <string name="not_supported_nativeaa_desc">Cihazınız Yerel Kablosuz için gereken Bluetooth veya Wi-Fi özelliklerini desteklemiyor olabilir. Yine de deneyebilirsiniz ancak başarısız olursa lütfen bunun yerine \"Kablosuz Yardımcı\" veya \"Otomatik (Headunit Sunucusu)\" modunu kullanın.</string>
 
-    <string name="wait_for_wifi">WiFi Direct öncesinde WiFi bekle</string>
-    <string name="wait_for_wifi_description">Açılışta, WiFi Direct\'i başlatmadan önce WiFi\'ın bağlanmasını bekleyin. Multimedya sisteminizin açıldıktan sonra WiFi\'a bağlanması birkaç saniye sürüyorsa bunu etkinleştirin.</string>
-    <string name="wait_for_wifi_timeout">WiFi bekleme zaman aşımı</string>
     <string name="wireless_24ghz_warning">Not: 2.4GHz cihazlarda kablosuz Android Auto gecikmelere, takılmalara ve bağlantı kesilmelerine neden olabilir. Sorun yaşarsanız, bunun bir ağ kısıtlaması olup olmadığını doğrulamak için lütfen USB üzerinden test edin.</string>
     <string name="fake_speed_title">Video Kilidini Devre Dışı Bırak (Sahte Hız)</string>
     <string name="fake_speed_description">Sürüş sırasında video içeriğinin engellenmesini önlemek için telefona sabit bir düşük hız (0.5 m/s) bildirir. Dikkatli kullanın.</string>
@@ -849,7 +839,7 @@
     <string name="support_rules_device_title">Uygulamayı neyin çalıştırdığını belirtin</string>
     <string name="support_rules_device_desc">Android Auto\'yu yansıtan cihazın (multimedya sisteminiz veya ekranınız) Android sürümünü ve biliyorsanız marka ile modelini yazın.</string>
     <string name="support_rules_connection_title">Nasıl bağlandığınızı belirtin</string>
-    <string name="support_rules_connection_desc">USB kablo, USB kablosuz adaptör, WiFi Direct, WiFi (headunit sunucusu) veya Self Mode. Kablosuz bağlantı kullanıyorsanız adaptör veya dongle modelini de ekleyin.</string>
+    <string name="support_rules_connection_desc">USB kablo, USB kablosuz adaptör, WiFi (headunit sunucusu) veya Self Mode. Kablosuz bağlantı kullanıyorsanız adaptör veya dongle modelini de ekleyin.</string>
     <string name="support_rules_appversion_title">Uygulama sürümünü ekleyin</string>
     <string name="support_rules_appversion_desc">Hakkında ekranında gösterilen Open Headunit sürümü.</string>
     <string name="support_rules_logs_title">Olduğu anda günlükleri ekleyin</string>
@@ -926,8 +916,6 @@
     <string name="pixel_aspect_ratio">Pixel aspect ratio</string>
     <string name="enter_pixel_aspect_ratio_value">Pixel aspect ratio x10000 (10000 = square pixels)</string>
     <string name="cannot_open_settings">Could not open system settings</string>
-    <string name="static_bssid_title">Static BSSID</string>
-    <string name="static_bssid_enter_value">Enter BSSID (XX:XX:XX:XX:XX:XX)</string>
     <string name="static_bssid_desc">Manually set the BSSID for the wireless handshake if auto-detection is blocked by system permissions</string>
     <string name="use_measured_touch_surface">Experimental touch alignment fix</string>
     <string name="use_measured_touch_surface_description">Normalize touch input against the measured projection overlay. May help when small Android Auto controls feel shifted.</string>
@@ -951,29 +939,17 @@
     <string name="support_rules_english_title">All posts in English</string>
     <string name="boot_loop_paused_title">Wireless start-up paused</string>
     <string name="boot_loop_paused_generic">This device restarted three times in a row shortly after Open Headunit started wireless, so wireless was left off this time. USB still works. Open the app to turn it back on.</string>
-    <string name="boot_loop_paused_native_wifi_direct">This device restarted three times in a row shortly after Open Headunit started wireless, so wireless was left off this time. On some head units the WiFi chipset takes the whole system down when a phone joins a WiFi Direct network. Try switching Android Auto mode to the head unit hotspot. USB still works.</string>
     <string name="vehicle_make_hint">A real car brand shows that brand\'s logo on the Android Auto exit button, but Android Auto then stops listing apps installed from outside the Play Store. Set it back to \"Google\" to get those apps listed again.</string>
     <string name="external_bt_nativeaa">Native Wireless cannot work on this head unit</string>
     <string name="external_bt_nativeaa_desc">This head unit uses its own Bluetooth module (%1$s) instead of the one Android exposes to apps. Your phone pairs with that module, so anything this app sends over Bluetooth never reaches it — the connection will look like it is working and then stall.\n\nThis is a hardware limitation and cannot be worked around from the app. Please use USB, or the \"Wireless Helper\" or \"Auto (Headunit Server)\" mode, which do not need the Bluetooth handshake.</string>
     <string name="manual_secondary_bt_service_title">Manual Secondary Radio</string>
     <string name="manual_secondary_bt_service_message">Advanced: force an extra Bluetooth radio, for dual-radio units whose second radio isn\'t found automatically. Find it via \"adb shell service list\" (look for a Bluetooth-sounding entry besides bluetooth_manager) or an engineering menu, then paste either the name before the colon or the interface shown in brackets - both work. Not guaranteed to help on every unit: some head units run a customized Bluetooth stack that this can\'t bridge to no matter what you enter here. Leave blank to disable.</string>
-    <string name="native_ap_transport">Network transport</string>
-    <string name="native_ap_transport_wifi_direct">WiFi Direct</string>
-    <string name="native_ap_transport_hotspot">Hotspot</string>
-    <string name="native_ap_transport_hint">Experimental. The phone joins this device\'s own hotspot instead of a WiFi Direct group. Switch the hotspot on yourself before connecting, and set it to 5 GHz if you can - over 2.4 GHz the phone connects and then drops the session repeatedly without any picture, unless you lower the resolution and frame rate. If the network name cannot be read automatically, enter it below.</string>
-    <string name="hotspot_interface_override">Hotspot network interface</string>
-    <string name="hotspot_interface_override_message">Leave blank to work it out automatically. Set this if the log says more than one interface could be the access point, or picks the wrong one. The name is the one the log reports after &quot;Providing credentials from&quot;, or the entry holding your hotspot\'s address in &quot;ip -brief addr&quot; from a shell. Common names: ap0, wlan0, wlan1, wlan2, softap0, ra0.</string>
-    <string name="hotspot_ssid_override">Hotspot name (manual)</string>
-    <string name="hotspot_ssid_override_message">Leave blank to read the name from this device\'s hotspot settings automatically. Some devices do not let apps read it - if the log says the name could not be read, type it here exactly as it appears in your hotspot settings.</string>
-    <string name="hotspot_password_override">Hotspot password (manual)</string>
-    <string name="hotspot_password_override_message">Leave blank to read the password automatically. Needed on devices that do not let apps read the hotspot configuration. The phone will be given this password to join.</string>
     <string name="hotspot_config_unreadable_toast">Can\'t read this device\'s hotspot name. Set it manually under Hotspot name/password in Settings.</string>
     <string name="native_wifi_version_exchange">Modern handshake (version exchange)</string>
     <string name="native_wifi_version_exchange_description">Opens the Bluetooth handshake by telling the phone which protocol version this head unit speaks, the way factory head units do, instead of going straight to the connection details. Off by default. Worth trying if wireless worked before an Android Auto update and has failed since; if it makes no difference, turn it back off.</string>
     <string name="su_needed_keymaps_warning">Warning: Your headunit must be either rooted, or have Shizuku installed. If that\'s the case, you must allow SU rights, once prompted. Steering keys likely are not functional until this is fixed.</string>
 
     <!-- Lint: MissingTranslation (EN fallback / TR localized) -->
-    <string name="native_local_hotspot_wifi_settings">Araç Wi‑Fi ayarlarını aç</string>
     <string name="native_local_hotspot_wifi_settings_unavailable">Wi‑Fi’yi aracın Ayarlar uygulamasından aç.</string>
     <string name="native_ap_transport_local_hotspot">Yerel erişim noktası</string>
     <string name="native_ap_transport_local_hotspot_hint">Deneysel. DiAuto, Android Auto için ayrı bir yerel erişim noktası kullanır; araç internet paketi gerekmez. Eski Android sürümlerinde uygulamanın Wi‑Fi sürücüsünden 5 GHz erişim noktasını doğrulamasına izin verilmelidir. DiLink 5.1’de harita veya müzik takılırsa araç ayarlarından Wi‑Fi anahtarını kapatmayı dene. Bluetooth ve telefon Wi‑Fi’si açık kalsın. Uyumluluk araca bağlıdır.</string>
@@ -984,48 +960,16 @@
     <string name="diagnostic_report_instructions">Bağlantı sorununu yeniden üret, sonra bir rapor kaydet. Raporlar son uygulama günlüklerini ve bağlantı ayarlarını içerir; kayıtlı kimlik bilgileri çıkarılır. Android 10 ve üzerinde raporlar İndirilenler/DiAuto klasörüne kaydedilir. Gönder’e basınca rapor yüklenir.</string>
     <string name="save_diagnostic_report">Tanılama raporunu kaydet</string>
     <string name="choose_report_location">Kayıt konumunu seç</string>
-    <string name="setup_edit_hotspot">Kayıtlı erişim noktasını düzenle · %1$s</string>
-    <string name="setup_not_set">Ayarlanmadı</string>
     <string name="setup_intro">Bir kez ayarla. Sonraki sürüşe hazır.</string>
-    <string name="setup_saved_details_hint">Bilgilerin kaydı kalır. Değişiklikler sonraki bağlantıda uygulanır.</string>
-    <string name="setup_choose_connection">1 · Bağlantını seç</string>
-    <string name="setup_built_in_car_hotspot">Araç yerleşik erişim noktası</string>
-    <string name="setup_car_hotspot_hint">Aracın kendi erişim noktasını kullan. Varsa araç ayarlarından 5 GHz seç.</string>
-    <string name="setup_wi_fi_direct">Wi‑Fi Direct</string>
-    <string name="setup_wifi_direct_hint">Alternatif kurulum · Aracın Wi‑Fi anahtarı açık olmalı. 2,4 GHz bağlantı takılabilir.</string>
-    <string name="setup_configure_hotspot">2 · Araç erişim noktasını ayarla</string>
-    <string name="setup_hotspot_instructions">Araç ayarlarından erişim noktasını aç ve varsa 5 GHz seç. Adını ve parolasını aynen kopyala. Bağlanırken erişim noktası açık kalsın. Telefonda elle bağlanmana gerek yok; Telefonu bağla’ya bastıktan sonra DiAuto bilgileri Bluetooth üzerinden gönderir.</string>
-    <string name="setup_hotspot_on">Araç erişim noktası açık · Araç ayarlarında 5 GHz seçili olduğundan emin ol.</string>
-    <string name="setup_hotspot_off">Araç erişim noktası kapalı · Bağlanmadan önce aç.</string>
-    <string name="setup_hotspot_unknown">Erişim noktası durumu alınamadı · Araç ayarlarından kontrol et.</string>
-    <string name="setup_open_car_hotspot_settings">Araç erişim noktası ayarlarını aç</string>
-    <string name="setup_save_and_use_hotspot">Erişim noktası bilgilerini kaydet ve bu modu kullan</string>
-    <string name="setup_hotspot_pending">Kurulumu bitir · Bu modu kullanmak için erişim noktası bilgilerini kaydet.</string>
-    <string name="setup_turn_hotspot_on_automatically">Araç erişim noktasını otomatik aç</string>
-    <string name="setup_auto_hotspot_hint">İsteğe bağlı. Sistem ayarlarını değiştirme izni ve uyumlu araç yazılımı gerekir. Erişim noktası kapalı kalırsa araç ayarlarından aç.</string>
-    <string name="setup_allow_automatic_hotspot_control">Otomatik erişim noktası kontrolüne izin ver</string>
-    <string name="setup_system_settings_access_allowed">Sistem ayarları erişimine izin verildi</string>
-    <string name="setup_automatic_control_needs_permission">Otomatik kontrol için izin gerekli</string>
-    <string name="setup_select_mode">2 · Yukarıdan bir kurulum seç</string>
-    <string name="setup_existing_connection_hint">Mevcut bağlantı ayarların kayıtlı. Bu rehberli kurulumu kullanmak için yukarıdaki kablosuz seçeneklerden birini seç.</string>
-    <string name="setup_prepare_car">2 · Arabayı hazırla</string>
-    <string name="setup_wifi_direct_instructions">Aracın Wi‑Fi anahtarını aç. İstendiğinde Konum / Yakındaki cihazlara izin ver ve Android sorduğunda Konumu etkinleştir. Oynatma takılırsa yerleşik araç erişim noktasını 5 GHz ile dene.</string>
-    <string name="setup_pair_and_connect">3 · Eşleştir ve bağlan</string>
+    <string name="setup_wifi_automatic">1 · Wi-Fi is automatic</string>
+    <string name="setup_wifi_automatic_hint">DiAuto starts the car’s hotspot by itself (5 GHz, WPA2) and sends its name and password to your phone over Bluetooth. There is nothing to configure.</string>
+    <string name="setup_pair_and_connect">2 · Eşleştir ve bağlan</string>
     <string name="setup_pair_instructions">Android telefonunda Bluetooth ve Wi‑Fi açık kalsın. Aracın Bluetooth’u ile eşleştir. DiAuto’ya dön, Telefonu bağla’ya bas ve telefonunu seç. Telefondaki Android Auto istemlerini kabul et. Araç internet paketi gerekmez; mobil veri telefonunun ağ ayarlarına bağlıdır.</string>
     <string name="setup_open_bluetooth_settings">Bluetooth ayarlarını aç</string>
     <string name="setup_review_app_permissions">Uygulama izinlerini gözden geçir</string>
     <string name="setup_done_return_to_diauto">Bitti · DiAuto’ya dön</string>
     <string name="setup_prefer_a_cable">Kablo tercih eder misin?</string>
     <string name="setup_usb_instructions">USB veri kablosu ve aracın USB veri portunu kullan. Telefonunun kilidini aç ve DiAuto ana ekranında USB ile bağlan’a dokun. Erişim noktası kurulumu gerekmez.</string>
-    <string name="setup_hotspot_copy_hint">Adı ve parolayı aracın erişim noktası ayarlarından kopyala. Buraya kaydetmek aracın erişim noktasını değiştirmez.</string>
-    <string name="setup_hotspot_name">Erişim noktası adı</string>
-    <string name="setup_hotspot_password">Erişim noktası parolası</string>
-    <string name="setup_show_password">Parolayı göster</string>
-    <string name="setup_car_hotspot_details">Araç erişim noktası bilgileri</string>
-    <string name="setup_save_details">Bilgileri kaydet</string>
-    <string name="setup_hide_keyboard">Klavyeyi gizle</string>
-    <string name="setup_invalid_hotspot_name">Erişim noktası adını gir (1–32 bayt)</string>
-    <string name="setup_invalid_hotspot_password">Erişim noktası parolasını gir (8–63 ASCII karakter)</string>
     <string name="setup_open_settings_manually">Araç ayarlarını ana ekranından aç.</string>
     <string name="diagnostic_file_picker_unavailable">Dosya seçici yok. Android 10 ve üzerinde Tanılama raporunu kaydet’i kullan.</string>
     <string name="diagnostic_saving_report">Rapor kaydediliyor…</string>

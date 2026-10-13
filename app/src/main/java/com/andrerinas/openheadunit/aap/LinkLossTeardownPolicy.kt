@@ -27,7 +27,6 @@ object LinkLossTeardownPolicy {
     /**
      * @param mode [com.andrerinas.openheadunit.utils.Settings.wifiConnectionMode]
      * @param strategy [com.andrerinas.openheadunit.utils.Settings.helperConnectionStrategy]
-     * @param transport applies to [mode] 3 only
      * @param sessionIsWireless whether the session actually running rides a socket. The wireless
      *   mode is a stored setting and says nothing about it: a USB session can be live while
      *   [mode] names a WiFi route, and switching WiFi off must not end it.
@@ -36,23 +35,20 @@ object LinkLossTeardownPolicy {
         trigger: LinkLossTrigger,
         mode: Int,
         strategy: Int,
-        transport: NativeTransport = NativeTransport.WIFI_DIRECT,
         sessionIsWireless: Boolean = true
     ): Boolean = when (trigger) {
         // The whole device is going, so every route's link is going with it — USB included.
         LinkLossTrigger.DEVICE_SHUTDOWN -> true
 
-        // Only routes that ride WiFi station mode. A P2P group and a soft AP are separate
-        // interfaces, and on several chipsets they outlive the station toggle entirely — tearing
+        // Only routes that ride WiFi station mode. A soft AP is a separate
+        // interface, and on several chipsets they outlive the station toggle entirely — tearing
         // a healthy Native AA session down here would cost a 45-90s reconnect to prevent nothing.
         // A USB session rides none of it and must be left alone whatever the settings say.
         LinkLossTrigger.WIFI_STATION_DISABLING ->
-            sessionIsWireless &&
-                !WifiModePolicy.usesWifiDirect(mode, strategy, transport) &&
-                !ridesOwnAccessPoint(mode, strategy, transport)
+            sessionIsWireless && !ridesOwnAccessPoint(mode, strategy)
     }
 
-    /** The two routes where the phone sits on an access point this device is hosting. */
-    private fun ridesOwnAccessPoint(mode: Int, strategy: Int, transport: NativeTransport): Boolean =
-        (mode == 3 && transport != NativeTransport.WIFI_DIRECT) || (mode == 2 && strategy == 4)
+    /** The routes where the phone sits on an access point this device is hosting. */
+    private fun ridesOwnAccessPoint(mode: Int, strategy: Int): Boolean =
+        mode == 3 || (mode == 2 && strategy == 4)
 }

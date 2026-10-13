@@ -150,17 +150,11 @@ object SettingsBackupManager {
         "app-theme" to ValueType.INT,
         "enable-rotary" to ValueType.BOOLEAN,
         "kill-on-disconnect" to ValueType.BOOLEAN,
-        "auto-enable-hotspot-v2" to ValueType.BOOLEAN,
-        "wait-for-wifi-before-wifi-direct" to ValueType.BOOLEAN,
-        "wait-for-wifi-timeout" to ValueType.INT,
         "helper-connection-strategy" to ValueType.INT,
         "bluetooth-manager-service-name" to ValueType.STRING,
         // The Native AA handshake opt-in: a reporter who found they need it wants it to survive a
         // reinstall, which is exactly when they are asked to export their settings.
         "native-wifi-version-exchange" to ValueType.BOOLEAN,
-        // Selectable from the Android Auto mode block now that the route is wired.
-        "native-ap-transport" to ValueType.INT,
-        "hotspot-interface" to ValueType.STRING,
         "use-libusb" to ValueType.BOOLEAN,
         // Custom loading screen display options. The picked image/video is copied into the app's
         // private storage, so the media path/type cannot be restored on another install and are not
@@ -169,9 +163,7 @@ object SettingsBackupManager {
         "loading-screen-keep-aspect-ratio" to ValueType.BOOLEAN,
         "loading-screen-loop-video" to ValueType.BOOLEAN,
         "loading-screen-scale-percent" to ValueType.INT,
-        // Wireless hotspot host credentials and manual BSSID override.
-        "hotspot-ssid" to ValueType.STRING,
-        "hotspot-password" to ValueType.STRING,
+        // Manual BSSID override.
         "static-bssid" to ValueType.STRING,
         // Touch calibration fix and toast visibility.
         "use_measured_touch_surface" to ValueType.BOOLEAN,

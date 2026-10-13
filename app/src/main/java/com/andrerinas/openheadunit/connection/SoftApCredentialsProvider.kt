@@ -41,16 +41,9 @@ import java.net.NetworkInterface
 
 /**
  * Supplies the Native AA handshake with the credentials of *this head unit's own access point*,
- * as an alternative to [WifiDirectManager]'s P2P group.
- *
- * A teardown of the OEM ZLink app showed it doing wireless Android Auto over an ordinary WPA2 soft
- * AP — same Bluetooth handshake, same UUID, no WiFi Direct — so the phone accepts a plain access
- * point, and that route sidesteps the P2P failure modes behind most Native AA reports: group
- * churn, the self-wake loop, phones stuck on "Obtaining IP address".
- *
- * It does not copy ZLink's way of *starting* the AP; that needs TETHER_PRIVILEGED and root
- * daemons. Reading a hotspot the user configured is the load-bearing path, switching one on is
- * best effort. Same contract as [WifiDirectManager] so a launcher can treat both transports alike.
+ * the way the OEM stack does it: the app takes charge of the system hotspot, starts it, makes sure
+ * it is 5 GHz / WPA2 (see [CarHotspotConfigurator]), reads its name and passphrase back, and hands
+ * them to the phone. The user configures nothing.
  */
 class SoftApCredentialsProvider(
     private val context: Context,
@@ -66,9 +59,6 @@ class SoftApCredentialsProvider(
 
         /** How long to keep looking before giving up and saying so. */
         private const val RESOLVE_BUDGET_MS = 30_000L
-
-        /** How long to wait for a user-configured AP before trying to switch one on ourselves. */
-        private const val AUTO_ENABLE_AFTER_MS = 5_000L
 
         /** Not in any public SDK constant: the soft AP state broadcast and its disabled state. */
         private const val WIFI_AP_STATE_CHANGED = "android.net.wifi.WIFI_AP_STATE_CHANGED"
@@ -242,18 +232,14 @@ class SoftApCredentialsProvider(
         onInvalidated?.invoke()
         reportedNoInterface = false
         resolveJob = scope.launch(Dispatchers.IO + CoroutineName("SoftApCredentials-Resolve")) {
-            // Like the OEM stack: take charge of the hotspot first, once per run. Start it if it is
-            // down, fix it if it is up but not 5 GHz / WPA2. Blocking (it waits for the access
-            // point), hence this thread. Car install only; elsewhere the user's hotspot is theirs and
-            // is only switched on after a wait, when the setting allows it.
-            if (CarHotspotConfigurator.isSystemInstall() && !triedAutoEnable) {
-                if (isSessionActive()) {
-                    AppLog.i("SoftApCredentials: A session is active; not touching the hotspot.")
-                } else {
-                    triedAutoEnable = true
-                    AppLog.i("SoftApCredentials: Preparing the head unit hotspot (5 GHz, WPA2).")
-                    autoEnabled = HotspotManager.setHotspotEnabled(context, true)
-                }
+            // Take charge of the hotspot first, once per run: start it if it is down, fix it if it
+            // is up but not 5 GHz / WPA2. Blocking (it waits for the access point), hence this thread.
+            if (!triedAutoEnable && isSessionActive()) {
+                AppLog.i("SoftApCredentials: A session is active; not touching the hotspot.")
+            } else if (!triedAutoEnable) {
+                triedAutoEnable = true
+                AppLog.i("SoftApCredentials: Preparing the head unit hotspot (5 GHz, WPA2).")
+                autoEnabled = HotspotManager.setHotspotEnabled(context, true)
             }
             val deadline = SystemClock.elapsedRealtime() + RESOLVE_BUDGET_MS
 
@@ -274,9 +260,7 @@ class SoftApCredentialsProvider(
                             AppLog.e(
                                 "SoftApCredentials: The access point on $apName is up, but this " +
                                     "device will not let apps read its name, so there is nothing to hand the " +
-                                    "phone. Waiting will not change that. Set 'Hotspot name (manual)' and " +
-                                    "'Hotspot password (manual)' in Settings to this device's own hotspot name " +
-                                    "and password, then connect again."
+                                    "phone. Waiting will not change that."
                             )
                             showConfigUnreadableToast()
                         }
@@ -289,13 +273,6 @@ class SoftApCredentialsProvider(
                         // here, so an access point that is up but unreadable never triggers it.
                         val waited = SystemClock.elapsedRealtime() - runStartedAt
                         reportBudgetExhaustedOnce(waited)
-                        if (!triedAutoEnable && waited >= AUTO_ENABLE_AFTER_MS && settings.autoEnableHotspot) {
-                            triedAutoEnable = true
-                            AppLog.i("SoftApCredentials: No access point after ${waited / 1000}s — trying to switch this device's hotspot on.")
-                            // Best effort; most unrooted units lack the permission. Keep polling
-                            // anyway, since the user may switch it on by hand.
-                            autoEnabled = HotspotManager.setHotspotEnabled(context, true)
-                        }
                     }
                 }
                 delay(POLL_INTERVAL_MS)
@@ -329,23 +306,19 @@ class SoftApCredentialsProvider(
         reportedBudgetExhausted = true
         AppLog.e(
             "SoftApCredentials: No usable access point after ${waited / 1000}s. " +
-                "Turn this device's hotspot on before connecting — 5 GHz is strongly " +
-                "recommended, Android Auto video is poor over 2.4 GHz — or switch the " +
-                "Android Auto network transport back to WiFi Direct."
+                "The app could not start this device's hotspot; check the log above for why."
         )
     }
 
-    /** The interface we settled on, and whether the user named it rather than us guessing. */
-    private data class ChosenInterface(val iface: ApInterfaceCandidate, val namedByUser: Boolean)
+    /** The interface we settled on. */
+    private data class ChosenInterface(val iface: ApInterfaceCandidate)
 
     /**
      * The interface our access point is running on, if it is up.
      *
      * Every reference implementation of this protocol — aa-proxy-rs, the Raspberry Pi dongles, the
      * OEM ZLink app — either creates the access point itself or reads the interface name from
-     * configuration; none of them infer it. We are the only one reading an access point we did not
-     * create, on hardware we do not control, which is why [Settings.hotspotInterface] comes first
-     * and the heuristic is the fallback.
+     * configuration; none of them infer it. We infer it, from [SoftApNetworkPolicy].
      */
     private fun pickApInterface(): ChosenInterface? {
         val candidates = try {
@@ -362,23 +335,6 @@ class SoftApCredentialsProvider(
             }
         } catch (e: Exception) {
             AppLog.w("SoftApCredentials: Could not enumerate network interfaces: ${e.message}")
-            return null
-        }
-
-        val named = settings.hotspotInterface.trim()
-        if (named.isNotEmpty()) {
-            val match = candidates.firstOrNull { it.name.equals(named, ignoreCase = true) }
-            val picked = SoftApNetworkPolicy.pickApInterface(candidates, namedInterface = named)
-            when {
-                match == null ->
-                    AppLog.w("SoftApCredentials: Waiting for interface '$named'. Present: ${candidates.joinToString { it.name }}.")
-                picked == null ->
-                    AppLog.w("SoftApCredentials: Waiting for interface '$named' to be up with a private IPv4 address.")
-                else -> {
-                    AppLog.i("SoftApCredentials: Using '${picked.name}' (${picked.siteLocalIpv4}) as named in settings.")
-                    return ChosenInterface(picked, namedByUser = true)
-                }
-            }
             return null
         }
 
@@ -404,10 +360,10 @@ class SoftApCredentialsProvider(
             AppLog.w(
                 "SoftApCredentials: More than one interface could be the access point — " +
                     eligible.joinToString { "${it.name} (${it.siteLocalIpv4})" } +
-                    " — choosing ${picked.name} by name. Set the hotspot interface by hand if that is wrong."
+                    " — choosing ${picked.name} by name."
             )
         }
-        return ChosenInterface(picked, namedByUser = false)
+        return ChosenInterface(picked)
     }
 
     /** Resolves the rest of the credentials for [chosen] and hands them over. */
@@ -419,8 +375,8 @@ class SoftApCredentialsProvider(
         // saved settings password goes stale when the vehicle UI changes the hotspot passphrase.
         // getSoftApConfiguration() is reflection over a non-public API and can refuse on a
         // locked-down device — SoftApCredentialsPolicy then falls back to the manual fields.
-        val manualSsid = settings.hotspotSsid
-        val manualPass = settings.hotspotPassword
+        val manualSsid = ""
+        val manualPass = ""
         val systemConfig =
             HotspotConfigReader.getSystemHotspotConfig(context)?.let { SoftApCredentials(it.first, it.second) }
 
@@ -429,19 +385,8 @@ class SoftApCredentialsProvider(
             "SoftApCredentials: resolve iface=${iface.name} ip=$ip " +
                 "configReadable=${systemConfig != null} " +
                 "liveSsid=${systemConfig?.ssid?.ifEmpty { "<empty>" } ?: "<unreadable>"} " +
-                "savedSsid=${manualSsid.ifEmpty { "<empty>" }} " +
-                "livePskLen=${systemConfig?.passphrase?.length ?: 0} " +
-                "savedPskLen=${manualPass.length}"
+                "livePskLen=${systemConfig?.passphrase?.length ?: 0}"
         )
-
-        if (SoftApCredentialsPolicy.liveSsidConflicts(manualSsid, systemConfig)) {
-            // Live wins in resolve(); warn so a stale Connection-setup override can be cleared.
-            AppLog.w(
-                "SoftApCredentials: Saved hotspot name '$manualSsid' differs from live SoftAP " +
-                    "'${systemConfig?.ssid}' — advertising the live name (clear the saved override " +
-                    "in Connection setup if this is unexpected)."
-            )
-        }
 
         val attempt = SoftApCredentialsPolicy.decide(manualSsid, manualPass, systemConfig, ip)
         if (attempt != SoftApCredentialsAttempt.PUBLISHED) {
@@ -449,29 +394,19 @@ class SoftApCredentialsProvider(
             return attempt
         }
         val (ssid, psk) = SoftApCredentialsPolicy.resolve(manualSsid, manualPass, systemConfig)
-        val liveSsid = !systemConfig?.ssid.isNullOrEmpty()
-        val pskSource = when {
-            !systemConfig?.passphrase.isNullOrEmpty() -> "live"
-            manualPass.isNotEmpty() -> "saved"
-            else -> "none"
-        }
-        AppLog.i(
-            "SoftApCredentials: will advertise SSID=$ssid pskSource=$pskSource pskLen=${psk.length} " +
-                "ssidSource=${if (liveSsid) "live" else "saved"}"
-        )
+        AppLog.i("SoftApCredentials: will advertise SSID=$ssid pskLen=${psk.length}")
 
         if (psk.isEmpty()) {
-            AppLog.w("SoftApCredentials: No passphrase for '$ssid'. An open network will be refused by the phone; set one by hand if this fails.")
+            AppLog.w("SoftApCredentials: No passphrase for '$ssid'. An open network will be refused by the phone.")
         }
 
         val apState = SoftApStateReader.read(context)
-        AppLog.i("SoftApCredentials: SoftApState=$apState namedByUser=${chosen.namedByUser}")
-        if (!NativeCredentialsPolicy.shouldPublishCredentials(apState, chosen.namedByUser)) {
+        AppLog.i("SoftApCredentials: SoftApState=$apState")
+        if (!NativeCredentialsPolicy.shouldPublishCredentials(apState)) {
             AppLog.w(
                 "SoftApCredentials: the system reports no access point running, so ${iface.name} " +
                     "($ip) is some other network — a modem bridge or a wired link will look just " +
-                    "like this. Not handing the phone a network that is not on air. Switch the " +
-                    "hotspot on, or name the interface by hand if you know it is up."
+                    "like this. Not handing the phone a network that is not on air."
             )
             return SoftApCredentialsAttempt.NO_AP_YET
         }
@@ -484,7 +419,7 @@ class SoftApCredentialsProvider(
         // IPv6 EUI-64; static override first. SoftAP IPv4 bind stays DiPlay-style separately.
         val shellMac = InterfaceMacReader.read(iface.name)
         val hardwareAddress = hardwareAddressOf(iface.name)
-        val ipv6DerivedMac = P2pInterfaceBssid.read(iface.name)
+        val ipv6DerivedMac = InterfaceBssid.read(iface.name)
         val bssidSource = when {
             SoftApBssidPolicy.isUsable(settings.staticBSSID) -> "static"
             SoftApBssidPolicy.isUsable(shellMac) -> "sysfs"
@@ -505,7 +440,7 @@ class SoftApCredentialsProvider(
         if (bssid.isEmpty()) {
             AppLog.w(
                 "SoftApCredentials: No SoftAP BSSID for ${iface.name}. " +
-                    "Android Auto usually refuses join (status=-3); set static BSSID in Advanced settings."
+                    "Android Auto usually refuses join (status=-3)."
             )
         }
 

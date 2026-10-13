@@ -368,52 +368,6 @@ class Settings(private val context: Context) {
         set(value) { prefs.edit().putString("debug-force-memory-profile", value?.name).apply() }
 
     /**
-     * Puts the Native AA WiFi Direct group on 2.4 GHz instead of asking for 5 GHz.
-     *
-     * Off by default, and it is a rig lever rather than a preference: 5 GHz is what a working
-     * session runs on and nothing here recommends moving off it. What it exists for is that the
-     * link-outage reports come from 2.4 GHz head units and the rig could never be put on that band
-     * - the group is requested as 5 GHz and any group that lands on 2.4 GHz is torn down and
-     * remade. Both of those are turned off together by this one flag; see
-     * [com.andrerinas.openheadunit.aap.NativeGroupBandPolicy], which is where the coupling lives.
-     *
-     * Applies to the next group, so it needs a reconnect rather than only a settings write.
-     */
-    var debugForceP2pBand24: Boolean
-        get() = prefs.getBoolean("debug-force-p2p-band-24", false)
-        set(value) { prefs.edit().putBoolean("debug-force-p2p-band-24", value).apply() }
-
-    /**
-     * On a device with no band API, asks the P2P stack for a 5 GHz operating channel.
-     *
-     * Below API 29 there is no `WifiP2pConfig.Builder`, so the group's band is the driver's choice
-     * and this app has never had a say in it - which is every pre-Android-10 head unit, including
-     * both units in the periodic-outage reports. The hidden `setWifiP2pChannels` is the one lever
-     * left; see [com.andrerinas.openheadunit.aap.P2pOperatingChannelPolicy].
-     *
-     * **Off by default, and it should stay off until a unit reports back.** The request is a
-     * disallowed-frequency list, so a unit whose P2P firmware cannot host a 5 GHz group owner is not
-     * left on 2.4 GHz - it is left unable to form a group at all. The bring-up clears the restriction
-     * and retries once when that happens, but an opt-in costs nothing and a wrong default costs
-     * every pre-Q unit its connection.
-     *
-     * Ignored from API 29 up, where the supported band request does this properly.
-     */
-    var p2pLegacyFiveGhz: Boolean
-        get() = prefs.getBoolean("p2p-legacy-5ghz", false)
-        set(value) { prefs.edit().putBoolean("p2p-legacy-5ghz", value).apply() }
-
-    /**
-     * Asks for UNII-3 (channel 149) instead of UNII-1 (channel 36) when [p2pLegacyFiveGhz] is on.
-     *
-     * Both are non-DFS and channel 36 is what the reference implementations use, so this exists only
-     * for a regulatory domain that refuses the lower range.
-     */
-    var p2pLegacyFiveGhzUpperBand: Boolean
-        get() = prefs.getBoolean("p2p-legacy-5ghz-upper", false)
-        set(value) { prefs.edit().putBoolean("p2p-legacy-5ghz-upper", value).apply() }
-
-    /**
      * Asks the decoder for low-latency mode, through whichever key its vendor understands.
      *
      * Off by default, and it stays off until a log from a real device shows a component accepting the
@@ -1151,8 +1105,6 @@ class Settings(private val context: Context) {
         const val KEY_CONNECTION_MODES = "connection-modes-v2"
         // Was stretch_to_fill (default ON). v2 resets upgrades to OFF.
         const val KEY_STRETCH_TO_FILL = "stretch-to-fill-v2"
-        // Was auto-enable-hotspot (default OFF). v2 resets upgrades to ON.
-        const val KEY_AUTO_ENABLE_HOTSPOT = "auto-enable-hotspot-v2"
         const val KEY_MEDIA_AUDIO_BUFFER_MS = "media-audio-buffer-ms"
         /** Bumped key so upgrades pick AAC default on for Wi‑Fi audio trials. */
         const val KEY_USE_AAC_AUDIO = "use-aac-audio-v2"
@@ -1573,23 +1525,15 @@ class Settings(private val context: Context) {
         get() = prefs.getBoolean("kill-on-disconnect", false)
         set(value) { prefs.edit().putBoolean("kill-on-disconnect", value).apply() }
 
-    var autoEnableHotspot: Boolean
-        // Default on; key renamed so existing installs pick up the new default too.
-        get() = prefs.getBoolean(KEY_AUTO_ENABLE_HOTSPOT, true)
-        set(value) { prefs.edit().putBoolean(KEY_AUTO_ENABLE_HOTSPOT, value).apply() }
-
-    var waitForWifiBeforeWifiDirect: Boolean
-        get() = prefs.getBoolean("wait-for-wifi-before-wifi-direct", false)
-        set(value) { prefs.edit().putBoolean("wait-for-wifi-before-wifi-direct", value).apply() }
-
-    var waitForWifiTimeout: Int
-        get() = prefs.getInt("wait-for-wifi-timeout", 10)
-        set(value) { prefs.edit().putInt("wait-for-wifi-timeout", value).apply() }
-
-    // 0 = Common Wifi (NSD), 1 = Wifi Direct P2P, 2 = Nearby Devices, 3 = Phone Hotspot (Host), 4 = Headunit Hotspot (Passive)
+    // 0 = Common Wifi (NSD), 2 = Nearby Devices, 3 = Phone Hotspot (Host), 4 = Headunit Hotspot (Passive)
     var helperConnectionStrategy: Int
         get() {
             val stored = prefs.getInt("helper-connection-strategy", 4)
+            if (stored == 1) {
+                // WiFi Direct strategy was removed; the car hotspot is the same job without P2P.
+                prefs.edit().putInt("helper-connection-strategy", 4).apply()
+                return 4
+            }
             if (stored != 2 || hasGoogleServicesFramework()) return stored
 
             // Existing MG4 installs may have inherited the old Nearby default. Nearby depends on
@@ -1611,22 +1555,6 @@ class Settings(private val context: Context) {
         get() = prefs.getString("bluetooth-manager-service-name", "bluetooth_manager")!!
         set(value) = prefs.edit().putString("bluetooth-manager-service-name", value).apply()
 
-    // Which network the Native AA mode (wifiConnectionMode 3) puts the phone on.
-    // 0 = WiFi Direct, 1 = car hotspot. Legacy local-hotspot value 2 migrates to 1.
-    //
-    // Deliberately not folded into helperConnectionStrategy: that setting belongs to mode 2 and
-    // means something different in every one of its five values. A wireless mode that reuses
-    // another mode's selector is how the two call sites of the old usesWifiDirect() drifted apart.
-    var nativeApTransport: Int
-        get() {
-            val stored = prefs.getInt("native-ap-transport", 1)
-            return if (stored == 2) {
-                prefs.edit().putInt("native-ap-transport", 1).apply()
-                1
-            } else stored
-        }
-        set(value) = prefs.edit().putInt("native-ap-transport", if (value == 2) 1 else value).apply()
-
     // Whether the Native AA handshake opens with a WifiVersionRequest (Type 4), as real head units
     // and the OEM ZLink app do, instead of going straight to WifiStartRequest.
     //
@@ -1646,26 +1574,6 @@ class Settings(private val context: Context) {
     var manualSecondaryBluetoothServiceName: String
         get() = prefs.getString("manual-secondary-bt-service-name", "")!!
         set(value) = prefs.edit().putString("manual-secondary-bt-service-name", value).apply()
-
-    // Which interface hosts the head unit's access point. Empty = work it out from the interface
-    // list. Worth having because every other implementation of this protocol either creates the AP
-    // itself or is told the name: aa-proxy-rs has an `iface` setting, the Pi dongles pin wlan0 in
-    // hostapd.conf, and ZLink carries an ap_NIC_name field. We are the only one reading an AP we
-    // did not create, so we are the only one that has to guess.
-    var hotspotInterface: String
-        get() = prefs.getString("hotspot-interface", "")!!
-        set(value) = prefs.edit().putString("hotspot-interface", value).apply()
-
-    // Fallback for the head unit's own access point when SoftApCredentialsProvider cannot read
-    // the live SoftAP config (locked-down / non-privileged installs). On the platform-signed MG4
-    // car build the live name/passphrase are preferred whenever readable.
-    var hotspotSsid: String
-        get() = prefs.getString("hotspot-ssid", "")!!
-        set(value) = prefs.edit().putString("hotspot-ssid", value).apply()
-
-    var hotspotPassword: String
-        get() = prefs.getString("hotspot-password", "")!!
-        set(value) = prefs.edit().putString("hotspot-password", value).apply()
 
     // Set once this device has failed to bring its own access point back up after the app took it
     // down, which is the only way to find out that it cannot — no API answers the question in

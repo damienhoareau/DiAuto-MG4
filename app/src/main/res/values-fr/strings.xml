@@ -419,8 +419,6 @@
     <string name="wireless_connection_settings">Wireless Connection</string>
     <string name="category_graphic">Graphic</string>
 
-    <string name="static_bssid_title">Static BSSID</string>
-    <string name="static_bssid_enter_value">Enter BSSID (XX:XX:XX:XX:XX:XX)</string>
     <string name="static_bssid_desc">Manually set the BSSID for the wireless handshake if auto-detection is blocked by system permissions</string>
 
     <string name="custom_insets">Custom Insets (Margins)</string>
@@ -553,7 +551,7 @@
     <string name="support_rules_device_title">Say what runs the app</string>
     <string name="support_rules_device_desc">The Android version of the device projecting Android Auto (your head unit or screen), and its brand and model if you know them.</string>
     <string name="support_rules_connection_title">Say how you connect</string>
-    <string name="support_rules_connection_desc">USB cable, USB wireless adapter, WiFi Direct, WiFi (headunit server) or Self Mode. If it is wireless, add the adapter or dongle model.</string>
+    <string name="support_rules_connection_desc">USB cable, USB wireless adapter, WiFi (headunit server) or Self Mode. If it is wireless, add the adapter or dongle model.</string>
     <string name="support_rules_appversion_title">Include the app version</string>
     <string name="support_rules_appversion_desc">The Open Headunit version, shown on the About screen.</string>
     <string name="support_rules_logs_title">Attach logs, right after it happens</string>
@@ -701,7 +699,6 @@
     <string name="notification_service_running">Open Headunit is running</string>
     <string name="boot_loop_paused_title">Wireless start-up paused</string>
     <string name="boot_loop_paused_generic">This device restarted three times in a row shortly after Open Headunit started wireless, so wireless was left off this time. USB still works. Open the app to turn it back on.</string>
-    <string name="boot_loop_paused_native_wifi_direct">This device restarted three times in a row shortly after Open Headunit started wireless, so wireless was left off this time. On some head units the WiFi chipset takes the whole system down when a phone joins a WiFi Direct network. Try switching Android Auto mode to the head unit hotspot. USB still works.</string>
     <string name="notification_projection_active">Android Auto is projected</string>
     <string name="shortcut_connect_title">Connect</string>
     <string name="shortcut_connect_desc">Auto-connect to last phone</string>
@@ -769,12 +766,6 @@
     <string name="debug_video_fault_rate" translatable="false">Fault rate (one in N)</string>
     <string name="debug_video_fault_budget" translatable="false">Fault budget</string>
     <string name="debug_force_memory_profile" translatable="false">Force memory profile</string>
-    <string name="debug_force_p2p_band_24" translatable="false">Force WiFi Direct onto 2.4 GHz</string>
-    <string name="p2p_legacy_5ghz" translatable="false">Ask for 5 GHz on Android 9 and older</string>
-    <string name="p2p_legacy_5ghz_description" translatable="false">Below Android 10 there is no way to request a band, so the WiFi Direct group lands wherever the driver puts it — often 2.4 GHz, shared with Bluetooth. This asks for a 5 GHz channel instead. Leave it off unless the picture or sound stutters: a unit whose WiFi Direct cannot host 5 GHz will fail to create a group, and the app then clears the request and retries once. No effect on Android 10 and newer.</string>
-    <string name="p2p_legacy_5ghz_upper" translatable="false">Use the upper 5 GHz range</string>
-    <string name="p2p_legacy_5ghz_upper_description" translatable="false">Asks for channel 149 instead of channel 36. Try this only if channel 36 fails — some regions allow one range and not the other.</string>
-    <string name="debug_force_p2p_band_24_description" translatable="false">Native AA hosts its group on 2.4 GHz instead of asking for 5 GHz, and stops remaking a group that lands there. For reproducing 2.4 GHz link faults on a 5 GHz rig; leave off otherwise. Applies on the next connection.</string>
     <string name="debug_video_low_latency" translatable="false">Request decoder low-latency mode</string>
     <string name="debug_video_low_latency_description" translatable="false">Sets the vendor low-latency MediaFormat key when configuring the video decoder. Falls back automatically if the decoder rejects it.</string>
     <string name="show_fps_counter_description">Display a real-time FPS overlay in the top-left corner during projection.</string>
@@ -802,7 +793,6 @@
     <string name="kill_on_disconnect_boot_warning">You have \"Start on boot\" enabled. If the app closes on disconnect and this device hibernates instead of shutting down, the app may not reopen automatically on the next ignition cycle because no boot event is triggered — the device simply wakes up from sleep.</string>
     <string name="kill_on_disconnect_screen_on_warning">You have \"Start on screen on\" enabled. This setting opens the app every time the screen turns on. Combined with closing on disconnect, the app will close after disconnection but reopen immediately when the screen turns on again, creating a restart loop.</string>
 
-    <string name="wifi_disabled_info">Info: Wi-Fi is disabled.</string>
     <string name="bt_not_enabled">Bluetooth is disabled</string>
     <string name="bt_permission_denied">Bluetooth permission denied. Cannot scan for devices.</string>
 
@@ -834,12 +824,6 @@
     <string name="vehicle_year_error_max">Year cannot be later than %1$d</string>
     <string name="vehicle_info_restart_note">This data is sent to Android Auto every time you connect.</string>
 
-    <string name="auto_enable_hotspot">Auto-Enable Hotspot</string>
-    <string name="auto_enable_hotspot_description">Automatically starts a Wi-Fi hotspot on this device. (Won\'t work on every device)</string>
-    <string name="hotspot_warning_title">Experimental Feature</string>
-    <string name="hotspot_warning_message">This feature uses reflection and might not work on all devices. It may also require the "Modify system settings" permission to be granted manually.</string>
-    <string name="hotspot_permission_title">Permission Required</string>
-    <string name="hotspot_permission_message">The hotspot feature requires the \"Modify system settings\" permission. Please enable it in the next screen.</string>
 
     <string name="supported_nativeaa">Enhanced Wireless Support</string>
     <string name="supported_nativeaa_desc">Great news! Your device supports \"Native Wireless\" mode, which provides a more seamless Android Auto experience. \n\nTo enable this, we need to refresh your Bluetooth cache. Please: \n1. Remove the existing pairing on your phone \n2. Click OK to restart Bluetooth \n3. Re-pair your phone \n\nWould you like to switch to Native AA mode now?</string>
@@ -848,9 +832,6 @@
     <string name="external_bt_nativeaa">Native Wireless cannot work on this head unit</string>
     <string name="external_bt_nativeaa_desc">This head unit uses its own Bluetooth module (%1$s) instead of the one Android exposes to apps. Your phone pairs with that module, so anything this app sends over Bluetooth never reaches it — the connection will look like it is working and then stall.\n\nThis is a hardware limitation and cannot be worked around from the app. Please use USB, or the \"Wireless Helper\" or \"Auto (Headunit Server)\" mode, which do not need the Bluetooth handshake.</string>
 
-    <string name="wait_for_wifi">Wait for WiFi before WiFi Direct</string>
-    <string name="wait_for_wifi_description">On boot, wait for WiFi to connect before starting WiFi Direct. Enable this if your head unit needs a few seconds to connect to WiFi after power on.</string>
-    <string name="wait_for_wifi_timeout">WiFi wait timeout</string>
     <string name="wireless_24ghz_warning">Note: Wireless Android Auto on 2.4GHz devices can lead to lag, stutters, and disconnects. If you experience issues, please test via USB to confirm if it\'s a network limitation.</string>
     <string name="fake_speed_title">Disable Video-Lock (Fake Speed)</string>
     <string name="fake_speed_description">Reports a constant low speed (0.5 m/s) to the phone to prevent video content from being blocked while driving. Use with caution.</string>
@@ -924,20 +905,9 @@
     <string name="select_bt_adapter">Select Bluetooth Adapter</string>
     <string name="manual_secondary_bt_service_title">Manual Secondary Radio</string>
     <string name="manual_secondary_bt_service_message">Advanced: force an extra Bluetooth radio, for dual-radio units whose second radio isn\'t found automatically. Find it via \"adb shell service list\" (look for a Bluetooth-sounding entry besides bluetooth_manager) or an engineering menu, then paste either the name before the colon or the interface shown in brackets - both work. Not guaranteed to help on every unit: some head units run a customized Bluetooth stack that this can\'t bridge to no matter what you enter here. Leave blank to disable.</string>
-    <string name="native_ap_transport">Network transport</string>
-    <string name="native_ap_transport_wifi_direct">WiFi Direct</string>
-    <string name="native_ap_transport_hotspot">Hotspot</string>
-    <string name="native_local_hotspot_wifi_settings">Open car Wi-Fi settings</string>
     <string name="native_local_hotspot_wifi_settings_unavailable">Open Wi-Fi from the car’s Settings app.</string>
     <string name="native_ap_transport_local_hotspot">Local hotspot</string>
     <string name="native_ap_transport_local_hotspot_hint">Experimental. DiAuto uses a separate local hotspot for Android Auto; no car internet plan is needed. Older Android versions must let the app verify a 5 GHz hotspot from the Wi-Fi driver. If maps or music stutter on DiLink 5.1, try turning off the car’s Wi-Fi switch in car settings. Keep Bluetooth and your phone’s Wi-Fi on. Compatibility depends on the car.</string>
-    <string name="native_ap_transport_hint">Experimental. The phone joins this device\'s own hotspot instead of a WiFi Direct group. Switch the hotspot on yourself before connecting, and set it to 5 GHz if you can - over 2.4 GHz the phone connects and then drops the session repeatedly without any picture, unless you lower the resolution and frame rate. If the network name cannot be read automatically, enter it below.</string>
-    <string name="hotspot_interface_override">Hotspot network interface</string>
-    <string name="hotspot_interface_override_message">Leave blank to work it out automatically. Set this if the log says more than one interface could be the access point, or picks the wrong one. The name is the one the log reports after &quot;Providing credentials from&quot;, or the entry holding your hotspot\'s address in &quot;ip -brief addr&quot; from a shell. Common names: ap0, wlan0, wlan1, wlan2, softap0, ra0.</string>
-    <string name="hotspot_ssid_override">Hotspot name (manual)</string>
-    <string name="hotspot_ssid_override_message">Leave blank to read the name from this device\'s hotspot settings automatically. Some devices do not let apps read it - if the log says the name could not be read, type it here exactly as it appears in your hotspot settings.</string>
-    <string name="hotspot_password_override">Hotspot password (manual)</string>
-    <string name="hotspot_password_override_message">Leave blank to read the password automatically. Needed on devices that do not let apps read the hotspot configuration. The phone will be given this password to join.</string>
     <string name="hotspot_config_unreadable_toast">Can\'t read this device\'s hotspot name. Set it manually under Hotspot name/password in Settings.</string>
     <string name="native_wifi_version_exchange">Modern handshake (version exchange)</string>
     <string name="native_wifi_version_exchange_description">Opens the Bluetooth handshake by telling the phone which protocol version this head unit speaks, the way factory head units do, instead of going straight to the connection details. Off by default. Worth trying if wireless worked before an Android Auto update and has failed since; if it makes no difference, turn it back off.</string>
@@ -1025,54 +995,22 @@
     <string name="rename_notice_message">Headunit Revived is growing, thanks to you, and it is turning into something of its own: Open Headunit. We are rolling the new name out over the next updates, so you may still see the old name in some places for a while.\n\nSame app, same people behind it, and all your settings stay exactly as they are.</string>
     <string name="rename_notice_button">Got it</string>
     <string name="da_connection_setup">Connection setup</string>
-    <string name="da_connection_setup_hint">Choose a connection and set up your car hotspot.</string>
+    <string name="da_connection_setup_hint">Wi-Fi is automatic. Pair your phone and connect.</string>
     <string name="da_diagnostics">Diagnostics</string>
     <string name="da_diagnostics_hint">Save or share a connection report.</string>
     <string name="diagnostic_report_instructions">Reproduce the connection issue, then save a report. Reports include recent app logs and connection settings, with saved credentials omitted. On Android 10 or newer, reports save to Downloads/DiAuto.</string>
     <string name="save_diagnostic_report">Save diagnostic report</string>
     <string name="choose_report_location">Choose save location</string>
-    <string name="setup_edit_hotspot">Edit saved hotspot · %1$s</string>
-    <string name="setup_not_set">Not set</string>
     <string name="setup_intro">Set up once. Ready for the next drive.</string>
-    <string name="setup_saved_details_hint">Your details stay saved. Changes apply to the next connection.</string>
-    <string name="setup_choose_connection">1 · Choose your connection</string>
-    <string name="setup_built_in_car_hotspot">Built-in car hotspot</string>
-    <string name="setup_car_hotspot_hint">Use the car’s own hotspot. Select 5 GHz in car settings if available.</string>
-    <string name="setup_wi_fi_direct">Wi-Fi Direct</string>
-    <string name="setup_wifi_direct_hint">Alternative setup · Requires the car’s Wi-Fi switch on. A 2.4 GHz link may stutter.</string>
-    <string name="setup_configure_hotspot">2 · Set up the car hotspot</string>
-    <string name="setup_hotspot_instructions">Turn on the hotspot in the car settings and select 5 GHz if available. Copy its name and password exactly. Leave the hotspot on when connecting. You do not need to join it manually on your phone; DiAuto sends the details over Bluetooth after you tap Connect phone.</string>
-    <string name="setup_hotspot_on">Car hotspot is on · Check that 5 GHz is selected in car settings.</string>
-    <string name="setup_hotspot_off">Car hotspot is off · Turn it on before connecting.</string>
-    <string name="setup_hotspot_unknown">Hotspot status unavailable · Check it in car settings.</string>
-    <string name="setup_open_car_hotspot_settings">Open car hotspot settings</string>
-    <string name="setup_save_and_use_hotspot">Save hotspot details and use this mode</string>
-    <string name="setup_hotspot_pending">Finish setup · Save your hotspot details to use this mode.</string>
-    <string name="setup_turn_hotspot_on_automatically">Turn hotspot on automatically</string>
-    <string name="setup_auto_hotspot_hint">Optional. Requires Modify system settings access and compatible car firmware. If the hotspot stays off, turn it on in car settings.</string>
-    <string name="setup_allow_automatic_hotspot_control">Allow automatic hotspot control</string>
-    <string name="setup_system_settings_access_allowed">System settings access allowed</string>
-    <string name="setup_automatic_control_needs_permission">Automatic control needs permission</string>
-    <string name="setup_select_mode">2 · Select a setup above</string>
-    <string name="setup_existing_connection_hint">Your existing connection settings are saved. Choose one of the wireless options above to use this guided setup.</string>
-    <string name="setup_prepare_car">2 · Prepare the car</string>
-    <string name="setup_wifi_direct_instructions">Turn the car’s Wi-Fi switch on. Allow Location / Nearby devices when requested and enable Location when Android asks. If playback stutters, try the built-in car hotspot at 5 GHz.</string>
-    <string name="setup_pair_and_connect">3 · Pair and connect</string>
+    <string name="setup_wifi_automatic">1 · Le Wi-Fi est automatique</string>
+    <string name="setup_wifi_automatic_hint">DiAuto démarre lui-même le hotspot de la voiture (5 GHz, WPA2) et envoie son nom et son mot de passe à votre téléphone par Bluetooth. Il n’y a rien à configurer.</string>
+    <string name="setup_pair_and_connect">2 · Pair and connect</string>
     <string name="setup_pair_instructions">Keep Bluetooth and Wi-Fi on your Android phone. Pair with the car’s Bluetooth. Return to DiAuto, tap Connect phone and select your phone. Accept the Android Auto prompts on the phone. A car internet plan is not required; mobile data depends on your phone’s network settings.</string>
     <string name="setup_open_bluetooth_settings">Open Bluetooth settings</string>
     <string name="setup_review_app_permissions">Review app permissions</string>
     <string name="setup_done_return_to_diauto">Done · Return to DiAuto</string>
     <string name="setup_prefer_a_cable">Prefer a cable?</string>
     <string name="setup_usb_instructions">Use a USB data cable and the car’s USB data port. Unlock your phone and tap Connect with USB on DiAuto’s home screen. No hotspot setup is needed.</string>
-    <string name="setup_hotspot_copy_hint">Copy the name and password from the car’s hotspot settings. Saving here does not change the car’s hotspot.</string>
-    <string name="setup_hotspot_name">Hotspot name</string>
-    <string name="setup_hotspot_password">Hotspot password</string>
-    <string name="setup_show_password">Show password</string>
-    <string name="setup_car_hotspot_details">Car hotspot details</string>
-    <string name="setup_save_details">Save details</string>
-    <string name="setup_hide_keyboard">Hide keyboard</string>
-    <string name="setup_invalid_hotspot_name">Enter the hotspot name (1–32 bytes)</string>
-    <string name="setup_invalid_hotspot_password">Enter the hotspot password (8–63 ASCII characters)</string>
     <string name="setup_open_settings_manually">Open the car settings from its home screen.</string>
     <string name="diagnostic_file_picker_unavailable">No file picker is available. Use Save diagnostic report on Android 10 or newer.</string>
     <string name="diagnostic_saving_report">Saving report…</string>

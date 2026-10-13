@@ -110,12 +110,8 @@ object HotspotManager {
         if (isApUp(context)) {
             // Like the OEM stack's CarWifiMgr: an access point that is up but not 5 GHz / WPA2 is
             // reconfigured and restarted, because the phone cannot use it. One that is already
-            // right is left strictly alone. Only on the car install, which can read and write it.
-            if (!CarHotspotConfigurator.isSystemInstall() ||
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.R ||
-                reconfiguring ||
-                CarHotspotConfigurator.isValid(context)
-            ) {
+            // right is left strictly alone.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R || reconfiguring || CarHotspotConfigurator.isValid(context)) {
                 AppLog.i("HotspotManager: Access point already up; not reconfiguring or restarting it.")
                 return true
             }
@@ -224,16 +220,11 @@ object HotspotManager {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             attempted = tryTetheringManager(context, enabled) || attempted
         }
-        // The remaining reflection paths (startTethering / setWifiApEnabled) require the special
-        // "Modify system settings" access (WRITE_SETTINGS). Without it the framework throws a
-        // SecurityException, so check first and surface a clear, actionable message instead.
-        // The platform-signed car install holds the tethering privilege instead of WRITE_SETTINGS.
-        if (CarHotspotConfigurator.isSystemInstall() || AppPermissions.isWriteSettingsGranted(context)) {
-            attempted = tryConnectivityManager(context, enabled) || attempted
-            attempted = tryLegacyWifiManager(context, enabled) || attempted
-        } else {
-            AppLog.w("HotspotManager: Cannot enable the hotspot without the \"Modify system settings\" permission (WRITE_SETTINGS). Grant it in the setup wizard or Settings > Permissions.")
-        }
+        // The remaining reflection paths (startTethering / setWifiApEnabled) are tried
+        // unconditionally: the platform-signed install holds the tethering privilege, and a refusal
+        // surfaces as a caught SecurityException rather than a precondition the user must fix.
+        attempted = tryConnectivityManager(context, enabled) || attempted
+        attempted = tryLegacyWifiManager(context, enabled) || attempted
 
         if (!enabled) return BandOutcome(attempted, up = false, configured = configured)
 
