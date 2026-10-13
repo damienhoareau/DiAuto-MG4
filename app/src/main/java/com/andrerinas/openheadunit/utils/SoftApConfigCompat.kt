@@ -23,7 +23,13 @@ object SoftApConfigCompat {
     fun enableHotspot(context: Context, enabled: Boolean, band: ApBand = ApBand.BAND_5GHZ): Boolean {
         if (!enabled) return false // disabling handled by legacy path
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
-            return configureLegacyBand(context, band)
+            // The car install writes the whole configuration the OEM stack expects (5 GHz, WPA2-PSK);
+            // any other install only sets the band, as before.
+            return if (CarHotspotConfigurator.isSystemInstall()) {
+                CarHotspotConfigurator.apply(context, band)
+            } else {
+                configureLegacyBand(context, band)
+            }
         }
 
         // Ensure location permission (required for hotspot config on API 30+)

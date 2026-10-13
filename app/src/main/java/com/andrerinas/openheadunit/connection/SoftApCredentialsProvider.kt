@@ -20,6 +20,7 @@ import com.andrerinas.openheadunit.aap.SoftApNetworkPolicy
 import com.andrerinas.openheadunit.aap.SoftApState
 import com.andrerinas.openheadunit.utils.AppLog
 import com.andrerinas.openheadunit.utils.HotspotConfigReader
+import com.andrerinas.openheadunit.utils.CarHotspotConfigurator
 import com.andrerinas.openheadunit.utils.HotspotManager
 import com.andrerinas.openheadunit.utils.InterfaceMacReader
 import com.andrerinas.openheadunit.utils.NetworkAddresses
@@ -54,7 +55,9 @@ import java.net.NetworkInterface
 class SoftApCredentialsProvider(
     private val context: Context,
     private val scope: CoroutineScope,
-    private val settings: Settings
+    private val settings: Settings,
+    /** True while a phone is connected or being handed credentials: the hotspot must not be touched. */
+    private val isSessionActive: () -> Boolean = { false }
 ) {
 
     companion object {
@@ -239,6 +242,19 @@ class SoftApCredentialsProvider(
         onInvalidated?.invoke()
         reportedNoInterface = false
         resolveJob = scope.launch(Dispatchers.IO + CoroutineName("SoftApCredentials-Resolve")) {
+            // Like the OEM stack: take charge of the hotspot first, once per run. Start it if it is
+            // down, fix it if it is up but not 5 GHz / WPA2. Blocking (it waits for the access
+            // point), hence this thread. Car install only; elsewhere the user's hotspot is theirs and
+            // is only switched on after a wait, when the setting allows it.
+            if (CarHotspotConfigurator.isSystemInstall() && !triedAutoEnable) {
+                if (isSessionActive()) {
+                    AppLog.i("SoftApCredentials: A session is active; not touching the hotspot.")
+                } else {
+                    triedAutoEnable = true
+                    AppLog.i("SoftApCredentials: Preparing the head unit hotspot (5 GHz, WPA2).")
+                    autoEnabled = HotspotManager.setHotspotEnabled(context, true)
+                }
+            }
             val deadline = SystemClock.elapsedRealtime() + RESOLVE_BUDGET_MS
 
             while (isActive && isRunning && SystemClock.elapsedRealtime() < deadline) {

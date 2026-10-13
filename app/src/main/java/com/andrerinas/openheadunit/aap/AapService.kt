@@ -763,6 +763,7 @@ class AapService : Service(), UsbReceiver.Listener {
             stopSelf()
             return
         }
+        com.andrerinas.openheadunit.utils.CarWifiClient.restoreIfOrphaned(this)
         setupCarMode()
         setupNightMode()
         observeConnectionState()
@@ -792,7 +793,11 @@ class AapService : Service(), UsbReceiver.Listener {
 
         nativeAaHandshakeManager = NativeAaHandshakeManager(this, serviceScope)
         wifiDirectManager = WifiDirectManager(this)
-        softApCredentialsProvider = SoftApCredentialsProvider(this, serviceScope, App.provide(this).settings)
+        softApCredentialsProvider = SoftApCredentialsProvider(this, serviceScope, App.provide(this).settings) {
+            commManager.isConnected || commManager.isBusy ||
+                nativeAaHandshakeManager?.isHandshakeInFlight() == true ||
+                nativeAaHandshakeManager?.isHandoffSettling() == true
+        }
         localHotspotCredentialsProvider = LocalHotspotCredentialsProvider(this, serviceScope).also { provider ->
             provider.setCredentialsListener { ssid, psk, ip, bssid -> onNativeCredentials(ssid, psk, ip, bssid) }
             provider.setInvalidatedListener { nativeAaHandshakeManager?.invalidateCredentials() }
@@ -1045,6 +1050,7 @@ class AapService : Service(), UsbReceiver.Listener {
      * that [VideoDecoder.setSurface] is always called before the first video frame arrives.
      */
     private fun onConnected() {
+        com.andrerinas.openheadunit.utils.CarWifiClient.noteSessionStarted()
         com.andrerinas.openheadunit.hud.BydNavigationOutputs.start(this)
         isSwitchingToAccessory.set(false)
         updateNotification()
@@ -1356,6 +1362,7 @@ class AapService : Service(), UsbReceiver.Listener {
      * 4. Scheduling a reconnect attempt if applicable (see [scheduleReconnectIfNeeded])
      */
     private fun onDisconnected(state: CommManager.ConnectionState.Disconnected) {
+        com.andrerinas.openheadunit.utils.CarWifiClient.restoreLater(this, "wireless session ended")
         com.andrerinas.openheadunit.hud.BydNavigationOutputs.stop()
         isSwitchingToAccessory.set(false)
         releaseWifiLock()
@@ -2035,6 +2042,7 @@ class AapService : Service(), UsbReceiver.Listener {
         settingsPrefs?.unregisterOnSharedPreferenceChangeListener(settingsPreferenceListener)
         settingsPrefs = null
         nativeAaHandshakeManager?.stop()
+        com.andrerinas.openheadunit.utils.CarWifiClient.restore(this, "service destroyed")
         releaseBootWakeLock()
 
         // Before the hotspot goes, not after: SoftApCredentialsProvider watches
