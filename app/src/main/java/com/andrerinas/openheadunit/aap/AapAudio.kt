@@ -16,6 +16,7 @@ import com.andrerinas.openheadunit.decoder.AudioDecoder
 import com.andrerinas.openheadunit.decoder.MediaAudioBuffer
 import com.andrerinas.openheadunit.utils.AppLog
 import com.andrerinas.openheadunit.utils.BluetoothHelper
+import com.andrerinas.openheadunit.utils.CarAudioAttributes
 import com.andrerinas.openheadunit.utils.Settings
 
 internal class AapAudio(
@@ -193,7 +194,9 @@ internal class AapAudio(
                 audioFocusRequest = null
                 result = AudioManager.AUDIOFOCUS_REQUEST_GRANTED
             } else {
-                val usage = when (stream) {
+                val usage = if (CarAudioAttributes.isCarBuild) {
+                    CarAudioAttributes.usageForStream(stream)
+                } else when (stream) {
                     AudioManager.STREAM_NOTIFICATION -> AudioAttributes.USAGE_NOTIFICATION
                     AudioManager.STREAM_VOICE_CALL -> AudioAttributes.USAGE_VOICE_COMMUNICATION
                     else -> AudioAttributes.USAGE_MEDIA

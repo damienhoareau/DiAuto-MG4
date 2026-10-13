@@ -723,8 +723,17 @@ class Settings(private val context: Context) {
         get() = prefs.getBoolean(KEY_FORCE_BT_MUSIC_ON_CONNECT, false)
         set(value) { prefs.edit().putBoolean(KEY_FORCE_BT_MUSIC_ON_CONNECT, value).apply() }
 
+    // On the MG4 the stock Android Auto app always takes focus (tagged with the Android Auto source
+    // type, see CarAudioAttributes), and a car left on the radio / Bluetooth source stays silent, so
+    // AUTO means ALWAYS there. An explicit NEVER (or music via Bluetooth) is still respected.
     fun effectivePlaybackFocusMode(context: Context): PlaybackFocusPolicy.Mode =
-        if (musicViaBluetooth) PlaybackFocusPolicy.Mode.NEVER else playbackFocusMode
+        if (musicViaBluetooth) {
+            PlaybackFocusPolicy.Mode.NEVER
+        } else if (CarAudioAttributes.isCarBuild && playbackFocusMode == PlaybackFocusPolicy.Mode.AUTO) {
+            PlaybackFocusPolicy.Mode.ALWAYS
+        } else {
+            playbackFocusMode
+        }
 
     @Suppress("DEPRECATION")
     val displayRefreshRate: Float
