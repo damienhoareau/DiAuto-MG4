@@ -160,7 +160,7 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
             // Shares one throttle clock with the reconnecting watchdog's mid-session
             // re-request, so the two never double-fire across the overlay transition.
             lastVideoFocusRequestMs = SystemClock.elapsedRealtime()
-            commManager.send(VideoFocusEvent(gain = true, unsolicited = true))
+            if (!ProjectionGate.videoFocusDisabled) commManager.send(VideoFocusEvent(gain = true, unsolicited = true))
             watchdogHandler.postDelayed(this, 1500)
         }
     }
@@ -259,7 +259,7 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
             WarmRelaunchKeyframePolicy.Action.NUDGE -> {
                 lastVideoFocusRequestMs = now
                 AppLog.w("AapProjectionActivity: relaunched surface still has no picture - requesting video focus (unsolicited)")
-                commManager.send(VideoFocusEvent(gain = true, unsolicited = true))
+                if (!ProjectionGate.videoFocusDisabled) commManager.send(VideoFocusEvent(gain = true, unsolicited = true))
             }
             WarmRelaunchKeyframePolicy.Action.CYCLE_FOCUS -> {
                 // The transport's own escalation spends the same lever. If it holds it, no release
@@ -380,7 +380,7 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
         ) return
         lastVideoFocusRequestMs = now
         AppLog.w("AapProjectionActivity: connected but no frames - requesting video focus (unsolicited)")
-        commManager.send(VideoFocusEvent(gain = true, unsolicited = true))
+        if (!ProjectionGate.videoFocusDisabled) commManager.send(VideoFocusEvent(gain = true, unsolicited = true))
     }
     private val exitRunnable = Runnable {
         if (commManager.connectionState.value is CommManager.ConnectionState.Disconnected) {
@@ -1492,6 +1492,9 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
     private val commManager get() = App.provide(this).commManager
 
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        // The car asked for touch to be off (RemoteUI disableTouchInput): swallow everything.
+        if (ProjectionGate.touchDisabled) return true
+
         // 1. 2-finger swipe detection from the left or right edge (to open exit menu or toggle fullscreen)
         if (ev.pointerCount == 2) {
             isPotentialThreeFingerSwipe = false
@@ -1637,7 +1640,7 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
             }
             is CommManager.ConnectionState.TransportStarted -> {
                 // Surface recreated while transport was already running; request a keyframe.
-                commManager.send(VideoFocusEvent(gain = true, unsolicited = true))
+                if (!ProjectionGate.videoFocusDisabled) commManager.send(VideoFocusEvent(gain = true, unsolicited = true))
             }
             else -> {
                 commManager.send(VideoFocusEvent(gain = true, unsolicited = false))

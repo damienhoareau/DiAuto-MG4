@@ -20,6 +20,7 @@ internal class AapMessageHandlerType(
     private val aapControl: AapControl = AapControlGateway(transport, recorder, aapAudio, settings, context)
     private val mediaPlayback = AapMediaPlayback(onAaMediaMetadata, onAaPlaybackStatus)
     private val aapNavigation = AapNavigation(context, settings)
+    private val aapPhoneStatus = AapPhoneStatus()
 
     @Throws(AapMessageHandler.HandleException::class)
     override fun handle(message: AapMessage) {
@@ -58,6 +59,11 @@ internal class AapMessageHandlerType(
         // 3. Media Playback Status (separate channel)
         if (message.channel == Channel.ID_MPB && msgType > 31) {
             mediaPlayback.process(message)
+            return
+        }
+
+        // Phone call state (PHONE_STATUS channel); control messages on it fall through to AapControl.
+        if (message.channel == Channel.ID_PHONE && msgType > 31 && aapPhoneStatus.process(message)) {
             return
         }
 

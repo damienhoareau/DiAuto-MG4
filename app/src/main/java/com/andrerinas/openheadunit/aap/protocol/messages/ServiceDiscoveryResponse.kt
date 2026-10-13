@@ -281,6 +281,13 @@ class ServiceDiscoveryResponse(private val context: Context)
             }.build()
             services.add(mediaPlaybackStatus)
 
+            // Phone Status Service — the phone reports call state, which the head unit relays to the car.
+            val phoneStatus = Control.Service.newBuilder().also { service ->
+                service.id = Channel.ID_PHONE
+                service.phoneStatusService = Control.Service.PhoneStatusService.newBuilder().build()
+            }.build()
+            services.add(phoneStatus)
+
             // Navigation Status Service — head unit receives turn-by-turn data from any AA nav app
             val navigationStatus = Control.Service.newBuilder().also { service ->
                 service.id = Channel.ID_NAV

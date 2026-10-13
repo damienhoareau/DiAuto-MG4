@@ -40,6 +40,9 @@ object OemAndroidAutoBlocker {
 
         var stopped = 0
         for (pkg in TARGET_PACKAGES) {
+            // When DiAuto is installed as an update of the Allgo app it IS com.allgo.app.androidauto:
+            // never stop ourselves.
+            if (pkg == context.packageName) continue
             if (!isInstalled(context, pkg)) continue
             if (forceStop(context, pkg)) {
                 stopped++

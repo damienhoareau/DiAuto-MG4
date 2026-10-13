@@ -123,6 +123,9 @@ android {
         // Platform-signed MG4 head unit (sharedUserId via src/car/AndroidManifest.xml).
         create("car") {
             dimension = "device"
+            // Replaces (by update) the stock Allgo Android Auto app: same package, same platform
+            // signature, same sharedUserId. Uninstalling the update restores the original.
+            applicationId = "com.allgo.app.androidauto"
         }
         // Normal phone / tablet desk testing — no system sharedUserId; use Demo battery.
         create("phone") {

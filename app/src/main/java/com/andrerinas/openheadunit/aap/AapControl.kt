@@ -285,6 +285,14 @@ internal class AapControlService(
                 val navigationFocusRequest = message.parse(Control.NavFocusRequestNotification.newBuilder()).build()
                 return navigationFocusRequest(navigationFocusRequest, message.channel)
             }
+            Control.ControlMsgType.MESSAGE_BATTERY_STATUS_NOTIFICATION_VALUE -> {
+                val battery = message.parse(Control.BatteryStatusNotification.newBuilder()).build()
+                AppLog.i("RX: Battery status %d%% (critical=%s)", battery.batteryLevel, battery.criticalBattery)
+                if (battery.criticalBattery) {
+                    AaStatusBus.battery.tryEmit(AaStatusBus.Battery(battery.batteryLevel, battery.timeRemainingS))
+                }
+                return 0
+            }
             Control.ControlMsgType.MESSAGE_BYEBYE_REQUEST_VALUE -> {
                 val shutdownRequest = message.parse(Control.ByeByeRequest.newBuilder()).build()
                 return byebyeRequest(shutdownRequest, message.channel)

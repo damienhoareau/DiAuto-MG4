@@ -23,7 +23,9 @@
         android:name="android.permission.FORCE_STOP_PACKAGES"
         tools:ignore="ProtectedPermissions" />
 
-    <application>
+    <application
+        android:label="@string/app_name"
+        tools:replace="android:label">
         <!-- The MG4 build already runs under the platform-signed system UID.
              Do not initialize Shizuku before Application.onCreate on the
              vendor Android 9 runtime. -->
@@ -31,5 +33,68 @@
             android:name="rikka.shizuku.ShizukuProvider"
             android:authorities="${applicationId}.shizuku"
             tools:node="remove" />
+
+        <!-- ==== Identity of the Allgo Android Auto app this package replaces ====
+             Same component names, actions and boot hooks, so the car's RemoteUI / launcher keep
+             finding what they expect. See com.allgo.app.androidauto. -->
+        <receiver
+            android:name="com.allgo.app.androidauto.AndroidAutoStarter"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="android.permission.RECEIVE_BOOT_COMPLETED">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+        <receiver
+            android:name="com.allgo.app.androidauto.AndroidAutoMainServiceStarter"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="android.permission.RECEIVE_BOOT_COMPLETED">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+        <service
+            android:name="com.allgo.app.androidauto.AndroidAutoService"
+            android:enabled="true"
+            android:exported="true"
+            android:label="AndroidAutoService">
+            <intent-filter>
+                <action android:name="com.allgo.app.androidauto.AndroidAutoService" />
+                <action android:name="com.allgo.app.androidauto.IAndroidAutoService" />
+            </intent-filter>
+        </service>
+        <service
+            android:name="com.allgo.app.androidauto.AndroidAutoMainService"
+            android:enabled="true"
+            android:exported="true"
+            android:label="AndroidAutoMainService">
+            <intent-filter>
+                <action android:name="com.allgo.app.androidauto.AndroidAutoMainService" />
+                <action android:name="com.allgo.app.androidauto.IAndroidAutoMainService" />
+            </intent-filter>
+        </service>
+        <!-- The projection screen RemoteUI starts by component name. -->
+        <activity-alias
+            android:name="com.allgo.app.androidauto.ProjectionActivity"
+            android:exported="true"
+            android:targetActivity="com.andrerinas.openheadunit.aap.AapProjectionActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.DIAL" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.CALL" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.DIAL" />
+                <data android:scheme="tel" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name="com.allgo.app.androidauto.FRXActivity"
+            android:exported="true"
+            android:targetActivity="com.andrerinas.openheadunit.main.MainActivity" />
     </application>
 </manifest>
