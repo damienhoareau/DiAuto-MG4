@@ -43,7 +43,13 @@ class AndroidAutoMainService : Service() {
     private val sessionCallbacks = RemoteCallbackList<IAndroidAutoSessionCallback>()
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
-    @Volatile private var activeDevice: MirroringDevice? = null
+    /**
+     * Named `currentDevice`, never `activeDevice`: the binder below is an `IAndroidAutoMainService.Stub`
+     * whose method `getActiveDevice()` Kotlin exposes as the synthetic property `activeDevice`.
+     * A property of that name here is shadowed inside the Stub, so `getActiveDevice() = activeDevice`
+     * called itself until the Binder thread overflowed its stack (crash report, DiAuto 1.8.2).
+     */
+    @Volatile private var currentDevice: MirroringDevice? = null
     private var deviceAnnounced = false
     private var sessionAnnounced = false
 
@@ -132,14 +138,14 @@ class AndroidAutoMainService : Service() {
     private fun onConnectionState(state: CommManager.ConnectionState) {
         when (state) {
             is CommManager.ConnectionState.Connected -> {
-                val device = describeDevice(MirroringDevice.SESSION_STARTING).also { activeDevice = it }
+                val device = describeDevice(MirroringDevice.SESSION_STARTING).also { currentDevice = it }
                 if (!deviceAnnounced) {
                     deviceAnnounced = true
                     fanOutDevice { it.onDeviceConnected(device) }
                 }
             }
             is CommManager.ConnectionState.TransportStarted -> {
-                val device = describeDevice(MirroringDevice.SESSION_STARTED).also { activeDevice = it }
+                val device = describeDevice(MirroringDevice.SESSION_STARTED).also { currentDevice = it }
                 if (!sessionAnnounced) {
                     sessionAnnounced = true
                     fanOutSession {
@@ -151,7 +157,7 @@ class AndroidAutoMainService : Service() {
                 }
             }
             is CommManager.ConnectionState.Disconnected -> {
-                val device = activeDevice
+                val device = currentDevice
                 if (sessionAnnounced && device != null) {
                     val closed = sessionView(device, MirroringDevice.SESSION_NOT_STARTED)
                     fanOutSession {
@@ -165,14 +171,14 @@ class AndroidAutoMainService : Service() {
                     val gone = MirroringDevice(device).also { it.sessionStatus = MirroringDevice.SESSION_NOT_STARTED }
                     fanOutDevice { it.onDeviceDisconnected(gone) }
                 }
-                activeDevice = null
+                currentDevice = null
                 deviceAnnounced = false
                 sessionAnnounced = false
                 AaStatusBus.reset()
                 ProjectionGate.reset()
             }
             is CommManager.ConnectionState.Error -> {
-                val device = activeDevice
+                val device = currentDevice
                 // Only once RemoteUI knows the device: a failure before that has nothing to attach to.
                 if (deviceAnnounced && device != null) {
                     AppLog.w("AndroidAutoMainService: session failed: ${state.message}")
@@ -233,8 +239,7 @@ class AndroidAutoMainService : Service() {
             if (device != null) deviceCallbacks.register(device)
             if (session != null) sessionCallbacks.register(session)
             // A client that arrives while a phone is already connected must learn about it.
-            // Not "activeDevice" alone: inside the Stub that name is its own getActiveDevice().
-            val active = this@AndroidAutoMainService.activeDevice
+            val active = currentDevice
             if (active != null && device != null && deviceAnnounced) {
                 try { device.onDeviceConnected(MirroringDevice(active)) } catch (_: Exception) {}
             }
@@ -279,7 +284,7 @@ class AndroidAutoMainService : Service() {
 
         override fun isSessionActive(): Boolean = commManager.isConnected
 
-        override fun getActiveDevice(): MirroringDevice? = this@AndroidAutoMainService.activeDevice
+        override fun getActiveDevice(): MirroringDevice? = currentDevice
 
         override fun getPluginVersion(): String = "DiAuto"
 
