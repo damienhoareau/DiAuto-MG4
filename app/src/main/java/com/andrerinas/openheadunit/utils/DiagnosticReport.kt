@@ -55,6 +55,7 @@ object DiagnosticReport {
             appendLine("Wireless mode=${settings.wifiConnectionMode}; hotspot state=${SoftApStateReader.read(context)}")
             appendLine("Hotspot configuration readable=${hotspot != null}")
             appendLine("Logging level=${settings.exporterLogLevel}; source=${settings.logSource}")
+            appendLine("Lines below are INFO and above only: debug and verbose lines are not kept in this report.")
             appendLine("Saved credentials, network addresses and protocol payloads are omitted.")
             appendLine("--- Recent app logs (up to 6000 lines) ---")
             if (lines.isEmpty()) appendLine("No recent app logs available. Reproduce the issue and save a new report.")

@@ -603,11 +603,13 @@ class NativeAaHandshakeManager(
      * at the default level, then debug: the retry loop asks again every ~30 s, and a line per
      * half-minute for a whole session buries everything around it.
      */
-    private fun noteHandsFreePokeSkip(device: BluetoothDevice) {
+    private fun noteHandsFreePokeSkip(device: BluetoothDevice, userInitiated: Boolean = false) {
         val message = "NativeAA: Not poking ${device.name ?: "unnamed"} (${device.address}) — this " +
                 "head unit already holds a Bluetooth hands-free link, which a poke would take over " +
                 "and leave disconnected. That link is itself the connection a poke exists to create."
-        if (!handsFreeSkipLogged) {
+        // A tap on the manual poke button always gets its answer at info: exported reports drop
+        // debug lines, and a silent skip here looked like a poke that ran and went unanswered.
+        if (userInitiated || !handsFreeSkipLogged) {
             handsFreeSkipLogged = true
             AppLog.i(message)
         } else {
@@ -621,12 +623,12 @@ class NativeAaHandshakeManager(
      * below stands the poke down. Both poke entry points come through here, so one check covers
      * the retry loop and the manual poke alike.
      */
-    private suspend fun pokeDevice(device: BluetoothDevice, holdMs: Long): Boolean {
+    private suspend fun pokeDevice(device: BluetoothDevice, holdMs: Long, userInitiated: Boolean = false): Boolean {
         // A poke that connects takes the phone's single hands-free slot, and this unit's own client
         // is dropped to make room. See BluetoothWakePolicy for the measurement.
         val handsFreeLink = BluetoothWakePolicy.HandsFreeLink.of(BluetoothHelper.handsFreeLinkState(context))
         if (!BluetoothWakePolicy.shouldPoke(handsFreeLink)) {
-            noteHandsFreePokeSkip(device)
+            noteHandsFreePokeSkip(device, userInitiated)
             return false
         }
         handsFreeSkipLogged = false
@@ -847,8 +849,15 @@ class NativeAaHandshakeManager(
                 }
 
                 AppLog.i("NativeAA: Attempting manual poke to ${device.name}...")
-                pokeDevice(device, holdMs = 20000)
-                AppLog.i("NativeAA: Manual poke to ${device.name} finished.")
+                val poked = pokeDevice(device, holdMs = 20000, userInitiated = true)
+                if (poked) {
+                    AppLog.i("NativeAA: Manual poke to ${device.name} finished.")
+                } else {
+                    // pokeDevice returns false without opening a socket when it stands the poke
+                    // down, and also when every profile refused. Either way the phone was not
+                    // woken, which "finished" used to hide.
+                    AppLog.w("NativeAA: Manual poke to ${device.name} did not wake the phone (skipped or refused) - see the lines above.")
+                }
             }
         } catch (e: Exception) {
             AppLog.e("NativeAA: Manual poke error", e)
