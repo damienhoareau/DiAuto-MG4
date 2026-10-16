@@ -103,4 +103,56 @@ class CrashLoggerTest {
             assertTrue("ceiling exceeded for $glyph: ${truncated.size}", truncated.size <= maxBytes)
         }
     }
+
+    private fun errorWithFrames(frames: List<StackTraceElement>) =
+        StackOverflowError("stack size 1009KB").apply { stackTrace = frames.toTypedArray() }
+
+    private fun frame(method: String) = StackTraceElement("com.example.Service", method, "Service.kt", 218)
+
+    @Test
+    fun `a runaway recursion is folded into one line`() {
+        val recursion = errorWithFrames(List(1024) { frame("getActiveDevice") })
+
+        val text = CrashLogger.formatStackTrace(recursion)
+
+        assertEquals("the repeated frame must appear once", 1, text.split("getActiveDevice").size - 1)
+        assertTrue("the repeat count is lost", text.contains("repeats 1024 times"))
+        assertTrue(text.startsWith("java.lang.StackOverflowError"))
+    }
+
+    @Test
+    fun `a deep varied trace keeps its first frames and says how many were dropped`() {
+        val deep = errorWithFrames(List(100) { frame("method$it") })
+
+        val text = CrashLogger.formatStackTrace(deep)
+
+        assertTrue(text.contains("method0"))
+        assertTrue(text.contains("method39"))
+        assertFalse("frame 40 should have been cut", text.contains("method40"))
+        assertTrue(text.contains("60 more frames not shown (100 in total)"))
+    }
+
+    @Test
+    fun `a short trace is written in full with no note`() {
+        val short = errorWithFrames(listOf(frame("a"), frame("b")))
+
+        val text = CrashLogger.formatStackTrace(short)
+
+        assertTrue(text.contains("Service.a(") && text.contains("Service.b("))
+        assertFalse(text.contains("not shown"))
+        assertFalse(text.contains("repeats"))
+    }
+
+    @Test
+    fun `the log section survives a runaway recursion`() {
+        val context = context()
+        AppLogger.clear()
+        AppLogger.i("CONTEXT", "unique marker from before the crash")
+
+        CrashLogger.write(context, "EVTest", Thread.currentThread(), errorWithFrames(List(1024) { frame("getActiveDevice") }))
+        val written = CrashLogger.read(context) ?: error("no report written")
+
+        assertTrue("the log section was cut off", written.contains("unique marker from before the crash"))
+        assertFalse("the report was truncated", written.contains("report truncated"))
+    }
 }

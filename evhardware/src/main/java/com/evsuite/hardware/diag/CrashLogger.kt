@@ -4,8 +4,6 @@ import android.content.Context
 import androidx.annotation.VisibleForTesting
 import com.evsuite.hardware.AppLogger
 import java.io.File
-import java.io.PrintWriter
-import java.io.StringWriter
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -43,6 +41,14 @@ object CrashLogger {
     private const val CAUSE_FRAMES = 20
 
     /**
+     * How many frames of the exception's own trace are written, after identical neighbours have
+     * been folded. A runaway recursion fills the whole 1,024-frame stack with one line, and the
+     * 64 KB budget went to that line: the log of what happened before the crash — the only
+     * context a report carries — was cut off. See [formatStackTrace].
+     */
+    private const val MAX_STACK_FRAMES = 40
+
+    /**
      * Installs the handler. [appName] only titles the report — it is read by a human, and
      * the package name alone does not say which app of the suite produced it.
      */
@@ -78,7 +84,7 @@ object CrashLogger {
 
     @VisibleForTesting
     internal fun write(context: Context, appName: String, thread: Thread, throwable: Throwable) {
-        val stackTrace = StringWriter().also { throwable.printStackTrace(PrintWriter(it)) }.toString()
+        val stackTrace = formatStackTrace(throwable)
         val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US).format(Date())
 
         val report = buildString {
@@ -110,9 +116,38 @@ object CrashLogger {
     }
 
     /**
-     * `printStackTrace` already prints the causes, but abbreviates them to the frames that
-     * differ from the enclosing trace. On a reflection layer the interesting frame is
-     * usually one of the common ones, so the chain is spelled out again in full.
+     * The exception line, then its frames with runs of identical frames folded into one line and
+     * at most [MAX_STACK_FRAMES] lines kept.
+     *
+     * A `StackOverflowError` from a recursive method is hundreds of copies of one frame, and
+     * printing them all (as `printStackTrace` does) pushed the log section past [MAX_BYTES].
+     * Folding keeps the information — which frame, how many times — in one line. The cap is
+     * counted after folding, so a deep but varied trace keeps its first [MAX_STACK_FRAMES] frames.
+     * Causes are not printed here; [appendCauses] spells them out.
+     */
+    @VisibleForTesting
+    internal fun formatStackTrace(throwable: Throwable): String = buildString {
+        appendLine(throwable.toString())
+        val frames = throwable.stackTrace
+        var written = 0
+        var i = 0
+        while (i < frames.size && written < MAX_STACK_FRAMES) {
+            var run = 1
+            while (i + run < frames.size && frames[i + run] == frames[i]) run++
+            appendLine("\tat ${frames[i]}")
+            if (run > 1) appendLine("\t... the line above repeats $run times in total")
+            written++
+            i += run
+        }
+        if (i < frames.size) {
+            appendLine("\t... ${frames.size - i} more frames not shown (${frames.size} in total)")
+        }
+    }
+
+    /**
+     * The cause chain, spelled out frame by frame. `printStackTrace` abbreviates a cause to the
+     * frames that differ from the enclosing trace, and on a reflection layer the interesting
+     * frame is usually one of the common ones.
      */
     private fun StringBuilder.appendCauses(throwable: Throwable) {
         var cause = throwable.cause
