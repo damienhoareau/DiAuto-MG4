@@ -218,10 +218,6 @@
     <string name="show_toast_messages_description">Bağlantı, kopma ve mod değiştirme durumlarında durum bildirimi göster.</string>
     <string name="auto_start_usb_label">USB ile otomatik başlat</string>
     <string name="auto_start_usb_description">Bir USB cihazı takıldığında uygulamayı otomatik olarak aç ve bağlanmayı dene</string>
-    <string name="launcher_aa_click_label">Launcher Android Auto tuşuyla aç</string>
-    <string name="launcher_aa_click_description">Ana ekrandaki Android Auto ikonu deaktifken (USB bağlayın uyarısı) tıklanınca DiAuto açılsın. SAIC launcher\'lar (hmi.launcher ve launcher) desteklenir.</string>
-    <string name="launcher_aa_click_service_label">DiAuto launcher Android Auto kısayolu</string>
-    <string name="launcher_aa_click_service_description">Araba launcher\'ındaki deaktif Android Auto tuşuna basılınca DiAuto\'yu açar.</string>
     <string name="auto_start_settings">Otomatik başlatma ayarları</string>
     <string name="auto_start_settings_description">Uygulamanın ne zaman otomatik başlayacağını yapılandırın</string>
     <string name="auto_start_oem_warning">Bu cihaz, otomatik başlatmanın etkinleştirilmesini ve bu uygulama için pil optimizasyonunun veya arka plan kısıtlamalarının kaldırılmasını gerektirebilir.\n\nQuick Boot (hızlı önyükleme) özelliğine sahip multimedya sistemlerinde otomatik başlatma çalışmayabilir. Sistem ayarlarınızda \"DuraSpeed\" seçeneğini arayın ve bu uygulamayı orada etkinleştirin. Bazı sistemlerde DuraSpeed gizlidir; bulmak için \"Hidden Settings\" gibi bir uygulamaya ihtiyacınız olabilir. DuraSpeed yoksa, Quick Boot\'u devre dışı bırakmayı deneyin.</string>

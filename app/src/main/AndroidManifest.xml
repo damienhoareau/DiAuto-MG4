@@ -107,6 +107,12 @@
 
         </activity>
 
+        <!-- The car launcher's Android Auto tile starts this class of the original Allgo app. -->
+        <activity-alias
+            android:name="com.allgo.app.androidauto.ProjectionActivity"
+            android:exported="true"
+            android:targetActivity=".aap.AapProjectionActivity" />
+
         <activity
             android:name=".app.UsbAttachedActivity"
             android:directBootAware="true"
@@ -235,20 +241,6 @@
             </intent-filter>
         </service>
         <service android:name=".location.GpsLocationService" />
-
-        <!-- Opens DiAuto when the OEM launcher Android Auto tile is tapped while inactive. -->
-        <service
-            android:name=".launcher.LauncherAndroidAutoClickService"
-            android:exported="true"
-            android:label="@string/launcher_aa_click_service_label"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
-            </intent-filter>
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/launcher_aa_accessibility_config" />
-        </service>
 
         <!-- AndroidX MediaButtonReceiver: Routes MEDIA_BUTTON intents to AapService
              on Android 8+ where implicit broadcasts to manifest-registered receivers

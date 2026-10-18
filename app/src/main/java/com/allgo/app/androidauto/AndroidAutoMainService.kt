@@ -1,6 +1,7 @@
 package com.allgo.app.androidauto
 
 import android.app.Service
+import android.bluetooth.BluetoothAdapter
 import android.content.Intent
 import android.os.IBinder
 import android.os.RemoteCallbackList
@@ -50,6 +51,7 @@ class AndroidAutoMainService : Service() {
     private companion object {
         /** The original reports a reason code with onSessionFailed; DiAuto has no finer cause to give. */
         const val SESSION_FAILED_GENERIC = -1
+        const val UNKNOWN_ADDRESS = "00:00:00:00:00:00"
     }
 
     private val commManager get() = App.provide(this).commManager
@@ -96,12 +98,27 @@ class AndroidAutoMainService : Service() {
     // DiAuto -> RemoteUI
     // -------------------------------------------------------------------------
 
+    /**
+     * RemoteUI keeps every announced device and, at its next start, asks Bluetooth for each stored
+     * address: an empty one crashes the service in a loop. So the device always carries a well-formed
+     * address, the connected phone's when there is one.
+     */
+    private fun phoneAddress(): String {
+        val adapter = try { BluetoothAdapter.getDefaultAdapter() } catch (_: Exception) { null }
+        val bonded = try { adapter?.bondedDevices } catch (_: SecurityException) { null }
+        val connected = bonded?.firstOrNull { dev ->
+            try { dev.javaClass.getMethod("isConnected").invoke(dev) as? Boolean == true } catch (_: Exception) { false }
+        }
+        return (connected ?: bonded?.firstOrNull())?.address ?: UNKNOWN_ADDRESS
+    }
+
     private fun describeDevice(sessionStatus: Int): MirroringDevice = MirroringDevice().apply {
+        val address = phoneAddress()
         type = MirroringDevice.ANDROID_AUTO
         transport = if (commManager.isWirelessSession) MirroringDevice.TRANSPORT_TYPE_WIFI else MirroringDevice.TRANSPORT_TYPE_USB
         name = "Android Auto"
-        serialId = ""
-        BTMacAddress = ""
+        serialId = address
+        BTMacAddress = address
         this.sessionStatus = sessionStatus
     }
 
@@ -133,6 +150,7 @@ class AndroidAutoMainService : Service() {
         when (state) {
             is CommManager.ConnectionState.Connected -> {
                 val device = describeDevice(MirroringDevice.SESSION_STARTING).also { activeDevice = it }
+                AppLog.i("AndroidAutoMainService: Connected, device=${device.name} transport=${device.transport} mac=${device.BTMacAddress} announced=$deviceAnnounced")
                 if (!deviceAnnounced) {
                     deviceAnnounced = true
                     fanOutDevice { it.onDeviceConnected(device) }
@@ -140,8 +158,18 @@ class AndroidAutoMainService : Service() {
             }
             is CommManager.ConnectionState.TransportStarted -> {
                 val device = describeDevice(MirroringDevice.SESSION_STARTED).also { activeDevice = it }
+                AppLog.i("AndroidAutoMainService: TransportStarted, mac=${device.BTMacAddress} announced=$sessionAnnounced")
+                // This service can come up after Connected went by (it is restarted with the app), so
+                // RemoteUI must still hear about the device before it hears about its session.
+                if (!deviceAnnounced) {
+                    deviceAnnounced = true
+                    val announced = describeDevice(MirroringDevice.SESSION_STARTING)
+                    AppLog.i("AndroidAutoMainService: announcing the device ahead of its session")
+                    fanOutDevice { it.onDeviceConnected(announced) }
+                }
                 if (!sessionAnnounced) {
                     sessionAnnounced = true
+                    AppLog.i("AndroidAutoMainService: announcing session started")
                     fanOutSession {
                         it.onSessionStarted(sessionView(device), 0)
                         it.onScreenStarted()
@@ -237,6 +265,14 @@ class AndroidAutoMainService : Service() {
             val active = this@AndroidAutoMainService.activeDevice
             if (active != null && device != null && deviceAnnounced) {
                 try { device.onDeviceConnected(MirroringDevice(active)) } catch (_: Exception) {}
+            }
+            // Same for the session: RemoteUI restarts on its own, and the launcher tile only follows events.
+            if (active != null && session != null && sessionAnnounced) {
+                AppLog.i("AndroidAutoMainService: replaying session started to a late client")
+                try {
+                    session.onSessionStarted(sessionView(active), 0)
+                    session.onScreenStarted()
+                } catch (_: Exception) {}
             }
         }
 
