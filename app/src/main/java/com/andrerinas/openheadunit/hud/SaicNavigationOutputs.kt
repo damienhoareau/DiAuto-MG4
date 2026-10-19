@@ -18,7 +18,12 @@ internal sealed class SaicCall {
         override fun toString() = "RequestProjection"
     }
     data class GuideStatus(val status: Int) : SaicCall()
-    data class GuideInfos(val icon: ClusterIdTelenav, val distanceMeters: Int, val text: String) : SaicCall()
+    data class GuideInfos(
+        val icon: ClusterIdTelenav,
+        val distanceMeters: Int,
+        val text: String,
+        val iconSet: ClusterIconSet = ClusterIconSet.TELENAV,
+    ) : SaicCall()
     data class RoadInfo(val road: String) : SaicCall()
     /** The lane patterns, or an empty string to clear them. */
     data class LaneInfo(val lanes: String) : SaicCall()
@@ -56,8 +61,10 @@ internal object SaicCallPlan {
             calls += SaicCall.RequestProjection
             calls += SaicCall.GuideStatus(STATUS_GUIDING)
         }
-        if (previous == null || previous.icon != next.icon || previous.distanceMeters != next.distanceMeters || previous.road != next.road) {
-            calls += SaicCall.GuideInfos(next.icon, next.distanceMeters, next.road)
+        if (previous == null || previous.icon != next.icon || previous.iconSet != next.iconSet ||
+            previous.distanceMeters != next.distanceMeters || previous.road != next.road
+        ) {
+            calls += SaicCall.GuideInfos(next.icon, next.distanceMeters, next.road, next.iconSet)
         }
         if (next.road.isNotEmpty() && previous?.road != next.road) calls += SaicCall.RoadInfo(next.road)
         if ((previous?.lanes ?: "") != next.lanes) calls += SaicCall.LaneInfo(next.lanes)
@@ -109,6 +116,7 @@ internal object SaicNavigationOutputs {
         Thread(task, "diauto-saic-ipk").apply { isDaemon = true }
     }
 
+    @Volatile private var appContext: Context? = null
     @Volatile private var binder: IBinder? = null
     @Volatile private var generalBinder: IBinder? = null
     @Volatile private var binding = false
@@ -122,6 +130,7 @@ internal object SaicNavigationOutputs {
 
     @Synchronized fun start(context: Context) {
         if (!available(context)) return
+        appContext = context.applicationContext
         connect(context.applicationContext)
         if (scheduled) return
         scheduled = true
@@ -211,7 +220,9 @@ internal object SaicNavigationOutputs {
     private fun tick() {
         val target = binder?.takeIf { it.isBinderAlive && !disabled } ?: return
         val now = System.nanoTime()
-        val value = latest.get()?.takeIf { now - it.updatedNs < FRESH_NS }
+        // The cluster reads its set of icons from the system's navigation setting: the numbers follow it.
+        val iconSet = appContext?.let { ClusterIconSet.current(it.contentResolver) } ?: ClusterIconSet.TELENAV
+        val value = latest.get()?.takeIf { now - it.updatedNs < FRESH_NS }?.copy(iconSet = iconSet)
         for (call in SaicCallPlan.plan(sent, value)) {
             if (!send(target, call)) {
                 if (++failures >= MAX_FAILURES) {
@@ -235,7 +246,8 @@ internal object SaicNavigationOutputs {
             is SaicCall.GuideInfos -> {
                 code = TX_GUIDE_INFOS
                 val distance = SaicDistance.forCluster(call.distanceMeters, distanceUnit())
-                write = { it.writeInt(call.icon.id); it.writeInt(distance); it.writeString(call.text) }
+                val icon = call.iconSet.idFor(call.icon)
+                write = { it.writeInt(icon); it.writeInt(distance); it.writeString(call.text) }
             }
             is SaicCall.RoadInfo -> { code = TX_ROAD_INFO; write = { it.writeString(call.road) } }
             is SaicCall.LaneInfo -> { code = TX_LANE_INFO; write = { it.writeString(call.lanes) } }

@@ -81,6 +81,8 @@ internal data class SaicGuidance(
     val updatedNs: Long = System.nanoTime(),
     /** The lane patterns for the cluster (see [SaicLanes]); empty when there is no lane guidance. */
     val lanes: String = "",
+    /** The set of icons the cluster draws from, which numbers the icon (see [ClusterIconSet]). */
+    val iconSet: ClusterIconSet = ClusterIconSet.TELENAV,
 )
 
 /** Android Auto guidance snapshot to [SaicGuidance]. Reads the snapshot the same way [BydNavigationMapper] does. */

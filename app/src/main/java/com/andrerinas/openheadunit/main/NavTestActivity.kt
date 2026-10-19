@@ -17,6 +17,7 @@ import android.widget.Spinner
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.andrerinas.openheadunit.aap.protocol.proto.NavigationStatus.NavigationManeuver.NavigationType
+import com.andrerinas.openheadunit.hud.ClusterIconSet
 import com.andrerinas.openheadunit.hud.SaicGuidance
 import com.andrerinas.openheadunit.hud.SaicNavigationMapper
 import com.andrerinas.openheadunit.hud.SaicNavigationOutputs
@@ -26,6 +27,10 @@ import com.andrerinas.openheadunit.utils.Settings
  * Test bench for the instrument cluster: pick any Android Auto maneuver type (with the roundabout
  * exit number or angle), press Send, and the cluster shows the icon the mapper picks for it, sent
  * through the same path as a real guidance. Without an Android Auto session.
+ *
+ * The cluster draws its icons from the set the system setting `navigation_type` names (TeleNav, NNG or
+ * ISA), each with its own numbering. This screen can set it, to see every set on the cluster; what was
+ * there before is put back when the screen closes.
  */
 class NavTestActivity : AppCompatActivity() {
 
@@ -40,6 +45,12 @@ class NavTestActivity : AppCompatActivity() {
     private lateinit var distance: EditText
     private lateinit var road: EditText
     private lateinit var lanes: EditText
+    private lateinit var iconSetChoice: Spinner
+    private lateinit var iconSetStatus: TextView
+
+    // The navigation_type the car had before this screen changed it, put back on exit.
+    private var navigationTypeChanged = false
+    private var originalNavigationType: String? = null
 
     // The cluster drops guidance that is not renewed for 30 s, so a test frame is renewed while shown.
     private val keepAlive = object : Runnable {
@@ -102,6 +113,17 @@ class NavTestActivity : AppCompatActivity() {
         lanes = field("lanes", "", false)
         column.addView(lanes)
 
+        column.addView(label("Icon set of the cluster (the system's navigation_type)"))
+        iconSetChoice = Spinner(this)
+        iconSetChoice.adapter = ArrayAdapter(
+            this, android.R.layout.simple_spinner_dropdown_item,
+            listOf("Leave the cluster's setting as it is") +
+                ClusterIconSet.values().map { "${it.label} (${it.navigationType})" }
+        )
+        column.addView(iconSetChoice)
+        iconSetStatus = TextView(this)
+        column.addView(iconSetStatus)
+
         val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         buttons.addView(Button(this).apply {
             text = "Send to cluster"
@@ -124,6 +146,10 @@ class NavTestActivity : AppCompatActivity() {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) = updatePreview()
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
+        iconSetChoice.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) = chooseIconSet(position)
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
 
         result = TextView(this).apply { textSize = 18f; setPadding(0, pad, 0, 0) }
         column.addView(result)
@@ -132,10 +158,45 @@ class NavTestActivity : AppCompatActivity() {
             isFillViewport = true
             addView(column)
         })
+        showIconSet()
         SaicNavigationOutputs.start(this)
         if (!SaicNavigationOutputs.available(this)) {
             result.text = "com.saicmotor.adapterservice not found: no cluster on this device."
         }
+    }
+
+    private fun chooseIconSet(position: Int) {
+        if (position == 0) {
+            restoreNavigationType()
+            showIconSet()
+            return
+        }
+        val set = ClusterIconSet.values()[position - 1]
+        try {
+            if (!navigationTypeChanged) {
+                originalNavigationType = android.provider.Settings.Global.getString(contentResolver, ClusterIconSet.SETTING)
+                navigationTypeChanged = true
+            }
+            android.provider.Settings.Global.putString(contentResolver, ClusterIconSet.SETTING, set.navigationType)
+            showIconSet()
+        } catch (e: Exception) {
+            iconSetStatus.text = "Could not set navigation_type: ${e.message}"
+        }
+    }
+
+    private fun restoreNavigationType() {
+        if (!navigationTypeChanged) return
+        navigationTypeChanged = false
+        try {
+            android.provider.Settings.Global.putString(contentResolver, ClusterIconSet.SETTING, originalNavigationType)
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun showIconSet() {
+        val raw = runCatching { android.provider.Settings.Global.getString(contentResolver, ClusterIconSet.SETTING) }.getOrNull()
+        iconSetStatus.text = "navigation_type = ${raw ?: "(not set)"} -> icons of the ${ClusterIconSet.fromSetting(raw).label} set. " +
+            "The cluster may read it only when its navigation page changes, so the icons can follow a moment later."
     }
 
     private fun updatePreview() {
@@ -152,6 +213,7 @@ class NavTestActivity : AppCompatActivity() {
         val number = exitNumber.text.toString().toIntOrNull()
         val angle = exitAngle.text.toString().toIntOrNull()
         val icon = SaicNavigationMapper.icon(type, number, angle, Settings(this).rightHandDrive)
+        val set = ClusterIconSet.current(contentResolver)
         if (icon == null) {
             stopGuidance()
             result.text = "${type.name} -> no icon in the table: the cluster shows nothing."
@@ -166,7 +228,7 @@ class NavTestActivity : AppCompatActivity() {
         handler.removeCallbacks(keepAlive)
         handler.postDelayed(keepAlive, 10_000)
         result.text = "${type.name} (exit ${number ?: "-"}, angle ${angle ?: "-"}) -> " +
-            "${icon.name} (tbtType ${icon.id}), $meters m, \"$street\"" +
+            "${icon.name} (${set.label} tbtType ${set.idFor(icon)}), $meters m, \"$street\"" +
             (if (laneList.isEmpty()) "" else ", lanes $laneList")
     }
 
@@ -180,6 +242,7 @@ class NavTestActivity : AppCompatActivity() {
     override fun onDestroy() {
         handler.removeCallbacks(keepAlive)
         if (current != null) SaicNavigationOutputs.stop()
+        restoreNavigationType()
         super.onDestroy()
     }
 }
