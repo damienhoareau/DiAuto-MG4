@@ -377,25 +377,13 @@ internal class AapControlService(
     private fun audioFocusRequest(notification: Control.AudioFocusRequestNotification, channel: Int): Int {
         AppLog.i("Audio Focus Request: ${notification.request}")
 
-        // Always respond with the mapped focus state to AA — never deny.
-        // the phone must always believe the headunit
-        // has audio focus, otherwise it keeps audio output on the phone itself.
         val mappedState = focusResponse[notification.request]
-        if (mappedState != null) {
-            val response = Control.AudioFocusNotification.newBuilder()
-                .setFocusState(mappedState)
-                .build()
-            AppLog.i("Sending immediate AudioFocusNotification: $mappedState (always-grant)")
-            aapTransport.send(AapMessage(channel, Control.ControlMsgType.MESSAGE_AUDIO_FOCUS_NOTIFICATION_VALUE, response))
 
-            // Sync MediaSession
-            val isGain = mappedState == Control.AudioFocusNotification.AudioFocusStateType.STATE_GAIN
-            aapTransport.onAudioFocusStateChanged?.invoke(isGain)
-        }
-
-        // Best-effort: request system audio focus to duck other apps on the headunit.
-        // The result is intentionally ignored for the protocol response above, which has already
-        // been sent — only the system-level grab is in question here, never the always-grant reply.
+        // Like the stock app, the system focus is asked for first and the phone is answered with the
+        // outcome: the state it asked for when the head unit got the focus (or made no request, see
+        // below), a loss when the system refused. The phone then keeps its audio when the car
+        // really could not play it, instead of streaming into a source nobody hears.
+        var systemResult: Int? = null
         if (settings.enableAudioSink) {
             if (settings.staticAudioFocus) {
                 AppLog.i("Static Audio Focus active - skipping dynamic system focus request to prevent routing loss")
@@ -406,7 +394,7 @@ internal class AapControlService(
                         Control.AudioFocusRequestNotification.AudioFocusRequestType.RELEASE_VALUE
                 if (aapAudio.shouldHonourProtocolFocusRequest(isRelease)) {
                     val separate = settings.separateAudioStreams
-                    aapAudio.requestFocusChange(
+                    systemResult = aapAudio.requestFocusChange(
                         AudioConfigs.stream(channel, separate),
                         notification.request.number,
                         AudioManager.OnAudioFocusChangeListener {
@@ -417,6 +405,21 @@ internal class AapControlService(
             }
         } else {
             AppLog.i("Audio Sink disabled - skipping system audio focus request for channel ${Channel.name(channel)}")
+        }
+
+        if (mappedState != null) {
+            val refused = systemResult == AudioManager.AUDIOFOCUS_REQUEST_FAILED
+            val state = if (refused) Control.AudioFocusNotification.AudioFocusStateType.STATE_LOSS else mappedState
+            val response = Control.AudioFocusNotification.newBuilder()
+                .setFocusState(state)
+                .build()
+            AppLog.i("Sending AudioFocusNotification: $state" +
+                (if (refused) " (the system refused the focus)" else if (systemResult == null) " (no system request made)" else ""))
+            aapTransport.send(AapMessage(channel, Control.ControlMsgType.MESSAGE_AUDIO_FOCUS_NOTIFICATION_VALUE, response))
+
+            // Sync MediaSession
+            val isGain = state == Control.AudioFocusNotification.AudioFocusStateType.STATE_GAIN
+            aapTransport.onAudioFocusStateChanged?.invoke(isGain)
         }
 
         return 0

@@ -45,8 +45,29 @@ internal class AapAudio(
     private val mediaBufferMillis = settings.mediaAudioBufferMillis
     private fun playbackFocusMode() = settings.effectivePlaybackFocusMode(context)
 
-    private var audioFocusRequest: AudioFocusRequest? = null
     private var legacyFocusListener: AudioManager.OnAudioFocusChangeListener? = null
+
+    // The four system focus requests the stock Allgo app holds, one per kind of phone request, so a
+    // new request never replaces (and strands) another: media (GAIN), transient media
+    // (GAIN_TRANSIENT), the assistant (GAIN_TRANSIENT while a voice session runs) and navigation
+    // guidance (GAIN_TRANSIENT_MAY_DUCK). Guarded by [focusLock].
+    private val focusLock = Any()
+    private var mediaFocus: AudioFocusRequest? = null
+    private var transMediaFocus: AudioFocusRequest? = null
+    private var assistantFocus: AudioFocusRequest? = null
+    private var navigationFocus: AudioFocusRequest? = null
+
+    /** Tells the phone the system moved the media focus (set by [AapTransport]). */
+    @Volatile
+    var focusNotifier: ((Control.AudioFocusNotification.AudioFocusStateType) -> Unit)? = null
+
+    /** Whether a voice session is running: the stock app leaves the navigation request alone then. */
+    @Volatile
+    var isAssistantActive: () -> Boolean = { false }
+
+    /** Whether the phone currently believes the head unit holds the media focus. */
+    @Volatile
+    private var phoneHasGain = false
 
     @Volatile
     private var playbackFocusRequest: AudioFocusRequest? = null
@@ -149,59 +170,13 @@ internal class AapAudio(
     }
 
     fun requestFocusChange(stream: Int, focusRequest: Int, callback: AudioManager.OnAudioFocusChangeListener): Int {
-        // Notification/voice GAIN_TRANSIENT pauses A2DP (AVRCP) on this HU; duck instead.
-        val effectiveFocus =
-            if (focusRequest == Control.AudioFocusRequestNotification.AudioFocusRequestType.GAIN_TRANSIENT_VALUE &&
-                (stream == AudioManager.STREAM_NOTIFICATION || stream == AudioManager.STREAM_VOICE_CALL)
-            ) {
-                AppLog.i("Audio Focus Request: coercing GAIN_TRANSIENT → MAY_DUCK for stream=$stream")
-                Control.AudioFocusRequestNotification.AudioFocusRequestType.GAIN_TRANSIENT_MAY_DUCK_VALUE
-            } else {
-                focusRequest
-            }
+        val effectiveFocus = focusRequest
         AppLog.i("Audio Focus Request: stream=$stream, type=$effectiveFocus")
 
         var result = AudioManager.AUDIOFOCUS_REQUEST_FAILED
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) { // API 26+
-            if (effectiveFocus == Control.AudioFocusRequestNotification.AudioFocusRequestType.RELEASE_VALUE) {
-                AppLog.i("Releasing audio focus")
-                audioFocusRequest?.let {
-                    runCatching { mediaAudioManager.abandonAudioFocusRequest(it) }
-                    runCatching { audioManager.abandonAudioFocusRequest(it) }
-                }
-                audioFocusRequest = null
-                result = AudioManager.AUDIOFOCUS_REQUEST_GRANTED
-            } else {
-                val usage = if (CarAudioAttributes.isCarBuild) {
-                    CarAudioAttributes.usageForStream(stream)
-                } else when (stream) {
-                    AudioManager.STREAM_NOTIFICATION -> AudioAttributes.USAGE_NOTIFICATION
-                    AudioManager.STREAM_VOICE_CALL -> AudioAttributes.USAGE_VOICE_COMMUNICATION
-                    else -> AudioAttributes.USAGE_MEDIA
-                }
-
-                val audioAttributes = if (usage == AudioAttributes.USAGE_MEDIA) {
-                    // Tag MEDIA focus as AA (70) so MG4 eh32 amp leaves radio/BT for Wi‑Fi PCM.
-                    SaicCarAudioSource.mediaAttributes()
-                } else {
-                    AudioAttributes.Builder()
-                        .setUsage(usage)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                        .build()
-                }
-
-                val focusAm =
-                    if (usage == AudioAttributes.USAGE_MEDIA) mediaAudioManager else audioManager
-                audioFocusRequest = AudioFocusRequest.Builder(effectiveFocus)
-                        .setAudioAttributes(audioAttributes)
-                        .setWillPauseWhenDucked(false)
-                        .setOnAudioFocusChangeListener(callback)
-                        .build()
-
-                result = focusAm.requestAudioFocus(audioFocusRequest!!)
-                AppLog.i("Audio focus request result: ${if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) "GRANTED" else "FAILED ($result)"}")
-            }
+            result = requestStockFocus(effectiveFocus)
         } else { // API < 26
             @Suppress("DEPRECATION")
             result = when (effectiveFocus) {
@@ -228,6 +203,142 @@ internal class AapAudio(
             AppLog.i("Audio focus request result (legacy): ${if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) "GRANTED" else "FAILED"}")
         }
         return result
+    }
+
+    /** The media attributes of the stock app: USAGE_MEDIA with the Android Auto car source, nothing else. */
+    private fun stockMediaAttributes(): AudioAttributes =
+        SaicCarAudioSource.attachSourceType(
+            AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA),
+            SaicCarAudioSource.SRC_ANDROID_AUTO
+        ).build()
+
+    private fun stockAttributes(usage: Int): AudioAttributes = AudioAttributes.Builder().setUsage(usage).build()
+
+    private fun abandon(request: AudioFocusRequest?, what: String) {
+        request ?: return
+        val abandoned = runCatching { mediaAudioManager.abandonAudioFocusRequest(request) }
+            .getOrDefault(AudioManager.AUDIOFOCUS_REQUEST_FAILED)
+        if (abandoned != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) AppLog.w("Audio focus: failed to abandon $what")
+    }
+
+    private fun stockRequest(type: Int, attributes: AudioAttributes, listener: AudioManager.OnAudioFocusChangeListener) =
+        AudioFocusRequest.Builder(type)
+            .setAudioAttributes(attributes)
+            .setWillPauseWhenDucked(false)
+            .setOnAudioFocusChangeListener(listener)
+            .build()
+
+    private fun grab(request: AudioFocusRequest, what: String): Int {
+        val result = mediaAudioManager.requestAudioFocus(request)
+        AppLog.i("Audio focus $what: ${if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) "GRANTED" else "FAILED ($result)"}")
+        return result
+    }
+
+    private fun loggingListener(name: String) =
+        AudioManager.OnAudioFocusChangeListener { AppLog.i("Audio focus $name changed: $it") }
+
+    private val transMediaListener = loggingListener("transient media")
+    private val assistantListener = loggingListener("assistant")
+    private val navigationListener = loggingListener("navigation")
+
+    /**
+     * What the stock app does with a focus request from the phone, each kind with its own request
+     * and attributes. Returns the system result of the request that was made, GRANTED when none had
+     * to be (a voice session running, a request already held).
+     */
+    private fun requestStockFocus(phoneRequest: Int): Int = synchronized(focusLock) {
+        val voice = isAssistantActive()
+        when (phoneRequest) {
+            Control.AudioFocusRequestNotification.AudioFocusRequestType.RELEASE_VALUE -> {
+                AppLog.i("Releasing audio focus")
+                abandon(mediaFocus, "media"); mediaFocus = null
+                abandon(navigationFocus, "navigation"); navigationFocus = null
+                if (!voice) {
+                    abandon(assistantFocus, "assistant"); assistantFocus = null
+                    abandon(transMediaFocus, "transient media"); transMediaFocus = null
+                }
+                phoneHasGain = false
+                AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+            }
+            Control.AudioFocusRequestNotification.AudioFocusRequestType.GAIN_VALUE -> {
+                // A media gain ends the assistant request and, when no guidance is playing, the navigation one.
+                abandon(assistantFocus, "assistant"); assistantFocus = null
+                val guidancePlaying = synchronized(activeAudioChannels) { Channel.ID_AU2 in activeAudioChannels }
+                if (!guidancePlaying) { abandon(navigationFocus, "navigation"); navigationFocus = null }
+                val request = stockRequest(AudioManager.AUDIOFOCUS_GAIN, stockMediaAttributes(), mediaFocusListener)
+                mediaFocus = request
+                grab(request, "media").also { if (it == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) phoneHasGain = true }
+            }
+            Control.AudioFocusRequestNotification.AudioFocusRequestType.GAIN_TRANSIENT_VALUE -> when {
+                voice && assistantFocus != null -> AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+                voice -> {
+                    val request = stockRequest(
+                        AudioManager.AUDIOFOCUS_GAIN_TRANSIENT, stockAttributes(AudioAttributes.USAGE_ASSISTANT), assistantListener)
+                    assistantFocus = request
+                    grab(request, "assistant")
+                }
+                transMediaFocus != null -> AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+                else -> {
+                    val request = stockRequest(
+                        AudioManager.AUDIOFOCUS_GAIN_TRANSIENT, stockMediaAttributes(), transMediaListener)
+                    transMediaFocus = request
+                    grab(request, "transient media")
+                }
+            }
+            Control.AudioFocusRequestNotification.AudioFocusRequestType.GAIN_TRANSIENT_MAY_DUCK_VALUE -> when {
+                navigationFocus != null -> AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+                voice -> {
+                    AppLog.i("Audio focus navigation: a voice session is running, request ignored")
+                    AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+                }
+                else -> {
+                    val request = stockRequest(
+                        AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK,
+                        stockAttributes(AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE), navigationListener)
+                    navigationFocus = request
+                    grab(request, "navigation")
+                }
+            }
+            else -> AudioManager.AUDIOFOCUS_REQUEST_FAILED
+        }
+    }
+
+    /**
+     * What the system tells the media request: passed on to the phone like the stock app does, so it
+     * pauses when something else takes the focus and resumes when it comes back.
+     */
+    private val mediaFocusListener = AudioManager.OnAudioFocusChangeListener { change ->
+        AppLog.i("Audio focus media changed: $change")
+        val notify = focusNotifier
+        if (notify != null) {
+            val state = Control.AudioFocusNotification.AudioFocusStateType.STATE_GAIN
+            val mediaPlaying: Boolean
+            val guidancePlaying: Boolean
+            synchronized(activeAudioChannels) {
+                mediaPlaying = Channel.ID_AUD in activeAudioChannels
+                guidancePlaying = Channel.ID_AU2 in activeAudioChannels
+            }
+            when (change) {
+                AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK ->
+                    if (mediaPlaying && !guidancePlaying) {
+                        notify(Control.AudioFocusNotification.AudioFocusStateType.STATE_LOSS_TRANSIENT_CAN_DUCK)
+                    }
+                AudioManager.AUDIOFOCUS_LOSS_TRANSIENT ->
+                    if (!isAssistantActive()) {
+                        notify(Control.AudioFocusNotification.AudioFocusStateType.STATE_LOSS_TRANSIENT)
+                        phoneHasGain = false
+                    }
+                AudioManager.AUDIOFOCUS_LOSS -> {
+                    notify(Control.AudioFocusNotification.AudioFocusStateType.STATE_LOSS)
+                    phoneHasGain = false
+                }
+                AudioManager.AUDIOFOCUS_GAIN ->
+                    if (!phoneHasGain) {
+                        notify(state)
+                        phoneHasGain = true
+                    }
+            }
+        }
     }
 
     private fun requestPlaybackFocus(channel: Int) {
@@ -351,8 +462,13 @@ internal class AapAudio(
         selfDefeatingStops = 0
         selfDefeatingLatched = false
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            audioFocusRequest?.let { mediaAudioManager.abandonAudioFocusRequest(it) }
-            audioFocusRequest = null
+            synchronized(focusLock) {
+                abandon(mediaFocus, "media"); mediaFocus = null
+                abandon(transMediaFocus, "transient media"); transMediaFocus = null
+                abandon(assistantFocus, "assistant"); assistantFocus = null
+                abandon(navigationFocus, "navigation"); navigationFocus = null
+            }
+            phoneHasGain = false
             playbackFocusRequest?.let { mediaAudioManager.abandonAudioFocusRequest(it) }
             playbackFocusRequest = null
         } else {
