@@ -79,6 +79,8 @@ internal data class SaicGuidance(
     val remainingMeters: Int = -1,
     val remainingSeconds: Int = -1,
     val updatedNs: Long = System.nanoTime(),
+    /** The lane patterns for the cluster (see [SaicLanes]); empty when there is no lane guidance. */
+    val lanes: String = "",
 )
 
 /** Android Auto guidance snapshot to [SaicGuidance]. Reads the snapshot the same way [BydNavigationMapper] does. */
@@ -117,7 +119,8 @@ internal object SaicNavigationMapper {
         val remaining = destination?.takeIf { it.hasDistance() && it.distance.hasMeters() }?.distance?.meters ?: -1
         val seconds = destination?.takeIf { it.hasTimeToArrivalSeconds() }?.timeToArrivalSeconds
             ?.coerceIn(0, Int.MAX_VALUE.toLong())?.toInt() ?: -1
-        return SaicGuidance(icon, distance, road, remaining, seconds)
+        val lanes = SaicLanes.encode(step?.lanesList.orEmpty())
+        return SaicGuidance(icon, distance, road, remaining, seconds, lanes = lanes)
     }
 
     /**

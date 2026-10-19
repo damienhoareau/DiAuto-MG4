@@ -40,6 +40,17 @@ class AapNavigation(
         AppLog.i("NavDiag $kind: $text")
     }
 
+    /** The lanes of a step as "2 [STRAIGHT*,NORMAL_RIGHT] ..." (a star marks the direction to take), or "-" without any. */
+    private fun laneSummary(lanes: List<NavigationStatus.NavigationLane>): String {
+        if (lanes.isEmpty()) return "-"
+        return lanes.joinToString(" ", prefix = "${lanes.size} ") { lane ->
+            lane.laneDirectionsList.joinToString(",", "[", "]") { direction ->
+                (if (direction.hasShape()) direction.shape.name else "?") +
+                    if (direction.hasIsHighlighted() && direction.isHighlighted) "*" else ""
+            }
+        }
+    }
+
     fun process(message: AapMessage): Boolean {
         if (message.channel != Channel.ID_NAV) return false
 
@@ -133,7 +144,8 @@ class AapNavigation(
                         "state",
                         "steps=${state.stepsCount} type=${if (maneuver?.hasType() == true) maneuver.type.name else "-"} " +
                             "exitNumber=${if (maneuver?.hasRoundaboutExitNumber() == true) maneuver.roundaboutExitNumber else "-"} " +
-                            "exitAngle=${if (maneuver?.hasRoundaboutExitAngle() == true) maneuver.roundaboutExitAngle else "-"}"
+                            "exitAngle=${if (maneuver?.hasRoundaboutExitAngle() == true) maneuver.roundaboutExitAngle else "-"} " +
+                            "lanes=${laneSummary(state.stepsList.firstOrNull()?.lanesList.orEmpty())}"
                     )
                     snapshot.navigationState = AapNavigationHelper.TimedMessage(state, helper.nowElapsedRealtimeMs())
                     val firstStepRoad = state.stepsList.firstOrNull()

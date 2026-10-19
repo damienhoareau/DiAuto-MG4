@@ -20,6 +20,8 @@ internal sealed class SaicCall {
     data class GuideStatus(val status: Int) : SaicCall()
     data class GuideInfos(val icon: ClusterIdTelenav, val distanceMeters: Int, val text: String) : SaicCall()
     data class RoadInfo(val road: String) : SaicCall()
+    /** The lane patterns, or an empty string to clear them. */
+    data class LaneInfo(val lanes: String) : SaicCall()
     data class RemainingDistance(val meters: Int) : SaicCall()
     data class RemainingTime(val minutes: Int) : SaicCall()
 }
@@ -44,8 +46,9 @@ internal object SaicCallPlan {
 
     fun plan(previous: SaicGuidance?, next: SaicGuidance?): List<SaicCall> {
         if (next == null) {
-            return if (previous == null) emptyList()
-            else listOf(SaicCall.GuideStatus(STATUS_IDLE), SaicCall.MapNavigating(false))
+            if (previous == null) return emptyList()
+            val end = listOf(SaicCall.GuideStatus(STATUS_IDLE), SaicCall.MapNavigating(false))
+            return if (previous.lanes.isEmpty()) end else listOf(SaicCall.LaneInfo("")) + end
         }
         val calls = ArrayList<SaicCall>(6)
         if (previous == null) {
@@ -57,6 +60,7 @@ internal object SaicCallPlan {
             calls += SaicCall.GuideInfos(next.icon, next.distanceMeters, next.road)
         }
         if (next.road.isNotEmpty() && previous?.road != next.road) calls += SaicCall.RoadInfo(next.road)
+        if ((previous?.lanes ?: "") != next.lanes) calls += SaicCall.LaneInfo(next.lanes)
         if (next.remainingMeters >= 0 && previous?.remainingMeters != next.remainingMeters) {
             calls += SaicCall.RemainingDistance(next.remainingMeters)
         }
@@ -96,6 +100,7 @@ internal object SaicNavigationOutputs {
     private const val TX_GUIDE_STATUS = 29
     private const val TX_GUIDE_INFOS = 30
     private const val TX_ROAD_INFO = 31
+    private const val TX_LANE_INFO = 48
     private const val TX_REMAINING_TIME = 38
     private const val TX_REMAINING_DISTANCE = 39
 
@@ -233,6 +238,7 @@ internal object SaicNavigationOutputs {
                 write = { it.writeInt(call.icon.id); it.writeInt(distance); it.writeString(call.text) }
             }
             is SaicCall.RoadInfo -> { code = TX_ROAD_INFO; write = { it.writeString(call.road) } }
+            is SaicCall.LaneInfo -> { code = TX_LANE_INFO; write = { it.writeString(call.lanes) } }
             is SaicCall.RemainingDistance -> { code = TX_REMAINING_DISTANCE; write = { it.writeInt(call.meters) } }
             is SaicCall.RemainingTime -> { code = TX_REMAINING_TIME; write = { it.writeInt(call.minutes) } }
         }

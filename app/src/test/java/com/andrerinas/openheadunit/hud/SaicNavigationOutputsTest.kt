@@ -21,7 +21,8 @@ class SaicNavigationOutputsTest {
         road: String = "Rue Victor Hugo",
         remainingMeters: Int = 5000,
         remainingSeconds: Int = 600,
-    ) = SaicGuidance(icon, distance, road, remainingMeters, remainingSeconds)
+        lanes: String = "",
+    ) = SaicGuidance(icon, distance, road, remainingMeters, remainingSeconds, lanes = lanes)
 
     @Test
     fun theIconIdsAreTheOnesTheClusterExpects() {
@@ -262,6 +263,32 @@ class SaicNavigationOutputsTest {
     fun endingGuidanceClosesItAndNothingIsSaidTwice() {
         assertEquals(listOf(SaicCall.GuideStatus(0), SaicCall.MapNavigating(false)), SaicCallPlan.plan(frame(), null))
         assertEquals(emptyList<SaicCall>(), SaicCallPlan.plan(null, null))
+    }
+
+    @Test
+    fun lanesAreSentWhenTheyAppearAndWhenTheyChange() {
+        assertTrue(SaicCallPlan.plan(null, frame()).none { it is SaicCall.LaneInfo })
+        assertEquals(
+            listOf(SaicCall.LaneInfo("3,2")),
+            SaicCallPlan.plan(frame(), frame(lanes = "3,2")),
+        )
+        assertEquals(
+            listOf(SaicCall.LaneInfo("3,4")),
+            SaicCallPlan.plan(frame(lanes = "3,2"), frame(lanes = "3,4")),
+        )
+        assertTrue(SaicCallPlan.plan(frame(lanes = "3,2"), frame(lanes = "3,2")).isEmpty())
+    }
+
+    @Test
+    fun lanesAreClearedWhenTheyGoAwayAndWhenGuidanceEnds() {
+        assertEquals(
+            listOf(SaicCall.LaneInfo("")),
+            SaicCallPlan.plan(frame(lanes = "3,2"), frame()),
+        )
+        assertEquals(
+            listOf(SaicCall.LaneInfo(""), SaicCall.GuideStatus(0), SaicCall.MapNavigating(false)),
+            SaicCallPlan.plan(frame(lanes = "3,2"), null),
+        )
     }
 
     @Test

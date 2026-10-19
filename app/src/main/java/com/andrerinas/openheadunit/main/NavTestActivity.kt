@@ -39,6 +39,7 @@ class NavTestActivity : AppCompatActivity() {
     private lateinit var exitAngle: EditText
     private lateinit var distance: EditText
     private lateinit var road: EditText
+    private lateinit var lanes: EditText
 
     // The cluster drops guidance that is not renewed for 30 s, so a test frame is renewed while shown.
     private val keepAlive = object : Runnable {
@@ -97,6 +98,9 @@ class NavTestActivity : AppCompatActivity() {
         column.addView(label("Street"))
         road = field("street", "Rue de Test", false)
         column.addView(road)
+        column.addView(label("Lane patterns, 1-33 separated by commas (optional, e.g. 1,2,3)"))
+        lanes = field("lanes", "", false)
+        column.addView(lanes)
 
         val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         buttons.addView(Button(this).apply {
@@ -155,13 +159,15 @@ class NavTestActivity : AppCompatActivity() {
         }
         val meters = distance.text.toString().toIntOrNull() ?: 0
         val street = road.text.toString()
-        current = SaicGuidance(icon, meters, street)
+        val laneList = lanes.text.toString().replace(" ", "")
+        current = SaicGuidance(icon, meters, street, lanes = laneList)
         SaicNavigationOutputs.start(this)
         SaicNavigationOutputs.update(current)
         handler.removeCallbacks(keepAlive)
         handler.postDelayed(keepAlive, 10_000)
         result.text = "${type.name} (exit ${number ?: "-"}, angle ${angle ?: "-"}) -> " +
-            "${icon.name} (tbtType ${icon.id}), $meters m, \"$street\""
+            "${icon.name} (tbtType ${icon.id}), $meters m, \"$street\"" +
+            (if (laneList.isEmpty()) "" else ", lanes $laneList")
     }
 
     private fun stopGuidance() {
