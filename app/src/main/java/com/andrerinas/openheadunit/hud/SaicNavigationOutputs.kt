@@ -4,6 +4,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.graphics.Bitmap
 import android.os.IBinder
 import android.os.Parcel
 import com.andrerinas.openheadunit.utils.AppLog
@@ -27,6 +28,10 @@ internal sealed class SaicCall {
     data class RoadInfo(val road: String) : SaicCall()
     /** The lane patterns, or an empty string to clear them. */
     data class LaneInfo(val lanes: String) : SaicCall()
+    /** A picture for the adapter to pass to its listeners (onUpdateImage). Only the test screen sends one. */
+    class MapImage(val bitmap: Bitmap) : SaicCall() {
+        override fun toString() = "MapImage(${bitmap.width}x${bitmap.height})"
+    }
     data class RemainingDistance(val meters: Int) : SaicCall()
     data class RemainingTime(val minutes: Int) : SaicCall()
 }
@@ -108,6 +113,7 @@ internal object SaicNavigationOutputs {
     private const val TX_GUIDE_INFOS = 30
     private const val TX_ROAD_INFO = 31
     private const val TX_LANE_INFO = 48
+    private const val TX_UPDATE_IMAGE = 96
     private const val TX_REMAINING_TIME = 38
     private const val TX_REMAINING_DISTANCE = 39
 
@@ -141,6 +147,23 @@ internal object SaicNavigationOutputs {
     }
 
     fun update(value: SaicGuidance?) { latest.set(value) }
+
+    /**
+     * Test only: hands a picture to the adapter, which passes it to the listeners that asked for
+     * pictures. [done] says what happened, once; it runs on the sending thread. A refusal here does
+     * not count against the guidance calls.
+     */
+    fun sendImage(bitmap: Bitmap, done: (String) -> Unit) {
+        executor.execute {
+            val target = binder?.takeIf { it.isBinderAlive && !disabled }
+            if (target == null) {
+                done("the map adapter is not connected")
+                return@execute
+            }
+            val size = "${bitmap.width}x${bitmap.height}"
+            done(if (send(target, SaicCall.MapImage(bitmap))) "the adapter took the picture ($size)" else "the adapter refused the picture ($size)")
+        }
+    }
 
     /** Ends guidance on the cluster: the closing calls go out right away. */
     fun stop() {
@@ -251,6 +274,8 @@ internal object SaicNavigationOutputs {
             }
             is SaicCall.RoadInfo -> { code = TX_ROAD_INFO; write = { it.writeString(call.road) } }
             is SaicCall.LaneInfo -> { code = TX_LANE_INFO; write = { it.writeString(call.lanes) } }
+            // A parcelable argument: a non-null marker, then the bitmap.
+            is SaicCall.MapImage -> { code = TX_UPDATE_IMAGE; write = { it.writeInt(1); call.bitmap.writeToParcel(it, 0) } }
             is SaicCall.RemainingDistance -> { code = TX_REMAINING_DISTANCE; write = { it.writeInt(call.meters) } }
             is SaicCall.RemainingTime -> { code = TX_REMAINING_TIME; write = { it.writeInt(call.minutes) } }
         }

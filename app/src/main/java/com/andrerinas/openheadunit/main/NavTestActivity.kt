@@ -1,5 +1,11 @@
 package com.andrerinas.openheadunit.main
 
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.LinearGradient
+import android.graphics.Paint
+import android.graphics.Shader
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -45,6 +51,10 @@ class NavTestActivity : AppCompatActivity() {
     private lateinit var distance: EditText
     private lateinit var road: EditText
     private lateinit var lanes: EditText
+    private lateinit var imageWidth: EditText
+    private lateinit var imageHeight: EditText
+    private lateinit var imageResult: TextView
+    private var imageCount = 0
     private lateinit var iconSetChoice: Spinner
     private lateinit var iconSetStatus: TextView
 
@@ -124,6 +134,20 @@ class NavTestActivity : AppCompatActivity() {
         iconSetStatus = TextView(this)
         column.addView(iconSetStatus)
 
+        column.addView(label("Picture for the adapter (onUpdateImage): size in pixels"))
+        val sizes = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        imageWidth = field("width", "400", true)
+        imageHeight = field("height", "240", true)
+        sizes.addView(imageWidth, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        sizes.addView(imageHeight, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        column.addView(sizes)
+        column.addView(Button(this).apply {
+            text = "Send a test picture"
+            setOnClickListener { sendTestImage() }
+        })
+        imageResult = TextView(this)
+        column.addView(imageResult)
+
         val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         buttons.addView(Button(this).apply {
             text = "Send to cluster"
@@ -199,6 +223,52 @@ class NavTestActivity : AppCompatActivity() {
             "The cluster may read it only when its navigation page changes, so the icons can follow a moment later."
     }
 
+    /** A picture that shows, wherever it ends up, that it is this one: its size, a counter and the time. */
+    private fun testPicture(width: Int, height: Int, number: Int): Bitmap {
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        paint.shader = LinearGradient(0f, 0f, width.toFloat(), height.toFloat(), 0xFF0D47A1.toInt(), 0xFF00897B.toInt(), Shader.TileMode.CLAMP)
+        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
+        paint.shader = null
+        paint.style = Paint.Style.STROKE
+        paint.color = Color.WHITE
+        paint.strokeWidth = maxOf(2f, height / 60f)
+        canvas.drawRect(paint.strokeWidth, paint.strokeWidth, width - paint.strokeWidth, height - paint.strokeWidth, paint)
+        canvas.drawLine(0f, 0f, width.toFloat(), height.toFloat(), paint)
+        canvas.drawLine(0f, height.toFloat(), width.toFloat(), 0f, paint)
+        paint.style = Paint.Style.FILL
+        paint.textAlign = Paint.Align.CENTER
+        paint.setShadowLayer(4f, 0f, 0f, Color.BLACK)
+        paint.textSize = height / 8f
+        canvas.drawText("DiAuto cluster test", width / 2f, height * 0.38f, paint)
+        canvas.drawText("#$number  " + java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date()), width / 2f, height * 0.58f, paint)
+        canvas.drawText("${width}x$height", width / 2f, height * 0.78f, paint)
+        return bitmap
+    }
+
+    private fun sendTestImage() {
+        val width = imageWidth.text.toString().toIntOrNull() ?: 0
+        val height = imageHeight.text.toString().toIntOrNull() ?: 0
+        if (width < 16 || height < 16) {
+            imageResult.text = "Give a width and a height of at least 16."
+            return
+        }
+        // A call carries about a megabyte for everything: stay well under it.
+        if (width.toLong() * height * 4 > MAX_PICTURE_BYTES) {
+            imageResult.text = "Too big for one call: ${width}x$height is ${width.toLong() * height * 4 / 1000} kB, " +
+                "the limit here is ${MAX_PICTURE_BYTES / 1000} kB."
+            return
+        }
+        SaicNavigationOutputs.start(this)
+        val bitmap = testPicture(width, height, ++imageCount)
+        imageResult.text = "Sending picture #$imageCount..."
+        SaicNavigationOutputs.sendImage(bitmap) { outcome ->
+            bitmap.recycle()
+            runOnUiThread { imageResult.text = "Picture #$imageCount: $outcome" }
+        }
+    }
+
     private fun updatePreview() {
         val file = iconView.show(
             NavigationType.values()[maneuver.selectedItemPosition],
@@ -237,6 +307,10 @@ class NavTestActivity : AppCompatActivity() {
         current = null
         SaicNavigationOutputs.stop()
         result.text = "Guidance stopped."
+    }
+
+    private companion object {
+        const val MAX_PICTURE_BYTES = 800_000L
     }
 
     override fun onDestroy() {
