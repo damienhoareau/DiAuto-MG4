@@ -2,7 +2,10 @@ package com.allgo.app.androidauto
 
 import android.app.Service
 import android.bluetooth.BluetoothAdapter
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.IBinder
 import android.os.RemoteCallbackList
 import android.view.KeyEvent
@@ -19,6 +22,7 @@ import com.andrerinas.openheadunit.App
 import com.andrerinas.openheadunit.aap.AaStatusBus
 import com.andrerinas.openheadunit.aap.AapProjectionActivity
 import com.andrerinas.openheadunit.aap.AapService
+import com.andrerinas.openheadunit.aap.OemSignals
 import com.andrerinas.openheadunit.aap.ProjectionGate
 import com.andrerinas.openheadunit.aap.protocol.messages.VideoFocusEvent
 import com.andrerinas.openheadunit.connection.CommManager
@@ -56,9 +60,54 @@ class AndroidAutoMainService : Service() {
 
     private val commManager get() = App.provide(this).commManager
 
+    // The surround-view camera takes the screen like RemoteUI's disableVideoFocus does; the stock app
+    // listens to both, so a car that only announces the camera is followed too. Held only when
+    // RemoteUI has not already taken the screen away, and given back only what was taken here.
+    private var aroundViewHold = false
+    private var projectionBeforeAroundView = false
+
+    private val aroundViewReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                OemSignals.ACTION_AROUND_VIEW_START -> onAroundView(true)
+                OemSignals.ACTION_AROUND_VIEW_STOP -> onAroundView(false)
+            }
+        }
+    }
+
+    private fun onAroundView(active: Boolean) {
+        AppLog.i("AndroidAutoMainService: surround view ${if (active) "started" else "stopped"}")
+        if (active) {
+            if (ProjectionGate.videoFocusDisabled || aroundViewHold) return
+            aroundViewHold = true
+            projectionBeforeAroundView = AapProjectionActivity.isForeground
+            ProjectionGate.videoFocusDisabled = true
+            if (commManager.isConnected) commManager.send(VideoFocusEvent(gain = false, unsolicited = true))
+        } else {
+            if (!aroundViewHold) return
+            aroundViewHold = false
+            ProjectionGate.videoFocusDisabled = false
+            if (!commManager.isConnected) return
+            // Like the stock app: back to the projection only if it was on screen when the camera came.
+            if (projectionBeforeAroundView) {
+                showProjection()
+                commManager.send(VideoFocusEvent(gain = true, unsolicited = true))
+            }
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         AppLog.i("AndroidAutoMainService: created")
+        val aroundView = IntentFilter().apply {
+            addAction(OemSignals.ACTION_AROUND_VIEW_START)
+            addAction(OemSignals.ACTION_AROUND_VIEW_STOP)
+        }
+        try {
+            registerReceiver(aroundViewReceiver, aroundView)
+        } catch (e: Exception) {
+            AppLog.w("AndroidAutoMainService: could not follow the surround view: ${e.message}")
+        }
         scope.launch {
             commManager.connectionState.collect { state -> onConnectionState(state) }
         }
@@ -88,6 +137,7 @@ class AndroidAutoMainService : Service() {
     }
 
     override fun onDestroy() {
+        try { unregisterReceiver(aroundViewReceiver) } catch (_: Exception) {}
         scope.cancel()
         deviceCallbacks.kill()
         sessionCallbacks.kill()
@@ -143,6 +193,8 @@ class AndroidAutoMainService : Service() {
 
     private fun sendCall(code: Int) {
         if (!sessionAnnounced) return
+        // The stock app wakes the screen on any phone status: a call must be visible.
+        if (code != 0) OemSignals.screenOn(this, "phone call state $code")
         fanOutSession { it.onPhoneStateUpdate(code) }
     }
 
@@ -180,6 +232,7 @@ class AndroidAutoMainService : Service() {
             }
             is CommManager.ConnectionState.Disconnected -> {
                 val device = activeDevice
+                if (sessionAnnounced) OemSignals.screenOn(this, "phone disconnected")
                 if (sessionAnnounced && device != null) {
                     val closed = sessionView(device, MirroringDevice.SESSION_NOT_STARTED)
                     fanOutSession {
@@ -198,6 +251,7 @@ class AndroidAutoMainService : Service() {
                 sessionAnnounced = false
                 AaStatusBus.reset()
                 ProjectionGate.reset()
+                aroundViewHold = false
             }
             is CommManager.ConnectionState.Error -> {
                 val device = activeDevice
