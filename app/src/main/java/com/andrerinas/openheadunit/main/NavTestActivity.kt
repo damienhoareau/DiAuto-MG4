@@ -16,6 +16,7 @@ import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.CheckBox
+import android.graphics.Typeface
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -26,6 +27,10 @@ import androidx.appcompat.app.AppCompatActivity
 import com.andrerinas.openheadunit.aap.protocol.proto.NavigationStatus.NavigationManeuver.NavigationType
 import com.andrerinas.openheadunit.hud.ClusterIconSet
 import com.andrerinas.openheadunit.hud.SaicCall
+import com.andrerinas.openheadunit.vehicle.AdasProperties
+import com.evsuite.hardware.EVHardware
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
 import com.andrerinas.openheadunit.hud.SaicGuidance
 import com.andrerinas.openheadunit.hud.SaicNavigationMapper
 import com.andrerinas.openheadunit.hud.SaicNavigationOutputs
@@ -63,6 +68,17 @@ class NavTestActivity : AppCompatActivity() {
     private lateinit var positioned: EditText
     private lateinit var confidence: EditText
     private lateinit var speedResult: TextView
+    private lateinit var adasGroup: Spinner
+    private lateinit var adasAuto: CheckBox
+    private lateinit var adasOutput: TextView
+    private val adasExecutor = Executors.newSingleThreadExecutor()
+    private val adasReading = AtomicBoolean(false)
+    private val adasRefresh = object : Runnable {
+        override fun run() {
+            readAdas()
+            if (adasAuto.isChecked) handler.postDelayed(this, 1000)
+        }
+    }
     private var imageCount = 0
     private lateinit var iconSetChoice: Spinner
     private lateinit var iconSetStatus: TextView
@@ -206,6 +222,34 @@ class NavTestActivity : AppCompatActivity() {
         speedResult = TextView(this)
         column.addView(speedResult)
 
+        column.addView(label("Driver assistance properties from the car (read only)"))
+        adasGroup = Spinner(this)
+        adasGroup.adapter = ArrayAdapter(
+            this, android.R.layout.simple_spinner_dropdown_item, AdasProperties.groups.map { it.title }
+        )
+        column.addView(adasGroup)
+        val adasRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        adasRow.addView(Button(this).apply {
+            text = "Read now"
+            setOnClickListener { readAdas() }
+        })
+        adasAuto = CheckBox(this).apply {
+            text = "Every second"
+            setOnCheckedChangeListener { _, checked ->
+                handler.removeCallbacks(adasRefresh)
+                if (checked) handler.post(adasRefresh)
+            }
+        }
+        adasRow.addView(adasAuto)
+        column.addView(adasRow)
+        adasOutput = TextView(this).apply {
+            typeface = Typeface.MONOSPACE
+            textSize = 12f
+            setTextIsSelectable(true)
+            text = "Pick a group and read it. Lane lines and objects only carry values while the car drives with the camera on."
+        }
+        column.addView(adasOutput)
+
         val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         buttons.addView(Button(this).apply {
             text = "Send to cluster"
@@ -319,6 +363,24 @@ class NavTestActivity : AppCompatActivity() {
         runSpeedCalls(listOf(SaicCall.IsaSpeedUnit(unit), SaicCall.IsaSpeedLimit(limit), SaicCall.IsaSelfDiag(cover, position, conf)))
     }
 
+    /** Reads the chosen group off the main thread: each read is a call to the car's service. */
+    private fun readAdas() {
+        if (!adasReading.compareAndSet(false, true)) return
+        val group = AdasProperties.groups[adasGroup.selectedItemPosition]
+        val context = applicationContext
+        adasExecutor.execute {
+            try {
+                EVHardware.init(context)
+                val text = group.properties.joinToString("\n") { (name, id) -> "$name = ${EVHardware.describeProperty(id)}" }
+                runOnUiThread { adasOutput.text = group.title + "\n" + text }
+            } catch (e: Exception) {
+                runOnUiThread { adasOutput.text = "Could not read: ${e.message}" }
+            } finally {
+                adasReading.set(false)
+            }
+        }
+    }
+
     private fun runSpeedCalls(calls: List<SaicCall>) {
         SaicNavigationOutputs.start(this)
         speedResult.text = "Sending..."
@@ -393,6 +455,8 @@ class NavTestActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         handler.removeCallbacks(keepAlive)
+        handler.removeCallbacks(adasRefresh)
+        adasExecutor.shutdown()
         if (current != null) SaicNavigationOutputs.stop()
         restoreNavigationType()
         super.onDestroy()

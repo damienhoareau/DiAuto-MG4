@@ -2128,6 +2128,32 @@ object EVHardware {
             as? Boolean
 
     /**
+     * One property read for a diagnostic screen: the value the car publishes, or the reason there is
+     * none. The readers above only say "unreadable"; this keeps the status the VHAL attaches (not
+     * available, error) so a signal the firmware never publishes can be told from one that reads 0.
+     * Int, float and boolean properties are handled, by the type bits of the id.
+     */
+    fun describeProperty(propId: Int, areaId: Int = AREA_GLOBAL): String {
+        val cpm = sCarPropertyManager ?: return "no CarPropertyManager yet"
+        cacheCarPropertyMethods(cpm)
+        val boxed: Class<*> = when (propId and 0x00FF0000) {
+            0x00200000 -> Boolean::class.javaObjectType
+            0x00400000 -> Int::class.javaObjectType
+            0x00600000 -> Float::class.javaObjectType
+            else -> return "type not handled"
+        }
+        val getProperty = sCpmGetPropertyMethod ?: return "getProperty is not on this runtime"
+        return try {
+            val holder = getProperty.invoke(cpm, boxed, propId, areaId) ?: return "no value"
+            val status = holder.javaClass.getMethod("getStatus").invoke(holder) as? Int ?: return "no status"
+            val value = holder.javaClass.getMethod("getValue").invoke(holder)
+            if (CarPropertyEvidence.accept(value, status) != null) "$value" else CarPropertyEvidence.describe(status)
+        } catch (e: Exception) {
+            e.readFailureReason()
+        }
+    }
+
+    /**
      * One property read, judged before the value is handed back.
      *
      * Prefers `getProperty`, whose `CarPropertyValue` carries the status the VHAL attaches to
