@@ -15,6 +15,7 @@ import android.text.TextWatcher
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import android.widget.CheckBox
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -24,6 +25,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.andrerinas.openheadunit.aap.protocol.proto.NavigationStatus.NavigationManeuver.NavigationType
 import com.andrerinas.openheadunit.hud.ClusterIconSet
+import com.andrerinas.openheadunit.hud.SaicCall
 import com.andrerinas.openheadunit.hud.SaicGuidance
 import com.andrerinas.openheadunit.hud.SaicNavigationMapper
 import com.andrerinas.openheadunit.hud.SaicNavigationOutputs
@@ -54,6 +56,13 @@ class NavTestActivity : AppCompatActivity() {
     private lateinit var imageWidth: EditText
     private lateinit var imageHeight: EditText
     private lateinit var imageResult: TextView
+    private lateinit var carMode: TextView
+    private lateinit var speedLimit: EditText
+    private lateinit var speedUnit: EditText
+    private lateinit var coverage: EditText
+    private lateinit var positioned: EditText
+    private lateinit var confidence: EditText
+    private lateinit var speedResult: TextView
     private var imageCount = 0
     private lateinit var iconSetChoice: Spinner
     private lateinit var iconSetStatus: TextView
@@ -147,6 +156,55 @@ class NavTestActivity : AppCompatActivity() {
         })
         imageResult = TextView(this)
         column.addView(imageResult)
+
+        column.addView(label("Speed limit through the car's speed assist (test only)"))
+        column.addView(TextView(this).apply {
+            text = "This writes to the driver assistance system, like the car's own speed limit service does. " +
+                "Use it with the car stopped; that service may write over the value."
+        })
+        carMode = TextView(this)
+        column.addView(Button(this).apply {
+            text = "Read the car model"
+            setOnClickListener {
+                SaicNavigationOutputs.start(this@NavTestActivity)
+                SaicNavigationOutputs.readCarMode { model -> runOnUiThread { carMode.text = "Car model: $model" } }
+            }
+        })
+        column.addView(carMode)
+        val speedRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        speedLimit = field("limit", "50", true)
+        speedUnit = field("unit", "0", true)
+        speedRow.addView(speedLimit, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        speedRow.addView(speedUnit, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        column.addView(label("Limit (km/h) and unit (raw value the car expects)"))
+        column.addView(speedRow)
+        val validityRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        coverage = field("coverage", "1", true)
+        positioned = field("positioned", "1", true)
+        confidence = field("confidence", "10", true)
+        validityRow.addView(coverage, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        validityRow.addView(positioned, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        validityRow.addView(confidence, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        column.addView(label("Validity: map coverage, positioned, confidence (2 = no for the first two)"))
+        column.addView(validityRow)
+        val sendLimit = Button(this).apply { text = "Send the limit"; isEnabled = false }
+        val sendNone = Button(this).apply { text = "Send \"no position\""; isEnabled = false }
+        val stopped = CheckBox(this).apply {
+            text = "The car is stopped"
+            setOnCheckedChangeListener { _, checked -> sendLimit.isEnabled = checked; sendNone.isEnabled = checked }
+        }
+        column.addView(stopped)
+        sendLimit.setOnClickListener { sendSpeedLimit() }
+        sendNone.setOnClickListener {
+            // What the car's own service sends when it has no position: nothing valid to show.
+            runSpeedCalls(listOf(SaicCall.IsaSelfDiag(0, 2, 0)))
+        }
+        val speedButtons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        speedButtons.addView(sendLimit)
+        speedButtons.addView(sendNone)
+        column.addView(speedButtons)
+        speedResult = TextView(this)
+        column.addView(speedResult)
 
         val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         buttons.addView(Button(this).apply {
@@ -245,6 +303,26 @@ class NavTestActivity : AppCompatActivity() {
         canvas.drawText("#$number  " + java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date()), width / 2f, height * 0.58f, paint)
         canvas.drawText("${width}x$height", width / 2f, height * 0.78f, paint)
         return bitmap
+    }
+
+    private fun sendSpeedLimit() {
+        val limit = speedLimit.text.toString().toIntOrNull()
+        if (limit == null || limit !in 5..200) {
+            speedResult.text = "Give a limit between 5 and 200."
+            return
+        }
+        val unit = speedUnit.text.toString().toIntOrNull() ?: 0
+        val cover = coverage.text.toString().toIntOrNull() ?: 1
+        val position = positioned.text.toString().toIntOrNull() ?: 1
+        val conf = confidence.text.toString().toIntOrNull() ?: 10
+        // The order of the car's own service: the unit, the value, then whether the value can be trusted.
+        runSpeedCalls(listOf(SaicCall.IsaSpeedUnit(unit), SaicCall.IsaSpeedLimit(limit), SaicCall.IsaSelfDiag(cover, position, conf)))
+    }
+
+    private fun runSpeedCalls(calls: List<SaicCall>) {
+        SaicNavigationOutputs.start(this)
+        speedResult.text = "Sending..."
+        SaicNavigationOutputs.sendTestCalls(calls) { outcome -> runOnUiThread { speedResult.text = outcome } }
     }
 
     private fun sendTestImage() {

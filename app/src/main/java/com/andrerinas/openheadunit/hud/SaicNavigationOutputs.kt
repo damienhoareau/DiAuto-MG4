@@ -28,6 +28,14 @@ internal sealed class SaicCall {
     data class RoadInfo(val road: String) : SaicCall()
     /** The lane patterns, or an empty string to clear them. */
     data class LaneInfo(val lanes: String) : SaicCall()
+    /**
+     * The speed assist calls the car's own speed limit service makes (isa*), which the adapter writes
+     * to the vehicle's driver assistance properties. Only the test screen sends them.
+     */
+    data class IsaSpeedLimit(val value: Int) : SaicCall()
+    data class IsaSpeedUnit(val unit: Int) : SaicCall()
+    data class IsaSelfDiag(val coverage: Int, val positioned: Int, val confidence: Int) : SaicCall()
+
     /** A picture for the adapter to pass to its listeners (onUpdateImage). Only the test screen sends one. */
     class MapImage(val bitmap: Bitmap) : SaicCall() {
         override fun toString() = "MapImage(${bitmap.width}x${bitmap.height})"
@@ -114,6 +122,10 @@ internal object SaicNavigationOutputs {
     private const val TX_ROAD_INFO = 31
     private const val TX_LANE_INFO = 48
     private const val TX_UPDATE_IMAGE = 96
+    private const val TX_GET_CAR_MODE = 6
+    private const val TX_ISA_SELF_DIAG = 64
+    private const val TX_ISA_SPEED_LIMIT = 71
+    private const val TX_ISA_SPEED_UNIT = 72
     private const val TX_REMAINING_TIME = 38
     private const val TX_REMAINING_DISTANCE = 39
 
@@ -162,6 +174,45 @@ internal object SaicNavigationOutputs {
             }
             val size = "${bitmap.width}x${bitmap.height}"
             done(if (send(target, SaicCall.MapImage(bitmap))) "the adapter took the picture ($size)" else "the adapter refused the picture ($size)")
+        }
+    }
+
+    /**
+     * Test only: sends [calls] to the adapter in order and says what each one got. A refusal does not
+     * count against the guidance calls.
+     */
+    fun sendTestCalls(calls: List<SaicCall>, done: (String) -> Unit) {
+        executor.execute {
+            val target = binder?.takeIf { it.isBinderAlive && !disabled }
+            if (target == null) {
+                done("the map adapter is not connected")
+                return@execute
+            }
+            done(calls.joinToString("\n") { "$it -> ${if (send(target, it)) "ok" else "refused"}" })
+        }
+    }
+
+    /** Test only: the car model the adapter reports (it decides which features the car has). */
+    fun readCarMode(done: (String) -> Unit) {
+        executor.execute {
+            val target = binder?.takeIf { it.isBinderAlive && !disabled }
+            if (target == null) {
+                done("the map adapter is not connected")
+                return@execute
+            }
+            val data = Parcel.obtain()
+            val reply = Parcel.obtain()
+            try {
+                data.writeInterfaceToken(DESCRIPTOR)
+                target.transact(TX_GET_CAR_MODE, data, reply, 0)
+                reply.readException()
+                done(reply.readString()?.takeIf { it.isNotEmpty() } ?: "(empty)")
+            } catch (e: Exception) {
+                done("could not read it: ${e.message}")
+            } finally {
+                reply.recycle()
+                data.recycle()
+            }
         }
     }
 
@@ -274,6 +325,12 @@ internal object SaicNavigationOutputs {
             }
             is SaicCall.RoadInfo -> { code = TX_ROAD_INFO; write = { it.writeString(call.road) } }
             is SaicCall.LaneInfo -> { code = TX_LANE_INFO; write = { it.writeString(call.lanes) } }
+            is SaicCall.IsaSpeedLimit -> { code = TX_ISA_SPEED_LIMIT; write = { it.writeInt(call.value) } }
+            is SaicCall.IsaSpeedUnit -> { code = TX_ISA_SPEED_UNIT; write = { it.writeInt(call.unit) } }
+            is SaicCall.IsaSelfDiag -> {
+                code = TX_ISA_SELF_DIAG
+                write = { it.writeInt(call.coverage); it.writeInt(call.positioned); it.writeInt(call.confidence) }
+            }
             // A parcelable argument: a non-null marker, then the bitmap.
             is SaicCall.MapImage -> { code = TX_UPDATE_IMAGE; write = { it.writeInt(1); call.bitmap.writeToParcel(it, 0) } }
             is SaicCall.RemainingDistance -> { code = TX_REMAINING_DISTANCE; write = { it.writeInt(call.meters) } }
