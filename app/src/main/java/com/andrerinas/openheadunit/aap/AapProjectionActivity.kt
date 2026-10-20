@@ -1025,7 +1025,11 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        AppLog.i("AapProjectionActivity: onNewIntent received")
+        // Who asked for the projection: the flags, extras and referrer tell the launch paths apart.
+        AppLog.i(
+            "AapProjectionActivity: onNewIntent received (referrer=${referrer}, intent=${intent}, " +
+                "extras=${intent.extras?.keySet()?.joinToString()})"
+        )
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {

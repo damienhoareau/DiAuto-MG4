@@ -1,5 +1,6 @@
 package com.andrerinas.openheadunit.main
 
+import com.andrerinas.openheadunit.utils.AppLog
 import android.content.Context
 import android.os.Bundle
 import android.view.View
@@ -80,6 +81,16 @@ class SettingsActivity : BaseActivity() {
         private const val KEY_CURRENT_DESTINATION = "current_nav_destination"
         // Optional destination id to open directly on launch (e.g. R.id.darkModeFragment).
         const val EXTRA_DESTINATION = "extra_destination"
+    }
+
+    override fun onResume() {
+        super.onResume()
+        AppLog.i("SettingsActivity: onResume (referrer=${referrer}, taskId=$taskId)")
+    }
+
+    override fun onPause() {
+        super.onPause()
+        AppLog.i("SettingsActivity: onPause (finishing=$isFinishing)")
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
