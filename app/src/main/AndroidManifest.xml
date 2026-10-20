@@ -136,14 +136,6 @@
             android:launchMode="singleTask"
             android:theme="@style/SplashTheme">
 
-            <!-- Primary Launcher Filter -->
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-
             <!-- Navigation Role Registration (allows selecting as default nav app) -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -223,6 +215,20 @@
             android:label="@string/settings"
             android:windowSoftInputMode="stateHidden|adjustResize"
             android:theme="@style/AppTheme" />
+
+        <!-- The app's one icon in the launcher: straight to the settings, there is no home screen. -->
+        <activity-alias
+            android:name=".main.AndroidAutoSettingsLauncher"
+            android:exported="true"
+            android:icon="@drawable/ic_launcher_settings"
+            android:label="Android Auto Settings"
+            android:targetActivity=".main.SettingsActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity-alias>
 
         <activity
             android:name=".main.OnboardingActivity"

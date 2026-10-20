@@ -1644,8 +1644,9 @@ class SettingsFragment : Fragment() {
                         settings.reset()
 
                         // Proper App Restart
-                        val intent = requireActivity().packageManager.getLaunchIntentForPackage(requireActivity().packageName)
-                        intent?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                        // Several screens have a launcher entry: name the one to restart.
+                        val intent = Intent(requireContext(), MainActivity::class.java)
+                        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
                         requireActivity().startActivity(intent)
                         requireActivity().finish()
                     }
