@@ -29,9 +29,12 @@ import com.andrerinas.openheadunit.connection.CommManager
 import com.andrerinas.openheadunit.utils.AppLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * The service the car's RemoteUI binds to (`com.allgo.app.androidauto.AndroidAutoMainService`),
@@ -52,10 +55,16 @@ class AndroidAutoMainService : Service() {
     private var deviceAnnounced = false
     private var sessionAnnounced = false
 
+    // A session is being ended so that another phone's can start: the car is not sent back to its
+    // native screen in between, and a second request for the same phone is not run twice.
+    @Volatile private var switching = false
+    private var switchJob: Job? = null
+    private var switchTarget: String? = null
+
     private companion object {
         /** The original reports a reason code with onSessionFailed; DiAuto has no finer cause to give. */
         const val SESSION_FAILED_GENERIC = -1
-        const val UNKNOWN_ADDRESS = "00:00:00:00:00:00"
+        const val UNKNOWN_ADDRESS = DeviceSwitchPolicy.UNKNOWN_ADDRESS
     }
 
     private val commManager get() = App.provide(this).commManager
@@ -209,6 +218,7 @@ class AndroidAutoMainService : Service() {
                 }
             }
             is CommManager.ConnectionState.TransportStarted -> {
+                switching = false
                 val device = describeDevice(MirroringDevice.SESSION_STARTED).also { activeDevice = it }
                 AppLog.i("AndroidAutoMainService: TransportStarted, mac=${device.BTMacAddress} announced=$sessionAnnounced")
                 // This service can come up after Connected went by (it is restarted with the app), so
@@ -233,12 +243,15 @@ class AndroidAutoMainService : Service() {
             is CommManager.ConnectionState.Disconnected -> {
                 val device = activeDevice
                 if (sessionAnnounced) OemSignals.screenOn(this, "phone disconnected")
+                // Ending the session to start another phone's: the car stays on the projection.
+                val toNativeScreen = state.isUserExit && !switching
+                switching = false
                 if (sessionAnnounced && device != null) {
                     val closed = sessionView(device, MirroringDevice.SESSION_NOT_STARTED)
                     fanOutSession {
                         it.onScreenStopped()
                         // The user left through the phone's own Exit: the car goes back to its native screen.
-                        if (state.isUserExit) it.onNativeUILaunch()
+                        if (toNativeScreen) it.onNativeUILaunch()
                         if (state.isUserExit) it.onSessionClosed(closed) else it.onSessionDisconnected(closed, 0)
                     }
                 }
@@ -309,6 +322,49 @@ class AndroidAutoMainService : Service() {
         }
     }
 
+    /** Starts a session with [device] when none is running: wireless by its address, otherwise over USB. */
+    private fun startDevice(device: MirroringDevice?) {
+        val mac = device?.BTMacAddress
+        if (device?.transport == MirroringDevice.TRANSPORT_TYPE_WIFI && !mac.isNullOrEmpty()) {
+            startAapService(AapService.ACTION_NATIVE_AA_POKE, mac)
+        } else {
+            startAapService(AapService.ACTION_CHECK_USB)
+        }
+    }
+
+    /**
+     * Ends the session in progress, waits for it to be over (as long as the original does), then starts
+     * the one for [device]. If the first does not end in time the request fails, and the session in
+     * progress is left to go on.
+     */
+    private fun switchTo(device: MirroringDevice) {
+        val target = device.BTMacAddress?.uppercase()
+        if (switchJob?.isActive == true && switchTarget == target) {
+            AppLog.i("AndroidAutoMainService: already switching to ${device.name}")
+            return
+        }
+        switchJob?.cancel()
+        switchTarget = target
+        switching = true
+        AppLog.i("AndroidAutoMainService: switching to ${device.name} ($target): ending the current session first")
+        switchJob = scope.launch {
+            startAapService(AapService.ACTION_DISCONNECT)
+            val ended = withTimeoutOrNull(DeviceSwitchPolicy.ENDING_WAIT_MS) {
+                commManager.connectionState.first { it is CommManager.ConnectionState.Disconnected }
+            }
+            if (ended == null) {
+                AppLog.w("AndroidAutoMainService: the current session did not end in ${DeviceSwitchPolicy.ENDING_WAIT_MS} ms; not switching")
+                switching = false
+                if (deviceAnnounced) {
+                    fanOutSession { it.onSessionFailed(sessionView(device, MirroringDevice.SESSION_NOT_STARTED), SESSION_FAILED_GENERIC) }
+                }
+                return@launch
+            }
+            AppLog.i("AndroidAutoMainService: the current session ended, starting ${device.name}")
+            startDevice(device)
+        }
+    }
+
     private val binder = object : IAndroidAutoMainService.Stub() {
         override fun register(device: IAndroidAutoDeviceCallback?, session: IAndroidAutoSessionCallback?) {
             AppLog.i("AndroidAutoMainService: register(device=${device != null}, session=${session != null})")
@@ -342,15 +398,18 @@ class AndroidAutoMainService : Service() {
         override fun startSession(device: MirroringDevice?, screenMode: Int, audioMode: Int): Int {
             AppLog.i("AndroidAutoMainService: startSession(${device?.name}, transport=${device?.transport}, screen=$screenMode, audio=$audioMode)")
             if (commManager.isConnected || commManager.isBusy) {
-                showProjection()
+                // Like the original: another phone than the one projecting replaces it, the same one
+                // is only brought back to the screen.
+                if (device != null && DeviceSwitchPolicy.shouldSwitch(
+                        device.BTMacAddress, this@AndroidAutoMainService.activeDevice?.BTMacAddress, commManager.isConnected)
+                ) {
+                    switchTo(device)
+                } else {
+                    showProjection()
+                }
                 return 0
             }
-            val mac = device?.BTMacAddress
-            if (device?.transport == MirroringDevice.TRANSPORT_TYPE_WIFI && !mac.isNullOrEmpty()) {
-                startAapService(AapService.ACTION_NATIVE_AA_POKE, mac)
-            } else {
-                startAapService(AapService.ACTION_CHECK_USB)
-            }
+            startDevice(device)
             return 0
         }
 
