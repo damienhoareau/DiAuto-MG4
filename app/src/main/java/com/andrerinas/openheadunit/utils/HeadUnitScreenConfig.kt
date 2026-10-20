@@ -458,6 +458,20 @@ object HeadUnitScreenConfig {
         }
     }
 
+    private var sentMarginW = -1
+    private var sentMarginH = -1
+
+    /** Records the margins the phone was last given (service discovery or a UI config update). */
+    fun markMarginsSent() {
+        sentMarginW = getWidthMargin()
+        sentMarginH = getHeightMargin()
+        AppLog.i("[UI_DEBUG_FIX] Margins given to the phone: w=$sentMarginW, h=$sentMarginH (usable ${screenWidthPx}x${screenHeightPx})")
+    }
+
+    /** True when insets moved after the phone was told its margins, so it is laying out for a stale area. */
+    fun marginsDifferFromSent(): Boolean =
+        sentMarginH >= 0 && (sentMarginW != getWidthMargin() || sentMarginH != getHeightMargin())
+
     fun getUsableWidth(): Int = screenWidthPx
     fun getUsableHeight(): Int = screenHeightPx
 

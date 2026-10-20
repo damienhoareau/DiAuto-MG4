@@ -1325,6 +1325,19 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
             if (::projectionView.isInitialized) {
                 ProjectionViewScaler.updateScale(projectionView as View, videoDecoder.videoWidth, videoDecoder.videoHeight)
             }
+            // Insets that land after the phone was told its margins (the top bar reserve, typically)
+            // would leave it drawing under the bar until something else resent them.
+            if (HeadUnitScreenConfig.marginsDifferFromSent() &&
+                commManager.connectionState.value is CommManager.ConnectionState.TransportStarted
+            ) {
+                AppLog.i("[UI_DEBUG_FIX] Insets changed after the margins were sent; resending")
+                commManager.sendUpdateUiConfigRequest(
+                    HeadUnitScreenConfig.getLeftMargin(),
+                    HeadUnitScreenConfig.getTopMargin(),
+                    HeadUnitScreenConfig.getRightMargin(),
+                    HeadUnitScreenConfig.getBottomMargin()
+                )
+            }
         }
 
         // Workaround for API < 19 (Jelly Bean) where Sticky Immersive Mode doesn't exist.

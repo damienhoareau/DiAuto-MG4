@@ -741,6 +741,7 @@ class CommManager(
     fun sendUpdateUiConfigRequest(left: Int, top: Int, right: Int, bottom: Int) {
         val request = com.andrerinas.openheadunit.aap.protocol.messages.UpdateUiConfigRequest(left, top, right, bottom)
         AppLog.i("[UI_DEBUG_FIX] TX UpdateUiConfigRequest: L=$left T=$top R=$right B=$bottom")
+        com.andrerinas.openheadunit.utils.HeadUnitScreenConfig.markMarginsSent()
         send(request)
         // The trailing gain-only notification does *not* bring a keyframe forward, whatever this
         // comment used to claim. Dropped-frame-keyframe round 4 fired sixteen of these config
