@@ -381,6 +381,14 @@ class AapService : Service(), UsbReceiver.Listener {
     private fun onAaMediaMetadataFromPhone(meta: MediaPlayback.MediaMetaData) {
         if (isDestroying) return
         lastAaMediaMetadata = meta
+        // The car's own launcher reads this whatever the phone-side media session setting is.
+        AaStatusBus.track.value = AaStatusBus.Track(
+            song = if (meta.hasSong()) meta.song else "",
+            album = if (meta.hasAlbum()) meta.album else "",
+            artist = if (meta.hasArtist()) meta.artist else "",
+            durationSeconds = if (meta.hasDurationSeconds()) meta.durationSeconds.protoUint32ToLong().toInt() else 0,
+            albumArt = if (meta.hasAlbumArt()) meta.albumArt.toByteArray() else ByteArray(0),
+        )
         if (!App.provide(this).settings.syncMediaSessionWithAaMetadata) return
         // Avoid showing a previous track's art with new title/artist until decode finishes.
         cachedAaAlbumArtBitmap = null
@@ -392,6 +400,16 @@ class AapService : Service(), UsbReceiver.Listener {
         if (status.hasState()) AaStatusBus.playback.value = AaStatusBus.playbackCode(status.state)
         if (status.hasPlaybackSeconds()) {
             lastAaPlaybackPositionMs = status.playbackSeconds.protoUint32ToLong() * 1000L
+        }
+        if (status.hasState()) {
+            AaStatusBus.playbackInfo.value = AaStatusBus.PlaybackInfo(
+                state = status.state.number,
+                source = if (status.hasMediaSource()) status.mediaSource else "",
+                positionSeconds = if (status.hasPlaybackSeconds()) status.playbackSeconds.protoUint32ToLong().toInt() else 0,
+                shuffle = status.hasShuffle() && status.shuffle,
+                repeat = status.hasRepeat() && status.repeat,
+                repeatOne = status.hasRepeatOne() && status.repeatOne,
+            )
         }
         val isPlayingFromStatus = resolveIsPlayingFromStatus(status)
         lastAaPlaybackIsPlaying = isPlayingFromStatus

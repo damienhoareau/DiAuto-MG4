@@ -20,6 +20,28 @@ object AaStatusBus {
     /** 0 = no call, 1 = incoming, 2 = in a call, 3 = on hold. */
     val call = MutableStateFlow(UNKNOWN)
 
+    /** What the phone is playing, for the car's "now playing" card. The cover is empty when there is none. */
+    class Track(
+        val song: String,
+        val album: String,
+        val artist: String,
+        val durationSeconds: Int,
+        val albumArt: ByteArray,
+    )
+
+    /** [state] is the phone's own numbering: 1 stopped, 2 playing, 3 paused. */
+    data class PlaybackInfo(
+        val state: Int,
+        val source: String,
+        val positionSeconds: Int,
+        val shuffle: Boolean,
+        val repeat: Boolean,
+        val repeatOne: Boolean,
+    )
+
+    val track = MutableStateFlow<Track?>(null)
+    val playbackInfo = MutableStateFlow<PlaybackInfo?>(null)
+
     /**
      * Guidance on/off for the car. The launcher only acts on the exact messages "Navigation Status:Active"
      * (status 1) and "Navigation Status:In-active" (status 0); it ignores any other text.
@@ -35,6 +57,8 @@ object AaStatusBus {
     fun reset() {
         playback.value = UNKNOWN
         call.value = UNKNOWN
+        track.value = null
+        playbackInfo.value = null
     }
 
     fun playbackCode(state: MediaPlayback.MediaPlaybackStatus.State): Int = when (state) {

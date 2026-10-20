@@ -58,6 +58,7 @@ class AndroidAutoMainService : Service() {
     // A session is being ended so that another phone's can start: the car is not sent back to its
     // native screen in between, and a second request for the same phone is not run twice.
     @Volatile private var switching = false
+    private val ruiMedia by lazy { RuiMediaBridge(applicationContext) }
     private var switchJob: Job? = null
     private var switchTarget: String? = null
 
@@ -136,6 +137,9 @@ class AndroidAutoMainService : Service() {
         scope.launch {
             AaStatusBus.call.collect { code -> if (code != AaStatusBus.UNKNOWN) sendCall(code) }
         }
+        ruiMedia.start()
+        scope.launch { AaStatusBus.track.collect { ruiMedia.onTrack(it) } }
+        scope.launch { AaStatusBus.playbackInfo.collect { ruiMedia.onPlayback(it) } }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
@@ -147,6 +151,7 @@ class AndroidAutoMainService : Service() {
 
     override fun onDestroy() {
         try { unregisterReceiver(aroundViewReceiver) } catch (_: Exception) {}
+        ruiMedia.stop()
         scope.cancel()
         deviceCallbacks.kill()
         sessionCallbacks.kill()
@@ -263,6 +268,7 @@ class AndroidAutoMainService : Service() {
                 deviceAnnounced = false
                 sessionAnnounced = false
                 AaStatusBus.reset()
+                ruiMedia.onSessionEnded()
                 ProjectionGate.reset()
                 aroundViewHold = false
             }
