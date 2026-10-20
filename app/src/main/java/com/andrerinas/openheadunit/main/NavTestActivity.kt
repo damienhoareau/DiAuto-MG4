@@ -1,11 +1,5 @@
 package com.andrerinas.openheadunit.main
 
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.LinearGradient
-import android.graphics.Paint
-import android.graphics.Shader
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -13,6 +7,8 @@ import android.text.InputType
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
+import android.view.ViewGroup
+import android.graphics.Color
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.CheckBox
@@ -58,9 +54,6 @@ class NavTestActivity : AppCompatActivity() {
     private lateinit var distance: EditText
     private lateinit var road: EditText
     private lateinit var lanes: EditText
-    private lateinit var imageWidth: EditText
-    private lateinit var imageHeight: EditText
-    private lateinit var imageResult: TextView
     private lateinit var carMode: TextView
     private lateinit var speedLimit: EditText
     private lateinit var speedUnit: EditText
@@ -79,7 +72,6 @@ class NavTestActivity : AppCompatActivity() {
             if (adasAuto.isChecked) handler.postDelayed(this, 1000)
         }
     }
-    private var imageCount = 0
     private lateinit var iconSetChoice: Spinner
     private lateinit var iconSetStatus: TextView
 
@@ -120,10 +112,7 @@ class NavTestActivity : AppCompatActivity() {
 
         column.addView(label("Android Auto maneuver type"))
         maneuver = Spinner(this)
-        maneuver.adapter = ArrayAdapter(
-            this, android.R.layout.simple_spinner_dropdown_item,
-            NavigationType.values().map { "${it.name} (${it.number})" }
-        )
+        maneuver.adapter = whiteAdapter(NavigationType.values().map { "${it.name} (${it.number})" })
         iconView = ManeuverIconView(this)
         val top = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         top.addView(maneuver, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
@@ -150,28 +139,13 @@ class NavTestActivity : AppCompatActivity() {
 
         column.addView(label("Icon set of the cluster (the system's navigation_type)"))
         iconSetChoice = Spinner(this)
-        iconSetChoice.adapter = ArrayAdapter(
-            this, android.R.layout.simple_spinner_dropdown_item,
+        iconSetChoice.adapter = whiteAdapter(
             listOf("Leave the cluster's setting as it is") +
                 ClusterIconSet.values().map { "${it.label} (${it.navigationType})" }
         )
         column.addView(iconSetChoice)
         iconSetStatus = TextView(this)
         column.addView(iconSetStatus)
-
-        column.addView(label("Picture for the adapter (onUpdateImage): size in pixels"))
-        val sizes = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        imageWidth = field("width", "400", true)
-        imageHeight = field("height", "240", true)
-        sizes.addView(imageWidth, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-        sizes.addView(imageHeight, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-        column.addView(sizes)
-        column.addView(Button(this).apply {
-            text = "Send a test picture"
-            setOnClickListener { sendTestImage() }
-        })
-        imageResult = TextView(this)
-        column.addView(imageResult)
 
         column.addView(label("Speed limit through the car's speed assist (test only)"))
         column.addView(TextView(this).apply {
@@ -224,9 +198,7 @@ class NavTestActivity : AppCompatActivity() {
 
         column.addView(label("Driver assistance properties from the car (read only)"))
         adasGroup = Spinner(this)
-        adasGroup.adapter = ArrayAdapter(
-            this, android.R.layout.simple_spinner_dropdown_item, AdasProperties.groups.map { it.title }
-        )
+        adasGroup.adapter = whiteAdapter(AdasProperties.groups.map { it.title })
         column.addView(adasGroup)
         val adasRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         adasRow.addView(Button(this).apply {
@@ -280,8 +252,10 @@ class NavTestActivity : AppCompatActivity() {
         result = TextView(this).apply { textSize = 18f; setPadding(0, pad, 0, 0) }
         column.addView(result)
 
+        whiten(column)
         setContentView(ScrollView(this).apply {
             isFillViewport = true
+            setBackgroundColor(PAGE_BACKGROUND)
             addView(column)
         })
         showIconSet()
@@ -289,6 +263,33 @@ class NavTestActivity : AppCompatActivity() {
         if (!SaicNavigationOutputs.available(this)) {
             result.text = "com.saicmotor.adapterservice not found: no cluster on this device."
         }
+    }
+
+    /** The car's day/night theme can leave dark text on a dark page: the page is dark and its text white. */
+    private fun whiten(view: View) {
+        when (view) {
+            is Button -> return
+            is Spinner -> return
+            is TextView -> {
+                view.setTextColor(Color.WHITE)
+                if (view is EditText) view.setHintTextColor(0xFFB0B0B0.toInt())
+            }
+            is ViewGroup -> for (i in 0 until view.childCount) whiten(view.getChildAt(i))
+        }
+    }
+
+    /** A drop-down list whose lines are white on the dark page, in the list as well as when closed. */
+    private fun whiteAdapter(items: List<String>) = object : ArrayAdapter<String>(
+        this, android.R.layout.simple_spinner_dropdown_item, items
+    ) {
+        override fun getView(position: Int, convertView: View?, parent: ViewGroup): View =
+            (super.getView(position, convertView, parent) as TextView).apply { setTextColor(Color.WHITE) }
+
+        override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View =
+            (super.getDropDownView(position, convertView, parent) as TextView).apply {
+                setTextColor(Color.WHITE)
+                setBackgroundColor(0xFF303030.toInt())
+            }
     }
 
     private fun chooseIconSet(position: Int) {
@@ -323,30 +324,6 @@ class NavTestActivity : AppCompatActivity() {
         val raw = runCatching { android.provider.Settings.Global.getString(contentResolver, ClusterIconSet.SETTING) }.getOrNull()
         iconSetStatus.text = "navigation_type = ${raw ?: "(not set)"} -> icons of the ${ClusterIconSet.fromSetting(raw).label} set. " +
             "The cluster may read it only when its navigation page changes, so the icons can follow a moment later."
-    }
-
-    /** A picture that shows, wherever it ends up, that it is this one: its size, a counter and the time. */
-    private fun testPicture(width: Int, height: Int, number: Int): Bitmap {
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-        paint.shader = LinearGradient(0f, 0f, width.toFloat(), height.toFloat(), 0xFF0D47A1.toInt(), 0xFF00897B.toInt(), Shader.TileMode.CLAMP)
-        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
-        paint.shader = null
-        paint.style = Paint.Style.STROKE
-        paint.color = Color.WHITE
-        paint.strokeWidth = maxOf(2f, height / 60f)
-        canvas.drawRect(paint.strokeWidth, paint.strokeWidth, width - paint.strokeWidth, height - paint.strokeWidth, paint)
-        canvas.drawLine(0f, 0f, width.toFloat(), height.toFloat(), paint)
-        canvas.drawLine(0f, height.toFloat(), width.toFloat(), 0f, paint)
-        paint.style = Paint.Style.FILL
-        paint.textAlign = Paint.Align.CENTER
-        paint.setShadowLayer(4f, 0f, 0f, Color.BLACK)
-        paint.textSize = height / 8f
-        canvas.drawText("DiAuto cluster test", width / 2f, height * 0.38f, paint)
-        canvas.drawText("#$number  " + java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date()), width / 2f, height * 0.58f, paint)
-        canvas.drawText("${width}x$height", width / 2f, height * 0.78f, paint)
-        return bitmap
     }
 
     private fun sendSpeedLimit() {
@@ -385,28 +362,6 @@ class NavTestActivity : AppCompatActivity() {
         SaicNavigationOutputs.start(this)
         speedResult.text = "Sending..."
         SaicNavigationOutputs.sendTestCalls(calls) { outcome -> runOnUiThread { speedResult.text = outcome } }
-    }
-
-    private fun sendTestImage() {
-        val width = imageWidth.text.toString().toIntOrNull() ?: 0
-        val height = imageHeight.text.toString().toIntOrNull() ?: 0
-        if (width < 16 || height < 16) {
-            imageResult.text = "Give a width and a height of at least 16."
-            return
-        }
-        // A call carries about a megabyte for everything: stay well under it.
-        if (width.toLong() * height * 4 > MAX_PICTURE_BYTES) {
-            imageResult.text = "Too big for one call: ${width}x$height is ${width.toLong() * height * 4 / 1000} kB, " +
-                "the limit here is ${MAX_PICTURE_BYTES / 1000} kB."
-            return
-        }
-        SaicNavigationOutputs.start(this)
-        val bitmap = testPicture(width, height, ++imageCount)
-        imageResult.text = "Sending picture #$imageCount..."
-        SaicNavigationOutputs.sendImage(bitmap) { outcome ->
-            bitmap.recycle()
-            runOnUiThread { imageResult.text = "Picture #$imageCount: $outcome" }
-        }
     }
 
     private fun updatePreview() {
@@ -450,7 +405,7 @@ class NavTestActivity : AppCompatActivity() {
     }
 
     private companion object {
-        const val MAX_PICTURE_BYTES = 800_000L
+        const val PAGE_BACKGROUND = 0xFF121212.toInt()
     }
 
     override fun onDestroy() {

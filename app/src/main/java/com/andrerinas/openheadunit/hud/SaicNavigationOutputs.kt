@@ -4,7 +4,6 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.graphics.Bitmap
 import android.os.IBinder
 import android.os.Parcel
 import com.andrerinas.openheadunit.utils.AppLog
@@ -36,10 +35,6 @@ internal sealed class SaicCall {
     data class IsaSpeedUnit(val unit: Int) : SaicCall()
     data class IsaSelfDiag(val coverage: Int, val positioned: Int, val confidence: Int) : SaicCall()
 
-    /** A picture for the adapter to pass to its listeners (onUpdateImage). Only the test screen sends one. */
-    class MapImage(val bitmap: Bitmap) : SaicCall() {
-        override fun toString() = "MapImage(${bitmap.width}x${bitmap.height})"
-    }
     data class RemainingDistance(val meters: Int) : SaicCall()
     data class RemainingTime(val minutes: Int) : SaicCall()
 }
@@ -121,7 +116,6 @@ internal object SaicNavigationOutputs {
     private const val TX_GUIDE_INFOS = 30
     private const val TX_ROAD_INFO = 31
     private const val TX_LANE_INFO = 48
-    private const val TX_UPDATE_IMAGE = 96
     private const val TX_GET_CAR_MODE = 6
     private const val TX_ISA_SELF_DIAG = 64
     private const val TX_ISA_SPEED_LIMIT = 71
@@ -159,23 +153,6 @@ internal object SaicNavigationOutputs {
     }
 
     fun update(value: SaicGuidance?) { latest.set(value) }
-
-    /**
-     * Test only: hands a picture to the adapter, which passes it to the listeners that asked for
-     * pictures. [done] says what happened, once; it runs on the sending thread. A refusal here does
-     * not count against the guidance calls.
-     */
-    fun sendImage(bitmap: Bitmap, done: (String) -> Unit) {
-        executor.execute {
-            val target = binder?.takeIf { it.isBinderAlive && !disabled }
-            if (target == null) {
-                done("the map adapter is not connected")
-                return@execute
-            }
-            val size = "${bitmap.width}x${bitmap.height}"
-            done(if (send(target, SaicCall.MapImage(bitmap))) "the adapter took the picture ($size)" else "the adapter refused the picture ($size)")
-        }
-    }
 
     /**
      * Test only: sends [calls] to the adapter in order and says what each one got. A refusal does not
@@ -331,8 +308,6 @@ internal object SaicNavigationOutputs {
                 code = TX_ISA_SELF_DIAG
                 write = { it.writeInt(call.coverage); it.writeInt(call.positioned); it.writeInt(call.confidence) }
             }
-            // A parcelable argument: a non-null marker, then the bitmap.
-            is SaicCall.MapImage -> { code = TX_UPDATE_IMAGE; write = { it.writeInt(1); call.bitmap.writeToParcel(it, 0) } }
             is SaicCall.RemainingDistance -> { code = TX_REMAINING_DISTANCE; write = { it.writeInt(call.meters) } }
             is SaicCall.RemainingTime -> { code = TX_REMAINING_TIME; write = { it.writeInt(call.minutes) } }
         }
