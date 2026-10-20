@@ -96,11 +96,15 @@ internal object SaicNavigationMapper {
         val legacy = snapshot.nextTurnDetail?.payload
         val modern = step?.takeIf { it.hasManeuver() && it.maneuver.hasType() }?.maneuver
         // Google Maps sends only the older event, and for a roundabout it carries the exit number and angle.
-        val legacyRoundabout = modern == null && legacy?.takeIf { it.hasNextTurn() }?.nextTurn == NextEvent.ROUNDABOUT_ENTER_AND_EXIT
+        val legacyEvent = if (modern == null) legacy?.takeIf { it.hasNextTurn() }?.nextTurn else null
+        val legacyRoundabout = legacyEvent == NextEvent.ROUNDABOUT_ENTER_AND_EXIT
+        // Waze sends a bare "enter" with no usable exit between its other roundabout events; with
+        // nothing to draw the cluster went blank, so it gets the generic roundabout icon.
+        val legacyRoundaboutEntry = legacyEvent == NextEvent.ROUNDABOUT_ENTER
         val type: NavigationType = modern?.type ?: legacy?.let {
             val side = if (it.hasSide()) it.side else Side.UNSPECIFIED
             when {
-                legacyRoundabout -> legacyRoundaboutType(side, rightHandDrive)
+                legacyRoundabout || legacyRoundaboutEntry -> legacyRoundaboutType(side, rightHandDrive)
                 it.hasNextTurn() -> legacyType(it.nextTurn, side)
                 // The arrival: Maps sends no maneuver, only the side the destination lies on.
                 else -> destinationType(side)

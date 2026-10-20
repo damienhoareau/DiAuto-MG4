@@ -332,6 +332,13 @@ class SaicNavigationOutputsTest {
     }
 
     @Test
+    fun aBareRoundaboutEntryOfTheOlderEventShowsTheGenericRoundabout() {
+        // Waze: the exit fields on an entry are stale or empty, so they must not pick an exit.
+        assertEquals(ClusterIdTelenav.ROUND_ABOUT_3, legacyFrame(NextEvent.ROUNDABOUT_ENTER, Side.RIGHT, 2, 0)?.icon)
+        assertEquals(ClusterIdTelenav.ROUND_ABOUT_3, legacyFrame(NextEvent.ROUNDABOUT_ENTER, Side.RIGHT, 1, 90)?.icon)
+    }
+
+    @Test
     fun aLeftTrafficRoundaboutOfTheOlderEventGoesTheOtherWay() {
         assertEquals(ClusterIdTelenav.ROUND_ABOUT_5, legacyFrame(NextEvent.ROUNDABOUT_ENTER_AND_EXIT, Side.LEFT, 2, 90)?.icon)
         assertEquals(ClusterIdTelenav.ROUND_ABOUT_5, legacyFrame(NextEvent.ROUNDABOUT_ENTER_AND_EXIT, Side.UNSPECIFIED, 2, 90, rightHandDrive = true)?.icon)
