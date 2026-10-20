@@ -100,7 +100,7 @@ class AndroidAutoMainService : Service() {
             if (!commManager.isConnected) return
             // Like the stock app: back to the projection only if it was on screen when the camera came.
             if (projectionBeforeAroundView) {
-                showProjection()
+                showProjection("the surround view ended")
                 commManager.send(VideoFocusEvent(gain = true, unsolicited = true))
             }
         }
@@ -320,7 +320,8 @@ class AndroidAutoMainService : Service() {
         }
     }
 
-    private fun showProjection() {
+    private fun showProjection(reason: String) {
+        AppLog.i("AndroidAutoMainService: bringing the projection forward ($reason)")
         try {
             startActivity(AapProjectionActivity.intent(this))
         } catch (e: Exception) {
@@ -411,7 +412,7 @@ class AndroidAutoMainService : Service() {
                 ) {
                     switchTo(device)
                 } else {
-                    showProjection()
+                    showProjection("startSession for the phone already projecting")
                 }
                 return 0
             }
@@ -425,10 +426,13 @@ class AndroidAutoMainService : Service() {
             return 0
         }
 
-        override fun pauseSession(device: MirroringDevice?): Int = 0
+        override fun pauseSession(device: MirroringDevice?): Int {
+            AppLog.i("AndroidAutoMainService: pauseSession")
+            return 0
+        }
 
         override fun resumeSession(device: MirroringDevice?): Int {
-            showProjection()
+            showProjection("resumeSession")
             return 0
         }
 
@@ -442,7 +446,7 @@ class AndroidAutoMainService : Service() {
 
         override fun launchApp(app: Int): Int {
             // Whatever the app, the first thing the car wants is the projection on screen.
-            showProjection()
+            showProjection("launchApp($app)")
             return 0
         }
 
@@ -488,7 +492,7 @@ class AndroidAutoMainService : Service() {
             if (disable) {
                 commManager.send(VideoFocusEvent(gain = false, unsolicited = true))
             } else {
-                showProjection()
+                showProjection("disableVideoFocus(false)")
                 commManager.send(VideoFocusEvent(gain = true, unsolicited = true))
             }
         }
