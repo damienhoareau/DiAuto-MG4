@@ -3,7 +3,9 @@ package com.andrerinas.openheadunit.vehicle
 import android.os.SystemClock
 import com.andrerinas.openheadunit.App
 import com.andrerinas.openheadunit.aap.AapTransport
+import com.andrerinas.openheadunit.aap.protocol.messages.AccelerometerEvent
 import com.andrerinas.openheadunit.aap.protocol.messages.CarSpeedEvent
+import com.andrerinas.openheadunit.aap.protocol.messages.GyroscopeEvent
 import com.andrerinas.openheadunit.aap.protocol.messages.CompassEvent
 import com.andrerinas.openheadunit.aap.protocol.messages.GearEvent
 import com.andrerinas.openheadunit.aap.protocol.messages.OutsideTemperatureEvent
@@ -39,7 +41,15 @@ object Mg4DrivingSensorReporter {
         Sensors.SensorType.PARKING_BRAKE_VALUE,
         Sensors.SensorType.ENVIRONMENT_VALUE,
         Sensors.SensorType.COMPASS_VALUE,
+        Sensors.SensorType.ACCEL_VALUE,
+        Sensors.SensorType.GYRO_VALUE,
     )
+
+    private const val MOTION_MIN_INTERVAL_MS = 100L
+    @Volatile private var lastAccelMs = 0L
+    @Volatile private var lastGyroMs = 0L
+    @Volatile private var motionLogMs = 0L
+    private var motionListener: android.hardware.SensorEventListener? = null
 
     private const val COMPASS_MIN_INTERVAL_MS = 200L
     private const val PUSH_LOG_EVERY_MS = 30_000L
@@ -78,6 +88,7 @@ object Mg4DrivingSensorReporter {
     fun unbind() {
         transportRef.set(null)
         requested.clear()
+        stopMotion()
         tickFuture?.cancel(false)
         tickFuture = null
         synchronized(lastSent) {
@@ -125,9 +136,71 @@ object Mg4DrivingSensorReporter {
         }
     }
 
+    /** Listens to the head unit's accelerometer and gyroscope while the phone has started either. */
+    @Synchronized
+    private fun startMotion() {
+        if (motionListener != null) return
+        val app = App.instance ?: return
+        try {
+            val manager = app.getSystemService(android.content.Context.SENSOR_SERVICE) as android.hardware.SensorManager
+            val listener = object : android.hardware.SensorEventListener {
+                override fun onAccuracyChanged(sensor: android.hardware.Sensor?, accuracy: Int) {}
+                override fun onSensorChanged(event: android.hardware.SensorEvent) = onMotion(event)
+            }
+            var any = false
+            for (kind in intArrayOf(android.hardware.Sensor.TYPE_ACCELEROMETER, android.hardware.Sensor.TYPE_GYROSCOPE)) {
+                val sensor = manager.getDefaultSensor(kind) ?: continue
+                any = manager.registerListener(listener, sensor, 100_000) || any
+            }
+            if (any) motionListener = listener
+            AppLog.i("$TAG motion sensors listening=$any")
+        } catch (error: Throwable) {
+            AppLog.w("$TAG motion sensors failed: ${error.message}")
+        }
+    }
+
+    @Synchronized
+    private fun stopMotion() {
+        val listener = motionListener ?: return
+        motionListener = null
+        try {
+            val app = App.instance ?: return
+            (app.getSystemService(android.content.Context.SENSOR_SERVICE) as android.hardware.SensorManager)
+                .unregisterListener(listener)
+        } catch (_: Throwable) {
+        }
+    }
+
+    private fun onMotion(event: android.hardware.SensorEvent) {
+        val now = SystemClock.elapsedRealtime()
+        val v = event.values
+        if (v.size < 3) return
+        val x = (v[0] * 1000).roundToInt()
+        val y = (v[1] * 1000).roundToInt()
+        val z = (v[2] * 1000).roundToInt()
+        val transport = transportRef.get() ?: return
+        if (event.sensor.type == android.hardware.Sensor.TYPE_ACCELEROMETER) {
+            if (Sensors.SensorType.ACCEL_VALUE !in requested || now - lastAccelMs < MOTION_MIN_INTERVAL_MS) return
+            lastAccelMs = now
+            transport.send(AccelerometerEvent(x, y, z))
+        } else {
+            if (Sensors.SensorType.GYRO_VALUE !in requested || now - lastGyroMs < MOTION_MIN_INTERVAL_MS) return
+            lastGyroMs = now
+            transport.send(GyroscopeEvent(x, y, z))
+        }
+        if (now - motionLogMs >= PUSH_LOG_EVERY_MS) {
+            motionLogMs = now
+            AppLog.i("$TAG motion sensor tx type=${event.sensor.type} x=$x y=$y z=$z")
+        }
+    }
+
     fun onSensorStart(type: Int) {
         if (type !in TYPES) return
         requested.add(type)
+        if (type == Sensors.SensorType.ACCEL_VALUE || type == Sensors.SensorType.GYRO_VALUE) {
+            executor.execute { startMotion() }
+            return
+        }
         AppLog.i("$TAG phone requested driving sensor type=$type")
         executor.execute { sendIfDue(type, force = true) }
     }

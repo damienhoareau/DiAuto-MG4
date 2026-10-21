@@ -45,5 +45,27 @@ class CompassEvent(bearingE6: Int, pitchE6: Int, rollE6: Int) : SensorEvent(
     },
 )
 
+/** Acceleration along the three axes, in thousandths of a metre per second squared. */
+class AccelerometerEvent(xE3: Int, yE3: Int, zE3: Int) : SensorEvent(
+    Sensors.SensorType.ACCEL_VALUE,
+    batch {
+        it.addAccelData(
+            Sensors.SensorBatch.AccelerometerData.newBuilder()
+                .setAccelerationXE3(xE3).setAccelerationYE3(yE3).setAccelerationZE3(zE3)
+        )
+    },
+)
+
+/** Rotation speed around the three axes, in thousandths of a radian per second. */
+class GyroscopeEvent(xE3: Int, yE3: Int, zE3: Int) : SensorEvent(
+    Sensors.SensorType.GYRO_VALUE,
+    batch {
+        it.addGyroData(
+            Sensors.SensorBatch.GyroscopeData.newBuilder()
+                .setRotationSpeedXE3(xE3).setRotationSpeedYE3(yE3).setRotationSpeedZE3(zE3)
+        )
+    },
+)
+
 private fun batch(fill: (Sensors.SensorBatch.Builder) -> Unit): Message =
     Sensors.SensorBatch.newBuilder().also(fill).build()
