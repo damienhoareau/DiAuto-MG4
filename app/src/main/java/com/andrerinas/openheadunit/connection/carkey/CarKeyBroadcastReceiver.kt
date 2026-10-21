@@ -22,8 +22,6 @@ class CarKeyBroadcastReceiver : BroadcastReceiver(), CarKeyReceiver {
         private const val EXTRA_SAIC_KEYCODE = "android.intent.extra.hardkey.keycode"
         private const val EXTRA_SAIC_DOWN = "android.intent.extra.hardkey.down"
         private const val EXTRA_SAIC_LONGPRESS = "android.intent.extra.hardkey.longpress"
-        /** Observed on MG4: pause/play paddle — not in [PhysicalButtonEventDecoder]. */
-        private const val SAIC_KEYCODE_PLAY_PAUSE = 301
 
         val ACTIONS = arrayOf(
             "android.intent.action.MEDIA_BUTTON",
@@ -90,6 +88,13 @@ class CarKeyBroadcastReceiver : BroadcastReceiver(), CarKeyReceiver {
             putExtra("action", action)
             intent.extras?.let { putExtras(it) }
         })
+
+        // The car's steering-wheel bus is left to the car: its media stack turns the keys into track
+        // changes for the phone, as for the stock app. Only the voice key is taken here.
+        if (action == ACTION_SAIC_HARDKEY) {
+            handleSaicHardkey(context, intent)
+            return
+        }
 
         // Try to abort broadcast to prevent other apps (like built-in radio) from reacting
         if (isOrderedBroadcast) {
@@ -163,8 +168,9 @@ class CarKeyBroadcastReceiver : BroadcastReceiver(), CarKeyReceiver {
     }
 
     /**
-     * MG4 / SAIC steering hardkeys. Hybrid BT music uses AVRCP so these are optional there;
-     * Wi‑Fi AA music needs them forwarded to Android Auto or next/prev do nothing.
+     * MG4 / SAIC steering hardkeys. Next, previous, play/pause and mute are not forwarded to Android
+     * Auto from here, and the broadcast is not aborted: the car's media stack gets them and drives the
+     * phone through the media session, as for the stock app. Only the voice key is handled.
      */
     private fun handleSaicHardkey(context: Context, intent: Intent) {
         var keyCode = intent.getIntExtra(EXTRA_SAIC_KEYCODE, -1)
@@ -175,34 +181,10 @@ class CarKeyBroadcastReceiver : BroadcastReceiver(), CarKeyReceiver {
         val isDown = intent.getBooleanExtra(EXTRA_SAIC_DOWN, false)
         val isLong = intent.getBooleanExtra(EXTRA_SAIC_LONGPRESS, false)
 
-        // Play/pause paddle is outside the R69 decoder table.
-        if (keyCode == SAIC_KEYCODE_PLAY_PAUSE) {
-            if (!isDown) handleClick(context, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)
-            return
-        }
-
         val event = saicDecoder.accept(keyCode, isDown, isLong) ?: return
-        val androidCode = when (event.button) {
-            PhysicalButtonEventDecoder.Button.MEDIA_NEXT -> KeyEvent.KEYCODE_MEDIA_NEXT
-            PhysicalButtonEventDecoder.Button.MEDIA_PREVIOUS -> KeyEvent.KEYCODE_MEDIA_PREVIOUS
-            PhysicalButtonEventDecoder.Button.CENTER -> KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
-            PhysicalButtonEventDecoder.Button.MUTE -> KeyEvent.KEYCODE_VOLUME_MUTE
-            PhysicalButtonEventDecoder.Button.ASSISTANT -> {
-                if (event.press != PhysicalButtonEventDecoder.Press.LONG) {
-                    toggleVoiceAssistant(context)
-                }
-                return
-            }
-            // Volume / source / phone stay with the car stack.
-            else -> return
-        }
-        when (event.press) {
-            PhysicalButtonEventDecoder.Press.SHORT,
-            PhysicalButtonEventDecoder.Press.DOUBLE -> handleClick(context, androidCode)
-            PhysicalButtonEventDecoder.Press.LONG -> {
-                // Long media next/prev: still a single skip (AA has no hold-skip via this path).
-                handleClick(context, androidCode)
-            }
+        if (event.button == PhysicalButtonEventDecoder.Button.ASSISTANT &&
+            event.press != PhysicalButtonEventDecoder.Press.LONG) {
+            toggleVoiceAssistant(context)
         }
     }
 }

@@ -1814,32 +1814,11 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
     }
 
 
-    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        val action = event.action
-        if (action != KeyEvent.ACTION_DOWN && action != KeyEvent.ACTION_UP) {
-            return super.dispatchKeyEvent(event)
-        }
-
-        // 1. Let the system handle volume keys and unmapped back keys.
-        // If Back was explicitly learned in Keymap and transport is running,
-        // route it through CommManager so it can be remapped and sent to Android Auto.
-        if (commManager.connectionState.value is CommManager.ConnectionState.TransportStarted &&
-            ProjectionKeyPolicy.shouldRouteBackKeyToProjection(cachedKeyCodes, event.keyCode)) {
-            commManager.sendKey(event.keyCode, action == KeyEvent.ACTION_DOWN, event.downTime, "projection")
-            return true
-        }
-
-        if (event.keyCode == KeyEvent.KEYCODE_BACK ||
-            event.keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
-            event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN ||
-            event.keyCode == KeyEvent.KEYCODE_VOLUME_MUTE) {
-            return super.dispatchKeyEvent(event)
-        }
-
-        // 2. Funnel all other keys to CommManager
-        commManager.sendKey(event.keyCode, event.action == KeyEvent.ACTION_DOWN, event.downTime, "projection")
-        return true
-    }
+    /**
+     * The keys are left alone, as in the stock app: the steering wheel's next and previous reach the
+     * phone through the car's media stack. Forwarding them here made Android Auto show a focus ring.
+     */
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean = super.dispatchKeyEvent(event)
 
     private fun onKeyEvent(keyCode: Int, isPress: Boolean) {
         // Broadcasts (e.g. from CarKeyReceiver) still use this path.
