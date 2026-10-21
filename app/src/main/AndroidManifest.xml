@@ -201,6 +201,7 @@
         <activity
             android:name=".main.NavTestActivity"
             android:label="DiAuto Nav Test"
+            android:taskAffinity="com.allgo.app.androidauto.navtest"
             android:exported="true"
             android:windowSoftInputMode="stateHidden|adjustResize"
             android:theme="@style/AppTheme">
