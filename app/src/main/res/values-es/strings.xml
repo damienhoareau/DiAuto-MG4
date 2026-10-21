@@ -856,14 +856,6 @@
     <string name="media_key_routing_auto_hint">Deja de enviarlos cuando la unidad tiene una conexión multimedia Bluetooth con el teléfono, ya que esta ejecuta la acción. Elígelo si una pulsación salta dos pistas y el teléfono está emparejado con esta unidad.</string>
     <string name="media_key_routing_never_hint">Nunca los envía y deja los botones a Bluetooth. Elígelo si una pulsación salta dos pistas y el teléfono está emparejado con el sistema original del coche, no con esta unidad; el modo automático no detecta esa conexión.</string>
     <string name="media_key_routing_hint_common">Solo afecta a los botones multimedia. Los mandos giratorios, la cruceta, Atrás e Intro siempre llegan a Android Auto.</string>
-    <string name="playback_focus_mode">Pausar otro audio durante la reproducción</string>
-    <string name="playback_focus_mode_auto">Automático</string>
-    <string name="playback_focus_mode_always">Siempre</string>
-    <string name="playback_focus_mode_never">Nunca</string>
-    <string name="playback_focus_mode_auto_hint">Pausa otros reproductores de la unidad, como la radio, mientras suena Android Auto, excepto si hay un enlace de audio Bluetooth: suele ser el mismo teléfono y pausarlo detendría el sonido de Android Auto.</string>
-    <string name="playback_focus_mode_always_hint">Pausa siempre otro audio mientras suena Android Auto. Si la música se detiene tras uno o dos segundos al activar Bluetooth, vuelve a Automático.</string>
-    <string name="playback_focus_mode_never_hint">Nunca modifica el foco de audio del sistema. Otro audio puede seguir sonando sobre Android Auto.</string>
-    <string name="playback_focus_mode_static_hint">Con el foco de audio estático activado, se aplica desde que se conecta el teléfono durante toda la sesión, no solo mientras suena audio.</string>
     <string name="github_issues_url">https://github.com/shihabal3amri/DiAuto/issues</string>
     <string name="support_rules_english_title">All posts in English</string>
     <string name="vehicle_make_hint">Una marca de coche muestra su logotipo en el botón de salida de Android Auto, pero oculta las aplicaciones instaladas fuera de Play Store. Vuelve a Google para mostrarlas.</string>

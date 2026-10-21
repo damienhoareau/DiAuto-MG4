@@ -846,14 +846,6 @@
     <string name="media_key_routing_auto_hint">يتوقف إرسالها عند وجود اتصال وسائط Bluetooth بين وحدة القيادة والهاتف، لأن ذلك الاتصال ينفذ الأمر بالفعل. اختره إذا تخطت الضغطة مقطعين وكان هاتفك مقترناً بهذه الوحدة.</string>
     <string name="media_key_routing_never_hint">لا يرسلها أبداً ويترك الأزرار لـ Bluetooth. اختره إذا تخطت الضغطة مقطعين وكان الهاتف مقترناً بنظام السيارة الأصلي بدلاً من هذه الوحدة؛ لا يستطيع الوضع التلقائي اكتشاف ذلك الاتصال.</string>
     <string name="media_key_routing_hint_common">تتأثر أزرار الوسائط فقط. تصل أدوات التحكم الدوارة وأزرار الاتجاهات والرجوع والإدخال دائماً إلى Android Auto.</string>
-    <string name="playback_focus_mode">إيقاف الأصوات الأخرى أثناء التشغيل</string>
-    <string name="playback_focus_mode_auto">تلقائي</string>
-    <string name="playback_focus_mode_always">دائماً</string>
-    <string name="playback_focus_mode_never">أبداً</string>
-    <string name="playback_focus_mode_auto_hint">يوقف المشغلات الأخرى في وحدة القيادة، مثل الراديو، أثناء تشغيل صوت Android Auto، إلا عند اتصال صوت Bluetooth؛ فعادةً يكون من الهاتف نفسه، وإيقافه سيوقف صوت Android Auto أيضاً.</string>
-    <string name="playback_focus_mode_always_hint">يوقف الأصوات الأخرى دائماً أثناء تشغيل Android Auto. إذا توقفت الموسيقى بعد ثانية أو ثانيتين عند تفعيل Bluetooth، عُد إلى الوضع التلقائي.</string>
-    <string name="playback_focus_mode_never_hint">لا يغير تركيز صوت النظام أبداً. قد تستمر الأصوات الأخرى فوق صوت Android Auto.</string>
-    <string name="playback_focus_mode_static_hint">عند تفعيل تركيز الصوت الثابت، يسري هذا منذ اتصال الهاتف وطوال الجلسة، وليس أثناء تشغيل الصوت فقط.</string>
     <string name="github_issues_url">https://github.com/shihabal3amri/DiAuto/issues</string>
     <string name="support_rules_english_title">All posts in English</string>
     <string name="vehicle_make_hint">تعرض علامة السيارة شعارها على زر الخروج في Android Auto، لكنها تخفي التطبيقات المثبتة من خارج Play Store. أعد اختيار Google لإظهار تلك التطبيقات.</string>

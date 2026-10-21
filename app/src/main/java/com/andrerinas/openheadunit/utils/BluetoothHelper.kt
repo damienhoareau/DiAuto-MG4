@@ -205,17 +205,6 @@ object BluetoothHelper {
     }
 
     /**
-     * Whether a Bluetooth media link to this head unit is up, in either role.
-     *
-     * Used to decide against taking system audio focus for Android Auto playback: when the phone is
-     * also our A2DP source, the sink service answers our focus grab with an AVRCP pause aimed at
-     * that same phone, which stops the stream we are trying to play. Callers treat an unknown
-     * answer as "a link may be up", so this returns true when the state cannot be read — a car
-     * radio playing over AA is an annoyance, silence is a broken app.
-     */
-    fun isA2dpMediaLinkActive(context: Context): Boolean = a2dpMediaLinkState(context) ?: true
-
-    /**
      * Best-effort: drop A2DP / A2DP_SINK / AVRCP so Wi‑Fi AA MEDIA is not mixed with car
      * Bluetooth Music. Leaves HFP alone (calls) and does not disable the BT radio.
      *
@@ -304,7 +293,7 @@ object BluetoothHelper {
     }
 
     /**
-     * The same probe as [isA2dpMediaLinkActive], but saying so when it does not know: null means no
+     * The Bluetooth media link probe, saying so when it does not know: null means no
      * profile state could be read at all, rather than "no link".
      *
      * The two callers want opposite things from that answer. Audio focus treats unknown as a link

@@ -847,14 +847,6 @@
     <string name="media_key_routing_auto_hint">车机与手机存在蓝牙媒体连接时停止发送，因为该连接已执行相同操作。如果按一次会跳过两首曲目，且手机与此车机配对，请选择此项。</string>
     <string name="media_key_routing_never_hint">从不发送媒体按键，由蓝牙处理。如果按一次会跳过两首曲目，且手机与车辆原装系统而非此车机配对，请选择此项；自动模式无法检测这种连接。</string>
     <string name="media_key_routing_hint_common">仅影响媒体按键。旋钮、方向键、返回和确认始终发送到 Android Auto。</string>
-    <string name="playback_focus_mode">播放时暂停其他音频</string>
-    <string name="playback_focus_mode_auto">自动</string>
-    <string name="playback_focus_mode_always">始终</string>
-    <string name="playback_focus_mode_never">从不</string>
-    <string name="playback_focus_mode_auto_hint">Android Auto 播放音频时暂停车机上的其他播放器（如收音机），但蓝牙音频连接存在时不暂停，因为通常来自同一部手机，暂停它会导致 Android Auto 自身静音。</string>
-    <string name="playback_focus_mode_always_hint">Android Auto 播放时始终暂停其他音频。如果开启蓝牙后音乐在一两秒内停止，请切回自动模式。</string>
-    <string name="playback_focus_mode_never_hint">从不更改系统音频焦点。车机上的其他音频可能与 Android Auto 同时播放。</string>
-    <string name="playback_focus_mode_static_hint">启用固定音频焦点后，此设置从手机连接起持续整个会话，而非仅在播放音频时生效。</string>
     <string name="github_issues_url">https://github.com/shihabal3amri/DiAuto/issues</string>
     <string name="support_rules_english_title">All posts in English</string>
     <string name="vehicle_make_hint">真实汽车品牌会在 Android Auto 退出按钮上显示品牌标志，但会隐藏 Play 商店以外安装的应用。切回 Google 可重新显示这些应用。</string>

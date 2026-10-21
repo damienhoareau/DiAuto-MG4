@@ -847,14 +847,6 @@
     <string name="media_key_routing_auto_hint">Не передавать кнопки при наличии Bluetooth-медиасоединения с телефоном: оно уже выполняет команду. Выберите, если одно нажатие переключает два трека и телефон сопряжён с этой головной системой.</string>
     <string name="media_key_routing_never_hint">Не передавать медиакнопки, оставив их Bluetooth. Выберите, если одно нажатие переключает два трека, а телефон сопряжён со штатной системой автомобиля, а не с этой головной системой: автоматический режим не видит такое соединение.</string>
     <string name="media_key_routing_hint_common">Влияет только на медиакнопки. Поворотные контроллеры, крестовина, «Назад» и «Ввод» всегда передаются в Android Auto.</string>
-    <string name="playback_focus_mode">Приостанавливать другой звук при воспроизведении</string>
-    <string name="playback_focus_mode_auto">Автоматически</string>
-    <string name="playback_focus_mode_always">Всегда</string>
-    <string name="playback_focus_mode_never">Никогда</string>
-    <string name="playback_focus_mode_auto_hint">Приостанавливать другие проигрыватели, например радио, во время звука Android Auto, кроме случаев с активным Bluetooth-аудиосоединением: обычно это тот же телефон, и его остановка отключит звук Android Auto.</string>
-    <string name="playback_focus_mode_always_hint">Всегда приостанавливать другой звук во время Android Auto. Если при включённом Bluetooth музыка останавливается через секунду-две, вернитесь к автоматическому режиму.</string>
-    <string name="playback_focus_mode_never_hint">Не изменять аудиофокус системы. Другой звук может продолжать играть поверх Android Auto.</string>
-    <string name="playback_focus_mode_static_hint">При статическом аудиофокусе это действует с момента подключения телефона всю сессию, а не только во время воспроизведения.</string>
     <string name="github_issues_url">https://github.com/shihabal3amri/DiAuto/issues</string>
     <string name="support_rules_english_title">All posts in English</string>
     <string name="vehicle_make_hint">Марка автомобиля показывает её логотип на кнопке выхода Android Auto, но скрывает приложения не из Play Store. Верните Google, чтобы они снова появились.</string>

@@ -42,8 +42,7 @@ class MediaKeyRoutingPolicyTest {
 
     @Test
     fun `auto forwards when the bluetooth state cannot be read`() {
-        // The opposite resolution to PlaybackFocusPolicy's unknown case, on purpose: a doubled skip
-        // is an annoyance, media buttons that silently do nothing read as a broken app.
+        // A doubled skip is an annoyance, media buttons that silently do nothing read as a broken app.
         assertTrue(forward(Mode.AUTO, bt = null))
     }
 

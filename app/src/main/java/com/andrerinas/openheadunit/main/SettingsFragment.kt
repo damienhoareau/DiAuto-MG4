@@ -26,7 +26,6 @@ import com.andrerinas.openheadunit.App
 import com.andrerinas.openheadunit.R
 import com.andrerinas.openheadunit.aap.AapService
 import com.andrerinas.openheadunit.aap.MediaKeyRoutingPolicy
-import com.andrerinas.openheadunit.aap.PlaybackFocusPolicy
 import com.andrerinas.openheadunit.aap.VideoFaultInjector
 import com.andrerinas.openheadunit.decoder.DeviceMemoryProfile
 import com.andrerinas.openheadunit.main.settings.SettingItem
@@ -101,7 +100,6 @@ class SettingsFragment : Fragment() {
     private var pendingBluetoothAddress: String? = null
     private var pendingEnableAudioSink: Boolean? = null
     private var pendingStaticAudioFocus: Boolean? = null
-    private var pendingPlaybackFocusMode: PlaybackFocusPolicy.Mode? = null
     private var pendingSeparateAudioStreams: Boolean? = null
     private var pendingUseAacAudio: Boolean? = null
     private var pendingAttachHwDspEqualizer: Boolean? = null
@@ -218,7 +216,6 @@ class SettingsFragment : Fragment() {
         pendingBluetoothAddress = settings.bluetoothAddress
         pendingEnableAudioSink = settings.enableAudioSink
         pendingStaticAudioFocus = settings.staticAudioFocus
-        pendingPlaybackFocusMode = settings.playbackFocusMode
         pendingSeparateAudioStreams = settings.separateAudioStreams
         pendingUseAacAudio = settings.useAacAudio
         pendingAttachHwDspEqualizer = settings.attachHwDspEqualizer
@@ -348,7 +345,6 @@ class SettingsFragment : Fragment() {
         pendingBluetoothAddress = settings.bluetoothAddress
         pendingEnableAudioSink = settings.enableAudioSink
         pendingStaticAudioFocus = settings.staticAudioFocus
-        pendingPlaybackFocusMode = settings.playbackFocusMode
         pendingSeparateAudioStreams = settings.separateAudioStreams
         pendingUseAacAudio = settings.useAacAudio
         pendingAttachHwDspEqualizer = settings.attachHwDspEqualizer
@@ -463,7 +459,6 @@ class SettingsFragment : Fragment() {
         pendingBluetoothAddress?.let { settings.bluetoothAddress = it }
         pendingEnableAudioSink?.let { settings.enableAudioSink = it }
         pendingStaticAudioFocus?.let { settings.staticAudioFocus = it }
-        pendingPlaybackFocusMode?.let { settings.playbackFocusMode = it }
         pendingSeparateAudioStreams?.let { settings.separateAudioStreams = it }
         pendingUseAacAudio?.let { settings.useAacAudio = it }
         pendingAttachHwDspEqualizer?.let { settings.attachHwDspEqualizer = it }
@@ -576,7 +571,6 @@ class SettingsFragment : Fragment() {
                         pendingBluetoothAddress != settings.bluetoothAddress ||
                         pendingEnableAudioSink != settings.enableAudioSink ||
                         pendingStaticAudioFocus != settings.staticAudioFocus ||
-                        pendingPlaybackFocusMode != settings.playbackFocusMode ||
                         pendingSeparateAudioStreams != settings.separateAudioStreams ||
                         pendingUseAacAudio != settings.useAacAudio ||
                         pendingAttachHwDspEqualizer != settings.attachHwDspEqualizer ||
@@ -623,7 +617,6 @@ class SettingsFragment : Fragment() {
                           pendingEnableRotary != settings.enableRotary ||
                         pendingEnableAudioSink != settings.enableAudioSink ||
                           pendingStaticAudioFocus != settings.staticAudioFocus ||
-                          pendingPlaybackFocusMode != settings.playbackFocusMode ||
                           pendingSeparateAudioStreams != settings.separateAudioStreams ||
                           pendingUseAacAudio != settings.useAacAudio ||
                           pendingAttachHwDspEqualizer != settings.attachHwDspEqualizer ||
@@ -1422,48 +1415,6 @@ class SettingsFragment : Fragment() {
                 }
             ))
 
-            // Applies to both focus routes: the dynamic one that runs while an AA audio channel
-            // plays, and static mode's permanent grab at connect.
-            val focusModes = listOf(
-                PlaybackFocusPolicy.Mode.AUTO,
-                PlaybackFocusPolicy.Mode.ALWAYS,
-                PlaybackFocusPolicy.Mode.NEVER
-            )
-            val currentMode = pendingPlaybackFocusMode ?: PlaybackFocusPolicy.Mode.AUTO
-            items.add(SettingItem.SegmentedButtonSettingEntry(
-                stableId = "playbackFocusMode",
-                nameResId = R.string.playback_focus_mode,
-                options = listOf(
-                    getString(R.string.playback_focus_mode_auto),
-                    getString(R.string.playback_focus_mode_always),
-                    getString(R.string.playback_focus_mode_never)
-                ),
-                selectedIndex = focusModes.indexOf(currentMode).coerceAtLeast(0),
-                onOptionSelected = { index ->
-                    pendingPlaybackFocusMode = focusModes.getOrElse(index) { PlaybackFocusPolicy.Mode.AUTO }
-                    checkChanges()
-                    updateSettingsList()
-                }
-            ))
-
-            items.add(SettingItem.InfoBanner(
-                stableId = "playbackFocusModeHint",
-                textResId = when (currentMode) {
-                    PlaybackFocusPolicy.Mode.ALWAYS -> R.string.playback_focus_mode_always_hint
-                    PlaybackFocusPolicy.Mode.NEVER -> R.string.playback_focus_mode_never_hint
-                    else -> R.string.playback_focus_mode_auto_hint
-                }
-            ))
-
-            // The hints above are written for the dynamic path, which takes focus only while
-            // audio plays. Static mode takes it for the whole session, so say so rather than
-            // maintaining a second set of three.
-            if (pendingStaticAudioFocus == true) {
-                items.add(SettingItem.InfoBanner(
-                    stableId = "playbackFocusModeStaticHint",
-                    textResId = R.string.playback_focus_mode_static_hint
-                ))
-            }
         }
 
         items.add(SettingItem.ToggleSettingEntry(

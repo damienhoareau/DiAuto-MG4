@@ -393,20 +393,14 @@ internal class AapControlService(
             if (settings.staticAudioFocus) {
                 AppLog.i("Static Audio Focus active - skipping dynamic system focus request to prevent routing loss")
             } else {
-                // Gated at the call site, not inside requestFocusChange: that function is also the
-                // static path's permanent grab from CommManager, where the answer is the opposite.
-                val isRelease = notification.request.number ==
-                        Control.AudioFocusRequestNotification.AudioFocusRequestType.RELEASE_VALUE
-                if (aapAudio.shouldHonourProtocolFocusRequest(isRelease)) {
-                    val separate = settings.separateAudioStreams
-                    systemResult = aapAudio.requestFocusChange(
-                        AudioConfigs.stream(channel, separate),
-                        notification.request.number,
-                        AudioManager.OnAudioFocusChangeListener {
-                            AppLog.i("System audio focus changed: $it ${systemFocusName[it]}")
-                        },
-                    )
-                }
+                val separate = settings.separateAudioStreams
+                systemResult = aapAudio.requestFocusChange(
+                    AudioConfigs.stream(channel, separate),
+                    notification.request.number,
+                    AudioManager.OnAudioFocusChangeListener {
+                        AppLog.i("System audio focus changed: $it ${systemFocusName[it]}")
+                    },
+                )
             }
         } else {
             AppLog.i("Audio Sink disabled - skipping system audio focus request for channel ${Channel.name(channel)}")

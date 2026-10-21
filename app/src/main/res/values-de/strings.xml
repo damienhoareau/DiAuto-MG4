@@ -786,14 +786,6 @@
     <string name="media_key_routing_auto_hint">Stoppt das Senden, während eine Bluetooth-Medienverbindung zum Smartphone besteht, da diese Verbindung die Aktion bereits ausführt. Wähle dies, wenn ein Druck zwei Titel überspringt und das Smartphone mit der Headunit gekoppelt ist.</string>
     <string name="media_key_routing_never_hint">Sendet die Medientasten nie und überlässt sie dem Bluetooth-System des Fahrzeugs. Wähle dies, wenn das Handy mit dem Fahrzeugsystem statt der Headunit gekoppelt ist.</string>
     <string name="media_key_routing_hint_common">Betrifft nur Medientasten. Drehregler, Steuerkreuz, Zurück und Enter erreichen Android Auto weiterhin immer.</string>
-    <string name="playback_focus_mode">Andere Wiedergabe bei Ton stoppen</string>
-    <string name="playback_focus_mode_auto">Automatisch</string>
-    <string name="playback_focus_mode_always">Immer</string>
-    <string name="playback_focus_mode_never">Nie</string>
-    <string name="playback_focus_mode_auto_hint">Pausiert andere Player auf der Headunit (z. B. das Radio), während Android Auto Audio abspielt, jedoch nicht bei aktiver Bluetooth-Audioverbindung zum selben Smartphone.</string>
-    <string name="playback_focus_mode_always_hint">Pausiert andere Audioquellen immer, wenn Android Auto wiedergibt. Wenn die Musik bei aktivem Bluetooth nach ein paar Sekunden stoppt, auf Automatisch zurückstellen.</string>
-    <string name="playback_focus_mode_never_hint">Greift nicht in den Audio-Fokus des Systems ein. Andere Medien auf der Headunit laufen parallel weiter.</string>
-    <string name="playback_focus_mode_static_hint">Bei aktivem Statischen Audio-Fokus gilt dies ab der Verbindung für die gesamte Sitzung.</string>
     <string name="support">Problem melden</string>
     <string name="support_title">Problem melden</string>
     <string name="support_description">Fehler auf GitHub suchen oder melden</string>

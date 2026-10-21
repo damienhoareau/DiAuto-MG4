@@ -10,7 +10,6 @@ import android.os.Build
 import com.andrerinas.openheadunit.aap.MediaKeyRoutingPolicy
 import com.andrerinas.openheadunit.aap.VideoFaultInjector
 import com.andrerinas.openheadunit.decoder.DeviceMemoryProfile
-import com.andrerinas.openheadunit.aap.PlaybackFocusPolicy
 import com.andrerinas.openheadunit.aap.protocol.proto.Control
 import com.andrerinas.openheadunit.app.UsbAttachedActivity
 import com.andrerinas.openheadunit.connection.UsbDeviceCompat
@@ -641,16 +640,6 @@ class Settings(private val context: Context) {
         get() = prefs.getBoolean("enable-audio-sink", true)
         set(value) { prefs.edit().putBoolean("enable-audio-sink", value).apply() }
 
-    // On the MG4 the stock Android Auto app always takes focus (tagged with the Android Auto source
-    // type, see CarAudioAttributes), and a car left on the radio / Bluetooth source stays silent, so
-    // AUTO means ALWAYS there. An explicit NEVER is still respected.
-    fun effectivePlaybackFocusMode(context: Context): PlaybackFocusPolicy.Mode =
-        if (CarAudioAttributes.isCarBuild && playbackFocusMode == PlaybackFocusPolicy.Mode.AUTO) {
-            PlaybackFocusPolicy.Mode.ALWAYS
-        } else {
-            playbackFocusMode
-        }
-
     @Suppress("DEPRECATION")
     val displayRefreshRate: Float
         get() = (context.getSystemService(Context.WINDOW_SERVICE) as android.view.WindowManager)
@@ -659,16 +648,6 @@ class Settings(private val context: Context) {
     var staticAudioFocus: Boolean
         get() = prefs.getBoolean("static-audio-focus", false)
         set(value) { prefs.edit().putBoolean("static-audio-focus", value).apply() }
-
-    // Whether AA playback takes system audio focus, so another local player (typically the car
-    // radio) pauses while it runs. AUTO skips it when a Bluetooth media link is up, because the
-    // A2DP sink answers our focus grab by pausing the phone that is feeding us. See
-    // PlaybackFocusPolicy for the whole story; ALWAYS and NEVER are the manual overrides.
-    var playbackFocusMode: PlaybackFocusPolicy.Mode
-        get() = PlaybackFocusPolicy.Mode.fromInt(
-            prefs.getInt("playback-focus-mode", PlaybackFocusPolicy.Mode.AUTO.value)
-        )
-        set(value) { prefs.edit().putInt("playback-focus-mode", value.value).apply() }
 
     // Whether the physical media buttons reach Android Auto, or are left to the Bluetooth side that
     // may already act on the same press — two consumers of one button skip two tracks. See

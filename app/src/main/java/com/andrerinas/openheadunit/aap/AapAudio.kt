@@ -43,7 +43,6 @@ internal class AapAudio(
     private val enableAudioSink = settings.enableAudioSink
     private val attachHwDspEqualizer = settings.attachHwDspEqualizer
     private val mediaBufferMillis = settings.mediaAudioBufferMillis
-    private fun playbackFocusMode() = settings.effectivePlaybackFocusMode(context)
 
     private var legacyFocusListener: AudioManager.OnAudioFocusChangeListener? = null
 
@@ -69,34 +68,8 @@ internal class AapAudio(
     @Volatile
     private var phoneHasGain = false
 
-    @Volatile
-    private var playbackFocusRequest: AudioFocusRequest? = null
-    @Volatile
-    private var legacyPlaybackFocusListener: AudioManager.OnAudioFocusChangeListener? = null
-
-    // Dynamic-mode playback focus: some phones never send an AudioFocusRequestNotification(GAIN)
-    // when media starts (the always-grant handshake makes them assume the head unit always holds
-    // focus), so relying on the protocol notification alone leaves the car radio playing alongside
-    // AA audio. Instead we hold system audio focus for as long as any AA audio channel is actively
-    // playing and release it when the last one stops. Static mode manages focus permanently and is
-    // left untouched.
-    //
-    // Whether we take it at all is PlaybackFocusPolicy's call: on a head unit that is also the
-    // phone's Bluetooth A2DP sink, the focus grab makes the sink service AVRCP-pause that same
-    // phone, silencing the stream we are playing.
+    /** The audio channels the phone is playing on: the stock app's isMediaPlaying and isGuidancePlaying. */
     private val activeAudioChannels = mutableSetOf<Int>()
-    private val playbackFocusListener = AudioManager.OnAudioFocusChangeListener {
-        AppLog.i("AapAudio: playback audio focus changed: $it")
-    }
-
-    @Volatile
-    private var holdingPlaybackFocus = false
-    @Volatile
-    private var focusAcquiredAtMs = 0L
-    @Volatile
-    private var selfDefeatingStops = 0
-    @Volatile
-    private var selfDefeatingLatched = false
 
     @Volatile
     private var isDucked = false
@@ -131,42 +104,6 @@ internal class AapAudio(
 
     private fun getMediaGain(): Float {
         return (1.0f + (mediaVolumeOffset / 100.0f)).coerceIn(0.0f, 2.0f)
-    }
-
-    /**
-     * Whether a focus request the phone asked for over the protocol should reach the system.
-     *
-     * [AapControl] answers every AudioFocusRequestNotification with an always-grant reply, which is
-     * what keeps AA routing audio to us; separately it asks the system for the focus the phone
-     * wanted, so other apps on the head unit duck. That second half is the same act that makes an
-     * A2DP sink AVRCP-pause the phone we project, and it honours GAIN as a *permanent* grab, so it
-     * needs the same rule as the playback path.
-     *
-     * RELEASE is never gated: abandoning focus must always work, or a grab from before the link
-     * came up would be stranded for the rest of the session.
-     *
-     * The latch does not extend here — it is armed in [onAudioPlaybackStopped], which only runs
-     * while the playback path holds focus. On a unit whose Bluetooth probe reads nothing, this path
-     * has no automatic backstop and needs the mode set to NEVER by hand.
-     */
-    fun shouldHonourProtocolFocusRequest(isRelease: Boolean): Boolean {
-        if (isRelease) return true
-
-        val btMediaLinkActive = BluetoothHelper.isA2dpMediaLinkActive(context)
-        val mode = playbackFocusMode()
-        val honour = PlaybackFocusPolicy.shouldAcquire(
-                mode = mode,
-                staticAudioFocus = staticAudioFocus,
-                audioSinkEnabled = enableAudioSink,
-                isAudioChannel = true,
-                btMediaLinkActive = btMediaLinkActive,
-                selfDefeatingLatched = selfDefeatingLatched)
-
-        if (!honour) {
-            AppLog.i("AapAudio: phone asked for audio focus - leaving system audio focus alone " +
-                    "(mode=$mode, bluetoothMedia=$btMediaLinkActive, latched=$selfDefeatingLatched)")
-        }
-        return honour
     }
 
     fun requestFocusChange(stream: Int, focusRequest: Int, callback: AudioManager.OnAudioFocusChangeListener): Int {
@@ -341,126 +278,9 @@ internal class AapAudio(
         }
     }
 
-    private fun requestPlaybackFocus(channel: Int) {
-        val speech = channel == Channel.ID_AU1 || channel == Channel.ID_AU2
-        // Speech/notification must MAY_DUCK so hybrid A2DP music is not AVRCP-paused.
-        val focusGain = if (speech) {
-            AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK
-        } else {
-            AudioManager.AUDIOFOCUS_GAIN_TRANSIENT
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val attrs = if (speech) {
-                val usage = if (channel == Channel.ID_AU1) {
-                    AudioAttributes.USAGE_VOICE_COMMUNICATION
-                } else {
-                    AudioAttributes.USAGE_NOTIFICATION
-                }
-                AudioAttributes.Builder()
-                    .setUsage(usage)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                    .build()
-            } else {
-                SaicCarAudioSource.mediaAttributes()
-            }
-            val focusAm = if (speech) audioManager else mediaAudioManager
-            val request = AudioFocusRequest.Builder(focusGain)
-                    .setAudioAttributes(attrs)
-                    .setWillPauseWhenDucked(false)
-                    .setOnAudioFocusChangeListener(playbackFocusListener)
-                    .build()
-            playbackFocusRequest = request
-
-            val result = focusAm.requestAudioFocus(request)
-            AppLog.i(
-                "AapAudio: Playback focus (${Channel.name(channel)}, " +
-                    "${if (speech) "MAY_DUCK" else "TRANSIENT"}) result: " +
-                    "${if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) "GRANTED" else "FAILED ($result)"}",
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            legacyPlaybackFocusListener = playbackFocusListener
-            val stream = AudioConfigs.stream(channel, separateAudioStreams)
-            @Suppress("DEPRECATION")
-            val result = audioManager.requestAudioFocus(playbackFocusListener, stream, focusGain)
-            AppLog.i(
-                "AapAudio: Playback focus legacy (${Channel.name(channel)}) result: " +
-                    "${if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) "GRANTED" else "FAILED"}",
-            )
-        }
-    }
-
-    private fun releasePlaybackFocus() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            playbackFocusRequest?.let {
-                AppLog.i("AapAudio: Releasing playback transient audio focus")
-                // Speech may have been requested on process AM; media on SAIC AM.
-                runCatching { mediaAudioManager.abandonAudioFocusRequest(it) }
-                runCatching { audioManager.abandonAudioFocusRequest(it) }
-            }
-            playbackFocusRequest = null
-        } else {
-            @Suppress("DEPRECATION")
-            legacyPlaybackFocusListener?.let {
-                AppLog.i("AapAudio: Releasing playback transient audio focus (legacy)")
-                runCatching { mediaAudioManager.abandonAudioFocus(it) }
-                runCatching { audioManager.abandonAudioFocus(it) }
-            }
-            legacyPlaybackFocusListener = null
-        }
-    }
-
-    /**
-     * Native AA keeps A2DP up through bootstrap, so the first media channel often starts while
-     * [PlaybackFocusPolicy.Mode.AUTO] correctly skips focus (to avoid AVRCP-pausing the phone).
-     * After the Wi‑Fi media path drops A2DP, call this so the car radio does not keep the amp
-     * for the rest of the session.
-     */
-    fun reclaimPlaybackFocusIfNeeded() {
-        if (staticAudioFocus || !enableAudioSink) return
-        if (holdingPlaybackFocus) return
-        val channel = synchronized(activeAudioChannels) {
-            when {
-                activeAudioChannels.isEmpty() -> return
-                Channel.ID_AUD in activeAudioChannels -> Channel.ID_AUD
-                else -> activeAudioChannels.first()
-            }
-        }
-        val btMediaLinkActive = BluetoothHelper.isA2dpMediaLinkActive(context)
-        val mode = playbackFocusMode()
-        val acquire = PlaybackFocusPolicy.shouldAcquire(
-            mode = mode,
-            staticAudioFocus = staticAudioFocus,
-            audioSinkEnabled = enableAudioSink,
-            isAudioChannel = true,
-            btMediaLinkActive = btMediaLinkActive,
-            selfDefeatingLatched = selfDefeatingLatched,
-        )
-        if (!acquire) {
-            AppLog.i(
-                "AapAudio: reclaim skipped after BT media release " +
-                    "(mode=$mode, bluetoothMedia=$btMediaLinkActive, latched=$selfDefeatingLatched)",
-            )
-            return
-        }
-        AppLog.i(
-            "AapAudio: reclaiming transient system audio focus after BT media release " +
-                "(${Channel.name(channel)}, mode=$mode)",
-        )
-        focusAcquiredAtMs = SystemClock.elapsedRealtime()
-        holdingPlaybackFocus = true
-        requestPlaybackFocus(channel)
-    }
-
     fun releaseAllFocus() {
         AppLog.i("AapAudio: Releasing all audio focus.")
         synchronized(activeAudioChannels) { activeAudioChannels.clear() }
-        // The latch is a property of one connection, not of the head unit: re-arm it so a session
-        // that reconnects with Bluetooth off gets the car-radio behaviour back.
-        holdingPlaybackFocus = false
-        focusAcquiredAtMs = 0L
-        selfDefeatingStops = 0
-        selfDefeatingLatched = false
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             synchronized(focusLock) {
                 abandon(mediaFocus, "media"); mediaFocus = null
@@ -469,15 +289,10 @@ internal class AapAudio(
                 abandon(navigationFocus, "navigation"); navigationFocus = null
             }
             phoneHasGain = false
-            playbackFocusRequest?.let { mediaAudioManager.abandonAudioFocusRequest(it) }
-            playbackFocusRequest = null
         } else {
             @Suppress("DEPRECATION")
             legacyFocusListener?.let { mediaAudioManager.abandonAudioFocus(it) }
             legacyFocusListener = null
-            @Suppress("DEPRECATION")
-            legacyPlaybackFocusListener?.let { mediaAudioManager.abandonAudioFocus(it) }
-            legacyPlaybackFocusListener = null
         }
     }
 
@@ -551,90 +366,13 @@ internal class AapAudio(
     }
 
     private fun onAudioPlaybackStarted(channel: Int) {
-        if (staticAudioFocus || !enableAudioSink || !Channel.isAudio(channel)) return
-
-        // Only the set mutation belongs under the lock. requestPlaybackFocus() is a binder
-        // round-trip to AudioService and the Bluetooth probe below is another, and this runs on
-        // the transport thread for every track change.
-        val wasEmpty = synchronized(activeAudioChannels) {
-            val empty = activeAudioChannels.isEmpty()
-            activeAudioChannels.add(channel)
-            empty
-        }
-        if (!wasEmpty) return
-
-        val btMediaLinkActive = BluetoothHelper.isA2dpMediaLinkActive(context)
-        val mode = playbackFocusMode()
-        val acquire = PlaybackFocusPolicy.shouldAcquire(
-                mode = mode,
-                staticAudioFocus = staticAudioFocus,
-                audioSinkEnabled = enableAudioSink,
-                isAudioChannel = true,
-                btMediaLinkActive = btMediaLinkActive,
-                selfDefeatingLatched = selfDefeatingLatched)
-
-        if (!acquire) {
-            AppLog.i("AapAudio: AA audio started (${Channel.name(channel)}) - leaving system audio focus alone " +
-                    "(mode=$mode, bluetoothMedia=$btMediaLinkActive, latched=$selfDefeatingLatched)")
-            return
-        }
-
-        // Use GAIN_TRANSIENT, not GAIN: a permanent GAIN sends other players (e.g. the car
-        // radio) a permanent AUDIOFOCUS_LOSS, so they stop and do NOT resume when we later
-        // abandon focus. TRANSIENT sends AUDIOFOCUS_LOSS_TRANSIENT so they pause and resume
-        // once AA audio stops and we release focus.
-        AppLog.i("AapAudio: AA audio started (${Channel.name(channel)}) - acquiring transient system audio focus " +
-                "(mode=$mode, bluetoothMedia=$btMediaLinkActive)")
-        focusAcquiredAtMs = SystemClock.elapsedRealtime()
-        holdingPlaybackFocus = true
-        requestPlaybackFocus(channel)
+        if (!Channel.isAudio(channel)) return
+        synchronized(activeAudioChannels) { activeAudioChannels.add(channel) }
     }
 
-    /**
-     * Releases system audio focus once the last active AA audio channel stops (dynamic mode),
-     * letting other local sources (e.g. the car radio) resume.
-     */
     private fun onAudioPlaybackStopped(channel: Int) {
-        if (staticAudioFocus || !enableAudioSink || !Channel.isAudio(channel)) return
-
-        val nowEmpty = synchronized(activeAudioChannels) {
-            activeAudioChannels.remove(channel)
-            activeAudioChannels.isEmpty()
-        }
-        if (!nowEmpty || !holdingPlaybackFocus) return
-
-        noteStopWhileHoldingFocus(channel)
-
-        AppLog.i("AapAudio: last AA audio channel stopped - releasing transient system audio focus")
-        holdingPlaybackFocus = false
-        releasePlaybackFocus()
-    }
-
-    /**
-     * Watches for the pathology the Bluetooth probe is meant to pre-empt, for the units where it
-     * cannot see the link: the media channel closing again almost as soon as we took focus, because
-     * the phone stopped its own playback in response. Two of those in a row and we stop asking for
-     * focus, so the session settles instead of cycling every few seconds.
-     */
-    private fun noteStopWhileHoldingFocus(channel: Int) {
-        if (selfDefeatingLatched || focusAcquiredAtMs == 0L) return
-
-        val elapsedMs = SystemClock.elapsedRealtime() - focusAcquiredAtMs
-        if (!PlaybackFocusPolicy.countsAsSelfDefeating(channel == Channel.ID_AUD, elapsedMs)) {
-            selfDefeatingStops = 0
-            return
-        }
-
-        selfDefeatingStops++
-        if (AppLog.LOG_DEBUG) {
-            AppLog.d("AapAudio: media stopped ${elapsedMs}ms after taking audio focus " +
-                    "($selfDefeatingStops/${PlaybackFocusPolicy.SELF_DEFEATING_LIMIT})")
-        }
-        if (selfDefeatingStops >= PlaybackFocusPolicy.SELF_DEFEATING_LIMIT) {
-            selfDefeatingLatched = true
-            AppLog.w("AapAudio: taking system audio focus is stopping the phone's own playback " +
-                    "(the head unit is most likely its Bluetooth audio sink) - not acquiring it again this session")
-        }
+        if (!Channel.isAudio(channel)) return
+        synchronized(activeAudioChannels) { activeAudioChannels.remove(channel) }
     }
 
     fun precreateAudioTrack(channel: Int) {

@@ -18,8 +18,8 @@ package com.andrerinas.openheadunit.aap
  * Nothing in the platform arbitrates the two: the Bluetooth profile calls that would deactivate the
  * other consumer are `BLUETOOTH_PRIVILEGED`, aborting the broadcast does not work because the
  * framework's media-button route is single-target rather than an ordered fan-out, and taking audio
- * focus to deactivate the sink's session is exactly the behaviour [PlaybackFocusPolicy] exists to
- * avoid. So the lever is which consumer *we* leave the key to.
+ * focus to deactivate the sink's session would pause the phone we project. So the lever is which
+ * consumer *we* leave the key to.
  *
  * Pure and unit-tested; the Bluetooth probe and the send live in `CommManager`.
  */
@@ -61,9 +61,7 @@ object MediaKeyRoutingPolicy {
      * @param btMediaLinkActive whether a Bluetooth media (A2DP) link to this head unit is up, or
      *                         `null` when the adapter would not say. Unknown forwards: a doubled
      *                         skip is an annoyance, media buttons that silently do nothing read as a
-     *                         broken app. Note this is the opposite resolution to
-     *                         [PlaybackFocusPolicy], where an unreadable state means "assume a link
-     *                         is up" — there the cautious answer is to leave focus alone.
+     *                         broken app.
      */
     fun shouldForward(mode: Mode, isMediaKey: Boolean, btMediaLinkActive: Boolean?): Boolean {
         if (!isMediaKey) return true

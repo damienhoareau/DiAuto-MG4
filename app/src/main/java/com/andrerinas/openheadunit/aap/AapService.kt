@@ -924,10 +924,6 @@ class AapService : Service(), UsbReceiver.Listener {
      * (AapControl.audioFocusRequest -> AapAudio.requestFocusChange), so grabbing a
      * permanent gain here would needlessly evict other media (e.g. the car radio) the
      * moment the phone connects, before AA plays anything.
-     *
-     * Whether to take it at all is PlaybackFocusPolicy's call, the same as for the dynamic path:
-     * on a head unit that is also the phone's Bluetooth A2DP sink, evicting the sink makes it
-     * AVRCP-pause that same phone, so the session starts with the projected audio stopped.
      */
     private fun requestPermanentAudioFocus() {
         if (!settings.enableAudioSink) {
@@ -939,21 +935,7 @@ class AapService : Service(), UsbReceiver.Listener {
             return
         }
 
-        // One probe at connect is enough: the sink only pauses on a focus-loss *event*, so a
-        // Bluetooth link that comes up later in the session never sees one.
-        val mode = settings.effectivePlaybackFocusMode(this)
-        val btMediaLinkActive = BluetoothHelper.isA2dpMediaLinkActive(this)
-        if (!PlaybackFocusPolicy.shouldAcquirePermanent(
-                mode = mode,
-                staticAudioFocus = true,
-                audioSinkEnabled = true,
-                btMediaLinkActive = btMediaLinkActive)) {
-            AppLog.i("AapService: Static Audio Focus - leaving system audio focus alone " +
-                    "(mode=$mode, bluetoothMedia=$btMediaLinkActive)")
-            return
-        }
-        AppLog.i("AapService: Static Audio Focus - acquiring permanent system audio focus " +
-                "(mode=$mode, bluetoothMedia=$btMediaLinkActive)")
+        AppLog.i("AapService: Static Audio Focus - acquiring permanent system audio focus")
 
         try {
             val audioManager = SaicCarAudioSource.audioManager(this)
@@ -1118,7 +1100,6 @@ class AapService : Service(), UsbReceiver.Listener {
             // focus now that A2DP is gone (AUTO skipped it earlier).
             silenceSaicRadioForWifiAudio()
             claimSaicAndroidAutoMediaSource()
-            commManager.reclaimPlaybackFocusIfNeeded()
         }
     }
 
