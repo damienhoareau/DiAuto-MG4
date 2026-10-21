@@ -146,9 +146,9 @@ object Mg4DrivingSensorReporter {
         val repeatMs: Long
         when (type) {
             Sensors.SensorType.CAR_SPEED_VALUE -> {
-                // Metres per second times a million, as the phone expects; the sign is dropped.
+                // Metres per second times a thousand, as the stock app sends it; the sign is dropped.
                 val kmh = abs(EVHardware.getVehicleSpeedKmh() ?: return)
-                value = (kmh / 3.6 * 1_000_000).roundToInt()
+                value = (kmh / 3.6 * 1_000).roundToInt()
                 repeatMs = SPEED_REPEAT_MS
             }
             Sensors.SensorType.GEAR_VALUE -> {

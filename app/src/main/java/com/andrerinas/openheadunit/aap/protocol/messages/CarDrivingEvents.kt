@@ -3,10 +3,13 @@ package com.andrerinas.openheadunit.aap.protocol.messages
 import com.andrerinas.openheadunit.aap.protocol.proto.Sensors
 import com.google.protobuf.Message
 
-/** Car speed, in metres per second times a million (always positive). */
-class CarSpeedEvent(speedE6: Int) : SensorEvent(
+/**
+ * Car speed, in metres per second times a thousand (always positive). The proto names the field
+ * speed_e6, but the stock app sends speedE3 there: a million-fold value reads as thousands of m/s.
+ */
+class CarSpeedEvent(speedE3: Int) : SensorEvent(
     Sensors.SensorType.CAR_SPEED_VALUE,
-    batch { it.addSpeedData(Sensors.SensorBatch.SpeedData.newBuilder().setSpeedE6(speedE6)) },
+    batch { it.addSpeedData(Sensors.SensorBatch.SpeedData.newBuilder().setSpeedE6(speedE3)) },
 )
 
 class GearEvent(inPark: Boolean) : SensorEvent(
