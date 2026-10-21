@@ -48,6 +48,8 @@ class ServiceDiscoveryResponse(private val context: Context)
                     sources.addSensors(makeSensorType(Sensors.SensorType.GEAR))
                     sources.addSensors(makeSensorType(Sensors.SensorType.PARKING_BRAKE))
                     sources.addSensors(makeSensorType(Sensors.SensorType.ENVIRONMENT))
+                    // The heading comes from the car's own service (RemoteUI), through Mg4DrivingSensorReporter.onCompass.
+                    sources.addSensors(makeSensorType(Sensors.SensorType.COMPASS))
                     AppLog.i("[ServiceDiscovery] Announcing NIGHT sensor support. Strategy: ${settings.nightMode}")
 
                     // Announce EV even before the first SoC poll. If we wait for snapshot(),

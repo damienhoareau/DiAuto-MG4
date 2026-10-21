@@ -4,6 +4,7 @@ import android.os.SystemClock
 import com.andrerinas.openheadunit.App
 import com.andrerinas.openheadunit.aap.AapTransport
 import com.andrerinas.openheadunit.aap.protocol.messages.CarSpeedEvent
+import com.andrerinas.openheadunit.aap.protocol.messages.CompassEvent
 import com.andrerinas.openheadunit.aap.protocol.messages.GearEvent
 import com.andrerinas.openheadunit.aap.protocol.messages.OutsideTemperatureEvent
 import com.andrerinas.openheadunit.aap.protocol.messages.ParkingBrakeEvent
@@ -37,7 +38,17 @@ object Mg4DrivingSensorReporter {
         Sensors.SensorType.GEAR_VALUE,
         Sensors.SensorType.PARKING_BRAKE_VALUE,
         Sensors.SensorType.ENVIRONMENT_VALUE,
+        Sensors.SensorType.COMPASS_VALUE,
     )
+
+    private const val COMPASS_MIN_INTERVAL_MS = 200L
+    private const val PUSH_LOG_EVERY_MS = 30_000L
+
+    @Volatile private var lastCompassMs = 0L
+    @Volatile private var lastCompassLogMs = 0L
+    @Volatile private var lastSpeedLogMs = 0L
+    @Volatile private var compassPushes = 0
+    @Volatile private var compassSent = 0
 
     private val requested = ConcurrentHashMap.newKeySet<Int>()
     private val transportRef = AtomicReference<AapTransport?>(null)
@@ -54,7 +65,10 @@ object Mg4DrivingSensorReporter {
     fun bind(transport: AapTransport) {
         transportRef.set(transport)
         // The car properties are read through EVHardware, which the energy provider initialises.
-        App.instance?.let { Mg4EnergyProvider.start(it) }
+        App.instance?.let {
+            Mg4EnergyProvider.start(it)
+            executor.execute { logAndroidSensors(it) }
+        }
         if (tickFuture == null) {
             tickFuture = executor.scheduleWithFixedDelay(::tick, TICK_MS, TICK_MS, TimeUnit.MILLISECONDS)
         }
@@ -69,6 +83,45 @@ object Mg4DrivingSensorReporter {
         synchronized(lastSent) {
             lastSent.clear()
             lastSentAt.clear()
+        }
+    }
+
+    /**
+     * The heading the car's own service pushes through RemoteUI (degrees times a million). Sent on
+     * only while the phone has started the compass, at most five times a second.
+     */
+    fun onCompass(bearingE6: Int, pitchE6: Int, rollE6: Int) {
+        val now = SystemClock.elapsedRealtime()
+        compassPushes++
+        if (now - lastCompassLogMs >= PUSH_LOG_EVERY_MS) {
+            lastCompassLogMs = now
+            AppLog.i(
+                "$TAG RemoteUI compass: bearing=${bearingE6 / 1e6} pitch=${pitchE6 / 1e6} roll=${rollE6 / 1e6} " +
+                    "(pushes=$compassPushes, sent=$compassSent, requested=${Sensors.SensorType.COMPASS_VALUE in requested})"
+            )
+        }
+        if (Sensors.SensorType.COMPASS_VALUE !in requested || now - lastCompassMs < COMPASS_MIN_INTERVAL_MS) return
+        val transport = transportRef.get() ?: return
+        lastCompassMs = now
+        if (transport.send(CompassEvent(bearingE6, pitchE6, rollE6))) compassSent++
+    }
+
+    /** What RemoteUI pushes as the speed, logged now and then to compare with the car property. */
+    fun onRemoteSpeed(speedE3: Int, engaged: Boolean) {
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastSpeedLogMs < PUSH_LOG_EVERY_MS) return
+        lastSpeedLogMs = now
+        AppLog.i("$TAG RemoteUI speed: speedE3=$speedE3 cruiseEngaged=$engaged (car property: ${EVHardware.getVehicleSpeedKmh()} km/h)")
+    }
+
+    /** Which motion sensors this head unit offers to Android itself, to see what could feed the phone. */
+    private fun logAndroidSensors(app: android.content.Context) {
+        try {
+            val manager = app.getSystemService(android.content.Context.SENSOR_SERVICE) as android.hardware.SensorManager
+            val all = manager.getSensorList(android.hardware.Sensor.TYPE_ALL)
+            AppLog.i("$TAG android sensors (${all.size}): " + all.joinToString { "${it.name}[type=${it.type}]" })
+        } catch (error: Throwable) {
+            AppLog.w("$TAG android sensor list failed: ${error.message}")
         }
     }
 

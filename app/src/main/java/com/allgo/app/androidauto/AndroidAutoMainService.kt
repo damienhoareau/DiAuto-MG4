@@ -503,11 +503,24 @@ class AndroidAutoMainService : Service() {
 
         override fun setAttributes(attributes: AapAttributes?): Int = 0
 
-        // Vehicle data: DiAuto reads the car itself, so the values RemoteUI pushes are accepted and dropped.
-        override fun sendCompassData(sessionId: Int, data: CompassData?): Int = 0
+        // Vehicle data: DiAuto reads most of the car itself, so these are accepted and dropped, except the
+        // heading, which only RemoteUI has and goes on to the phone, and the speed, which is logged.
+        override fun sendCompassData(sessionId: Int, data: CompassData?): Int {
+            if (data != null) {
+                com.andrerinas.openheadunit.vehicle.Mg4DrivingSensorReporter.onCompass(
+                    data.bearingE6, if (data.hasPitch) data.pitchE6 else 0, if (data.hasRoll) data.rollE6 else 0
+                )
+            }
+            return 0
+        }
         override fun sendDrivingStatus(sessionId: Int, data: DrivingStatusData?): Int = 0
         override fun sendFuelData(sessionId: Int, data: FuelData?): Int = 0
         override fun sendNightModeData(sessionId: Int, data: NightModeData?): Int = 0
-        override fun sendSpeedData(sessionId: Int, data: SpeedData?): Int = 0
+        override fun sendSpeedData(sessionId: Int, data: SpeedData?): Int {
+            if (data != null) {
+                com.andrerinas.openheadunit.vehicle.Mg4DrivingSensorReporter.onRemoteSpeed(data.speedE3, data.isCarEngaged)
+            }
+            return 0
+        }
     }
 }
