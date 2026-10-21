@@ -43,6 +43,11 @@ class ServiceDiscoveryResponse(private val context: Context)
                     
                     // Always announce Night sensor, as we control it via NightModeManager
                     sources.addSensors(makeSensorType(Sensors.SensorType.NIGHT))
+                    // Read from the car by Mg4DrivingSensorReporter; nothing is sent for a value it cannot read.
+                    sources.addSensors(makeSensorType(Sensors.SensorType.CAR_SPEED))
+                    sources.addSensors(makeSensorType(Sensors.SensorType.GEAR))
+                    sources.addSensors(makeSensorType(Sensors.SensorType.PARKING_BRAKE))
+                    sources.addSensors(makeSensorType(Sensors.SensorType.ENVIRONMENT))
                     AppLog.i("[ServiceDiscovery] Announcing NIGHT sensor support. Strategy: ${settings.nightMode}")
 
                     // Announce EV even before the first SoC poll. If we wait for snapshot(),

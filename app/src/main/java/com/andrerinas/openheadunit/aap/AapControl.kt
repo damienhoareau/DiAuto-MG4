@@ -236,6 +236,7 @@ internal class AapControlSensor(
         aapTransport.send(msg)
         aapTransport.startSensor(request.type.number)
         com.andrerinas.openheadunit.vehicle.Mg4EnergyReporter.onSensorStart(request.type.number)
+        com.andrerinas.openheadunit.vehicle.Mg4DrivingSensorReporter.onSensorStart(request.type.number)
 
         if (request.type == Sensors.SensorType.NIGHT) {
             AppLog.i("Night sensor requested. Triggering immediate update.")

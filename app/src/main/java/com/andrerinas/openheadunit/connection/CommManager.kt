@@ -417,6 +417,7 @@ class CommManager(
                     _transport!!.onAudioFocusStateChanged = { isPlaying -> onAudioFocusStateChanged?.invoke(isPlaying) }
                     _transport!!.onUpdateUiConfigReplyReceived = { onUpdateUiConfigReplyReceived?.invoke() }
                     com.andrerinas.openheadunit.vehicle.Mg4EnergyReporter.bind(_transport!!)
+                    com.andrerinas.openheadunit.vehicle.Mg4DrivingSensorReporter.bind(_transport!!)
                 }
                 // Held locally because startHandshake() quits the transport on failure, and
                 // quitting nulls _transport before it returns — the failure reason would be
@@ -883,6 +884,7 @@ class CommManager(
         _transport = null
         _connection = null
         com.andrerinas.openheadunit.vehicle.Mg4EnergyReporter.unbind()
+        com.andrerinas.openheadunit.vehicle.Mg4DrivingSensorReporter.unbind()
         keyStates.clear()
         btMediaLinkCached = null
         btMediaLinkCheckedAt = null

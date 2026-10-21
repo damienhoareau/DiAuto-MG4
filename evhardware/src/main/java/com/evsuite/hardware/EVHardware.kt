@@ -2025,7 +2025,18 @@ object EVHardware {
     private val sGearLog = StateChangeLog<Int>()
     private val sIgnitionLog = StateChangeLog<Int>()
 
-    fun isVehicleInPark(): Boolean? {
+    fun isVehicleInPark(): Boolean? = getGearRaw()?.let { it == GEAR_PARK_VALUE }
+
+    /**
+     * Parking brake as the standard car property publishes it, or null when the firmware does not
+     * (null means "unknown", not "released").
+     */
+    fun isParkingBrakeOn(): Boolean? = getBooleanPropertyCPM(PROP_PARKING_BRAKE_ON, AREA_GLOBAL)
+
+    private const val PROP_PARKING_BRAKE_ON = 0x11200402
+
+    /** The gear status as the firmware numbers it (park is [GEAR_PARK_VALUE]); null when unreadable. */
+    fun getGearRaw(): Int? {
         val gen = FirmwareInfo.getGeneration()
         val gear = when {
             gen == FirmwareInfo.Gen.SWI133 ->
@@ -2042,7 +2053,7 @@ object EVHardware {
         if (sGearLog.accept(gear)) {
             AppLogger.i(TAG, "isVehicleInPark — gen=$gen gear=$gear (P=$GEAR_PARK_VALUE)")
         }
-        return gear == GEAR_PARK_VALUE
+        return gear
     }
 
     // ── Read gear SWI68/165 (poll direct) + A9 (CarStateClient) ───────────
