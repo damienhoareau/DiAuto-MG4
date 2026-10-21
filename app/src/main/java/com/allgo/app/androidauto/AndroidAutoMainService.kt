@@ -247,6 +247,15 @@ class AndroidAutoMainService : Service() {
             }
             is CommManager.ConnectionState.Disconnected -> {
                 val device = activeDevice
+                AppLog.i(
+                    "AndroidAutoMainService: Disconnected (userExit=${state.isUserExit}, switching=$switching, " +
+                        "device=$deviceAnnounced, session=$sessionAnnounced, hasDevice=${device != null}, " +
+                        "audioSource=${com.evsuite.hardware.saic.SaicCarAudioSource.isAndroidAuto(this)}, " +
+                        "listeners: device=${deviceCallbacks.registeredCallbackCount} session=${sessionCallbacks.registeredCallbackCount})"
+                )
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                    AppLog.i("AndroidAutoMainService: 3 s after the disconnect, audioSource=${com.evsuite.hardware.saic.SaicCarAudioSource.isAndroidAuto(this)}")
+                }, 3000)
                 if (sessionAnnounced) OemSignals.screenOn(this, "phone disconnected")
                 // Ending the session to start another phone's: the car stays on the projection.
                 val toNativeScreen = state.isUserExit && !switching
