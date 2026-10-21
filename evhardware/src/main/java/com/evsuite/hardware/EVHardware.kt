@@ -785,6 +785,7 @@ object EVHardware {
 
     /** Contexte applicatif, pour les messages utilisateur du lock d'write. */
     internal fun appContext(): Context? = sAppContext
+    internal fun appClassLoader(): ClassLoader? = sAppContext?.classLoader
 
     interface DriveModeListener { fun onDriveModeChanged(mode: DriveMode) }
     interface HvacListener {

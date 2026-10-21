@@ -70,6 +70,7 @@ class AapTransport(
     val ssl: AapSsl = externalSsl ?: AapSslContext(SingleKeyKeyManager(context))
 
     internal val aapAudio: AapAudio
+    internal val appFocus: AapAppFocus
     internal val aapVideo: AapVideo
     private var sendThread: HandlerThread? = null
     private var pollThread: HandlerThread? = null
@@ -402,10 +403,19 @@ class AapTransport(
         sendHandler?.removeCallbacks(unrepairedCheckRunnable)
     }
 
+    /** The stock app's isOnCall: the telecom service says a call is going on. */
+    private fun isInCall(): Boolean = try {
+        (context.getSystemService(Context.TELECOM_SERVICE) as? android.telecom.TelecomManager)?.isInCall == true
+    } catch (_: Throwable) {
+        false
+    }
+
     init {
         micRecorder.listener = this
         aapAudio = AapAudio(audioDecoder, audioManager, settings, context)
         aapAudio.isAssistantActive = { isAssistantActive }
+        aapAudio.isOnCall = ::isInCall
+        appFocus = AapAppFocus(this, aapAudio)
         aapAudio.focusNotifier = { state ->
             val notification = Control.AudioFocusNotification.newBuilder()
                 .setFocusState(state)
@@ -495,6 +505,7 @@ class AapTransport(
         pollThread?.quit()
         sendThread?.quit()
         aapAudio.releaseAllFocus()
+        appFocus.releaseAll()
         aapVideo.release()
 
         // Never let a half-finished cycle outlive the transport that owed the regain: the claim is

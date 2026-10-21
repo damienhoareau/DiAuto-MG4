@@ -340,8 +340,15 @@ internal class AapControlService(
     private fun navigationFocusRequest(request: Control.NavFocusRequestNotification, channel: Int): Int {
         AppLog.i("Navigation Focus Request: %s", request.focusType)
 
+        // The navigation focus goes through the car, as in the stock app: granted when the car gives it,
+        // native when it refuses. Giving it up is answered as before.
+        val projected = request.focusType != Control.NavFocusType.NAV_FOCUS_1
+        val granted = if (projected) aapTransport.appFocus.requestNavigation() else {
+            aapTransport.appFocus.releaseNavigation()
+            true
+        }
         val response = Control.NavFocusNotification.newBuilder()
-                .setFocusType(Control.NavFocusType.NAV_FOCUS_2)
+                .setFocusType(if (granted) Control.NavFocusType.NAV_FOCUS_2 else Control.NavFocusType.NAV_FOCUS_1)
                 .build()
 
         val msg = AapMessage(channel, Control.ControlMsgType.MESSAGE_NAV_FOCUS_NOTIFICATION_VALUE, response)
@@ -370,10 +377,12 @@ internal class AapControlService(
         if (request.status == Control.VoiceSessionNotification.VoiceSessionStatus.VOICE_STATUS_START) {
             AppLog.i("Voice Session Notification: START")
             aapTransport.isAssistantActive = true
+            aapTransport.appFocus.requestVoice()
             OemSignals.screenOn(context, "voice session")
         } else if (request.status == Control.VoiceSessionNotification.VoiceSessionStatus.VOICE_STATUS_STOP) {
             AppLog.i("Voice Session Notification: STOP")
             aapTransport.isAssistantActive = false
+            aapTransport.appFocus.releaseVoice()
         }
         return 0
     }

@@ -63,9 +63,39 @@ internal class AapAudio(
     @Volatile
     var isAssistantActive: () -> Boolean = { false }
 
+    /** Whether a call is going on: the stock app does not tell the phone about a transient loss then. */
+    @Volatile
+    var isOnCall: () -> Boolean = { false }
+
     /** Whether the phone currently believes the head unit holds the media focus. */
     @Volatile
     private var phoneHasGain = false
+
+    /** The stock app's isAAPhasGain. */
+    fun hasGain(): Boolean = phoneHasGain
+
+    /** The stock app's isGuidancePlaying. */
+    fun isGuidancePlaying(): Boolean = synchronized(activeAudioChannels) { Channel.ID_AU2 in activeAudioChannels }
+
+    /** Tells the phone the head unit lost the focus for now, for a reason the system focus does not carry. */
+    fun tellPhoneLossTransient() {
+        focusNotifier?.invoke(Control.AudioFocusNotification.AudioFocusStateType.STATE_LOSS_TRANSIENT)
+        phoneHasGain = false
+    }
+
+    private fun mediaGain(): Float = (1.0f + (mediaVolumeOffset / 100.0f)).coerceIn(0.0f, 2.0f)
+
+    /**
+     * The stock app sets the media player up only while the head unit has the focus, or a transient
+     * one for media or the assistant, and again when the focus comes back. Here the player exists
+     * already, so it is silent until then.
+     */
+    private fun applyMediaOutput() {
+        val track = audioDecoder.getTrack(Channel.ID_AUD) ?: return
+        val allowed = phoneHasGain || transMediaFocus != null || assistantFocus != null
+        if (!allowed) AppLog.i("AapAudio: media is playing without the audio focus, keeping it silent until it is granted")
+        track.setVolume(if (allowed) mediaGain() else 0f)
+    }
 
     /** The audio channels the phone is playing on: the stock app's isMediaPlaying and isGuidancePlaying. */
     private val activeAudioChannels = mutableSetOf<Int>()
@@ -149,7 +179,7 @@ internal class AapAudio(
      */
     private fun requestStockFocus(phoneRequest: Int): Int = synchronized(focusLock) {
         val voice = isAssistantActive()
-        when (phoneRequest) {
+        val outcome = when (phoneRequest) {
             Control.AudioFocusRequestNotification.AudioFocusRequestType.RELEASE_VALUE -> {
                 AppLog.i("Releasing audio focus")
                 abandon(mediaFocus, "media"); mediaFocus = null
@@ -202,6 +232,8 @@ internal class AapAudio(
             }
             else -> AudioManager.AUDIOFOCUS_REQUEST_FAILED
         }
+        if (phoneRequest != Control.AudioFocusRequestNotification.AudioFocusRequestType.RELEASE_VALUE) applyMediaOutput()
+        outcome
     }
 
     /**
@@ -225,7 +257,7 @@ internal class AapAudio(
                         notify(Control.AudioFocusNotification.AudioFocusStateType.STATE_LOSS_TRANSIENT_CAN_DUCK)
                     }
                 AudioManager.AUDIOFOCUS_LOSS_TRANSIENT ->
-                    if (!isAssistantActive()) {
+                    if (!isAssistantActive() && !isOnCall()) {
                         notify(Control.AudioFocusNotification.AudioFocusStateType.STATE_LOSS_TRANSIENT)
                         phoneHasGain = false
                     }
@@ -233,11 +265,13 @@ internal class AapAudio(
                     notify(Control.AudioFocusNotification.AudioFocusStateType.STATE_LOSS)
                     phoneHasGain = false
                 }
-                AudioManager.AUDIOFOCUS_GAIN ->
+                AudioManager.AUDIOFOCUS_GAIN -> {
                     if (!phoneHasGain) {
                         notify(state)
                         phoneHasGain = true
                     }
+                    if (mediaPlaying) applyMediaOutput()
+                }
             }
         }
     }
@@ -331,6 +365,7 @@ internal class AapAudio(
     private fun onAudioPlaybackStarted(channel: Int) {
         if (!Channel.isAudio(channel)) return
         synchronized(activeAudioChannels) { activeAudioChannels.add(channel) }
+        if (channel == Channel.ID_AUD) applyMediaOutput()
     }
 
     private fun onAudioPlaybackStopped(channel: Int) {

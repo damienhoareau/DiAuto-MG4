@@ -761,6 +761,11 @@ class CommManager(
         _transport?.aapAudio?.updateGains()
     }
 
+    /** The stock app's isAAPhasGain: whether the phone believes the head unit holds the audio focus. */
+    fun phoneHasAudioGain(): Boolean = _transport?.aapAudio?.hasGain() ?: false
+
+    fun isAssistantActive(): Boolean = _transport?.isAssistantActive ?: false
+
     fun restartAudio() {
         _transport?.aapAudio?.restartAudio()
     }

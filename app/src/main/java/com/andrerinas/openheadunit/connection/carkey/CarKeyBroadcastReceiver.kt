@@ -6,6 +6,8 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.view.KeyEvent
 import androidx.core.content.ContextCompat
+import com.andrerinas.openheadunit.App
+import com.andrerinas.openheadunit.connection.CommManager
 import com.andrerinas.openheadunit.utils.AppLog
 import com.evsuite.hardware.PhysicalButtonEventDecoder
 
@@ -56,13 +58,19 @@ class CarKeyBroadcastReceiver : BroadcastReceiver(), CarKeyReceiver {
         val isLong = intent.getBooleanExtra(EXTRA_LONGPRESS, false)
         AppLog.i("CarKeyReceiver: hardkey code=$keyCode down=$isDown long=$isLong")
 
-        if (isDown && !isLong) {
-            when (keyCode) {
-                KeyEvent.KEYCODE_MEDIA_NEXT, KeyEvent.KEYCODE_MEDIA_PREVIOUS -> handleClick(context, keyCode)
-                KEYCODE_MUTE -> {
-                    handleClick(context, if (muteSent) KeyEvent.KEYCODE_MEDIA_PLAY else KeyEvent.KEYCODE_MEDIA_PAUSE)
-                    muteSent = !muteSent
-                }
+        // Like the stock app, these three go to the phone only while the head unit does not hold the audio
+        // focus (its isAAPhasGain): while it plays, the car's own media layer carries next, previous and
+        // mute to the phone, and both would skip twice.
+        if (isDown && !isLong && (keyCode == KeyEvent.KEYCODE_MEDIA_NEXT ||
+                    keyCode == KeyEvent.KEYCODE_MEDIA_PREVIOUS || keyCode == KEYCODE_MUTE)) {
+            val commManager = App.provide(context).commManager
+            if (!commManager.isConnected) muteSent = false
+            if (commManager.phoneHasAudioGain()) {
+                AppLog.i("CarKeyReceiver: key $keyCode left to the car, the phone holds the audio focus")
+            } else if (keyCode == KEYCODE_MUTE) {
+                onMute(context, commManager)
+            } else {
+                handleClick(context, keyCode)
             }
         }
 
@@ -71,5 +79,23 @@ class CarKeyBroadcastReceiver : BroadcastReceiver(), CarKeyReceiver {
             event.press != PhysicalButtonEventDecoder.Press.LONG) {
             toggleVoiceAssistant(context)
         }
+    }
+
+    /**
+     * Mute pauses the phone, and the next press resumes it. A voice session that is running is
+     * closed first, then the phone plays again.
+     */
+    private fun onMute(context: Context, commManager: CommManager) {
+        if (!muteSent) {
+            handleClick(context, KeyEvent.KEYCODE_MEDIA_PAUSE)
+            muteSent = true
+            return
+        }
+        if (commManager.isAssistantActive()) {
+            commManager.sendToggleVoiceAssistant()
+            Thread.sleep(100)
+        }
+        handleClick(context, KeyEvent.KEYCODE_MEDIA_PLAY)
+        muteSent = false
     }
 }
