@@ -22,6 +22,7 @@ class CarKeyBroadcastReceiver : BroadcastReceiver(), CarKeyReceiver {
         private const val EXTRA_SAIC_KEYCODE = "android.intent.extra.hardkey.keycode"
         private const val EXTRA_SAIC_DOWN = "android.intent.extra.hardkey.down"
         private const val EXTRA_SAIC_LONGPRESS = "android.intent.extra.hardkey.longpress"
+        private const val KEYCODE_MUTE = 164
 
         val ACTIONS = arrayOf(
             "android.intent.action.MEDIA_BUTTON",
@@ -53,6 +54,7 @@ class CarKeyBroadcastReceiver : BroadcastReceiver(), CarKeyReceiver {
 
     private var context: Context? = null
     private val saicDecoder = PhysicalButtonEventDecoder()
+    private var muteSent = false
 
     override val isSupported = true
     override val isSUNeeded = false
@@ -168,9 +170,9 @@ class CarKeyBroadcastReceiver : BroadcastReceiver(), CarKeyReceiver {
     }
 
     /**
-     * MG4 / SAIC steering hardkeys. Next, previous, play/pause and mute are not forwarded to Android
-     * Auto from here, and the broadcast is not aborted: the car's media stack gets them and drives the
-     * phone through the media session, as for the stock app. Only the voice key is handled.
+     * MG4 / SAIC steering hardkeys, as the stock app takes them: next, previous and mute (87, 88, 164)
+     * go to the phone, and so does the voice key. The broadcast is not aborted and the raw wheel codes
+     * (297 to 301) are left alone.
      */
     private fun handleSaicHardkey(context: Context, intent: Intent) {
         var keyCode = intent.getIntExtra(EXTRA_SAIC_KEYCODE, -1)
@@ -180,6 +182,20 @@ class CarKeyBroadcastReceiver : BroadcastReceiver(), CarKeyReceiver {
 
         val isDown = intent.getBooleanExtra(EXTRA_SAIC_DOWN, false)
         val isLong = intent.getBooleanExtra(EXTRA_SAIC_LONGPRESS, false)
+
+        AppLog.i("CarKeyReceiver: hardkey code=$keyCode down=$isDown long=$isLong")
+
+        // Next, previous and mute come from the car's media layer as 87, 88 and 164, and only then:
+        // the stock app sends them to the phone the same way and ignores the raw wheel codes.
+        if (isDown && !isLong) {
+            when (keyCode) {
+                KeyEvent.KEYCODE_MEDIA_NEXT, KeyEvent.KEYCODE_MEDIA_PREVIOUS -> handleClick(context, keyCode)
+                KEYCODE_MUTE -> {
+                    handleClick(context, if (muteSent) KeyEvent.KEYCODE_MEDIA_PLAY else KeyEvent.KEYCODE_MEDIA_PAUSE)
+                    muteSent = !muteSent
+                }
+            }
+        }
 
         val event = saicDecoder.accept(keyCode, isDown, isLong) ?: return
         if (event.button == PhysicalButtonEventDecoder.Button.ASSISTANT &&
