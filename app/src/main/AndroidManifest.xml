@@ -213,6 +213,7 @@
         <activity
             android:name=".main.SettingsActivity"
             android:label="@string/settings"
+            android:taskAffinity="com.allgo.app.androidauto.settings"
             android:windowSoftInputMode="stateHidden|adjustResize"
             android:theme="@style/AppTheme" />
 
