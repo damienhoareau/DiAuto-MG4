@@ -99,7 +99,6 @@ class SettingsFragment : Fragment() {
     private var pendingFpsLimit: Int? = null
     private var pendingBluetoothAddress: String? = null
     private var pendingEnableAudioSink: Boolean? = null
-    private var pendingStaticAudioFocus: Boolean? = null
     private var pendingSeparateAudioStreams: Boolean? = null
     private var pendingUseAacAudio: Boolean? = null
     private var pendingAttachHwDspEqualizer: Boolean? = null
@@ -215,7 +214,6 @@ class SettingsFragment : Fragment() {
         pendingFpsLimit = settings.fpsLimit
         pendingBluetoothAddress = settings.bluetoothAddress
         pendingEnableAudioSink = settings.enableAudioSink
-        pendingStaticAudioFocus = settings.staticAudioFocus
         pendingSeparateAudioStreams = settings.separateAudioStreams
         pendingUseAacAudio = settings.useAacAudio
         pendingAttachHwDspEqualizer = settings.attachHwDspEqualizer
@@ -344,7 +342,6 @@ class SettingsFragment : Fragment() {
         pendingFpsLimit = settings.fpsLimit
         pendingBluetoothAddress = settings.bluetoothAddress
         pendingEnableAudioSink = settings.enableAudioSink
-        pendingStaticAudioFocus = settings.staticAudioFocus
         pendingSeparateAudioStreams = settings.separateAudioStreams
         pendingUseAacAudio = settings.useAacAudio
         pendingAttachHwDspEqualizer = settings.attachHwDspEqualizer
@@ -458,7 +455,6 @@ class SettingsFragment : Fragment() {
         pendingFpsLimit?.let { settings.fpsLimit = it }
         pendingBluetoothAddress?.let { settings.bluetoothAddress = it }
         pendingEnableAudioSink?.let { settings.enableAudioSink = it }
-        pendingStaticAudioFocus?.let { settings.staticAudioFocus = it }
         pendingSeparateAudioStreams?.let { settings.separateAudioStreams = it }
         pendingUseAacAudio?.let { settings.useAacAudio = it }
         pendingAttachHwDspEqualizer?.let { settings.attachHwDspEqualizer = it }
@@ -570,7 +566,6 @@ class SettingsFragment : Fragment() {
                         pendingFpsLimit != settings.fpsLimit ||
                         pendingBluetoothAddress != settings.bluetoothAddress ||
                         pendingEnableAudioSink != settings.enableAudioSink ||
-                        pendingStaticAudioFocus != settings.staticAudioFocus ||
                         pendingSeparateAudioStreams != settings.separateAudioStreams ||
                         pendingUseAacAudio != settings.useAacAudio ||
                         pendingAttachHwDspEqualizer != settings.attachHwDspEqualizer ||
@@ -616,7 +611,6 @@ class SettingsFragment : Fragment() {
                           pendingSoftwareVideoDecoder != settings.softwareVideoDecoder ||
                           pendingEnableRotary != settings.enableRotary ||
                         pendingEnableAudioSink != settings.enableAudioSink ||
-                          pendingStaticAudioFocus != settings.staticAudioFocus ||
                           pendingSeparateAudioStreams != settings.separateAudioStreams ||
                           pendingUseAacAudio != settings.useAacAudio ||
                           pendingAttachHwDspEqualizer != settings.attachHwDspEqualizer ||
@@ -1401,21 +1395,6 @@ class SettingsFragment : Fragment() {
                 updateSettingsList()
             }
         ))
-
-        if (pendingEnableAudioSink == true) {
-            items.add(SettingItem.ToggleSettingEntry(
-                stableId = "staticAudioFocus",
-                nameResId = R.string.static_audio_focus,
-                descriptionResId = R.string.static_audio_focus_description,
-                isChecked = pendingStaticAudioFocus ?: false,
-                onCheckedChanged = { isChecked ->
-                    pendingStaticAudioFocus = isChecked
-                    checkChanges()
-                    updateSettingsList()
-                }
-            ))
-
-        }
 
         items.add(SettingItem.ToggleSettingEntry(
             stableId = "separateAudioStreams",

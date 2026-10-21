@@ -28,7 +28,6 @@ class AudioTrackWrapper(
     gain: Float,
     private val audioLatencyMultiplier: Int = 8,
     private val audioQueueCapacity: Int = 0,
-    private val mixer: AudioMixer? = null,
     private val channelId: Int = -1,
     private val attachHwDspEqualizer: Boolean = false,
     /** >0 enables Wi‑Fi media jitter: larger track + delay play() until this many ms are queued. */
@@ -81,8 +80,6 @@ class AudioTrackWrapper(
             } catch (e: Exception) {
                 AppLog.e("Failed to set volume on AudioTrack", e)
             }
-        } else {
-            mixer?.setChannelGain(channelId, gain)
         }
     }
 
@@ -107,7 +104,7 @@ class AudioTrackWrapper(
 
     init {
         this.name = "AudioPlaybackThread"
-        val plan = if (mixer == null && mediaBufferMillis > 0) {
+        val plan = if (mediaBufferMillis > 0) {
             val channelConfig =
                 if (channelCount == 2) AudioFormat.CHANNEL_OUT_STEREO else AudioFormat.CHANNEL_OUT_MONO
             val dataFormat =
@@ -124,18 +121,14 @@ class AudioTrackWrapper(
             null
         }
 
-        audioTrack = if (mixer == null) {
-            createAudioTrack(
-                stream,
-                sampleRateInHz,
-                bitDepth,
-                channelCount,
-                audioLatencyMultiplier,
-                plan?.trackBufferBytes ?: 0,
-            )
-        } else {
-            null
-        }
+        audioTrack = createAudioTrack(
+            stream,
+            sampleRateInHz,
+            bitDepth,
+            channelCount,
+            audioLatencyMultiplier,
+            plan?.trackBufferBytes ?: 0,
+        )
 
         mediaJitterStartBytes = run {
             val track = audioTrack
@@ -150,21 +143,16 @@ class AudioTrackWrapper(
         }
         mediaPlaybackStarted = mediaJitterStartBytes <= 0
 
-        if (mixer != null) {
-            mixer.registerChannel(channelId, sampleRateInHz, channelCount)
-            mixer.setChannelGain(channelId, gain)
-        } else {
-            setVolume(gain)
-            audioTrack?.let { track ->
-                attachHwDspEqualizerQuietly(track.audioSessionId)
-                if (mediaPlaybackStarted) {
-                    track.play()
-                } else {
-                    AppLog.i(
-                        "Media audio jitter: delaying play until ${mediaJitterStartBytes}B " +
-                            "(~${mediaBufferMillis}ms) buffered",
-                    )
-                }
+        setVolume(gain)
+        audioTrack?.let { track ->
+            attachHwDspEqualizerQuietly(track.audioSessionId)
+            if (mediaPlaybackStarted) {
+                track.play()
+            } else {
+                AppLog.i(
+                    "Media audio jitter: delaying play until ${mediaJitterStartBytes}B " +
+                        "(~${mediaBufferMillis}ms) buffered",
+                )
             }
         }
 
@@ -271,24 +259,19 @@ class AudioTrackWrapper(
     }
 
     private fun writeToTrack(buffer: ByteArray, size: Int) {
-        if (mixer != null) {
-            mixer.feed(channelId, buffer, 0, size)
-            framesWritten += size / bytesPerFrame
-        } else {
-            applyGain(buffer, size)
-            val track = audioTrack ?: return
-            val result = track.write(buffer, 0, size)
-            if (result > 0) {
-                framesWritten += result / bytesPerFrame
-                if (!mediaPlaybackStarted) {
-                    bytesWrittenBeforePlay += result
-                    if (bytesWrittenBeforePlay >= mediaJitterStartBytes) {
-                        track.play()
-                        mediaPlaybackStarted = true
-                        AppLog.i(
-                            "Media audio jitter: play() after ${bytesWrittenBeforePlay}B buffered",
-                        )
-                    }
+        applyGain(buffer, size)
+        val track = audioTrack ?: return
+        val result = track.write(buffer, 0, size)
+        if (result > 0) {
+            framesWritten += result / bytesPerFrame
+            if (!mediaPlaybackStarted) {
+                bytesWrittenBeforePlay += result
+                if (bytesWrittenBeforePlay >= mediaJitterStartBytes) {
+                    track.play()
+                    mediaPlaybackStarted = true
+                    AppLog.i(
+                        "Media audio jitter: play() after ${bytesWrittenBeforePlay}B buffered",
+                    )
                 }
             }
         }
@@ -562,10 +545,6 @@ class AudioTrackWrapper(
         } catch (e: InterruptedException) {
             AppLog.w("Audio write executor interrupted during shutdown")
             writeExecutor.shutdownNow()
-        }
-
-        if (mixer != null) {
-            mixer.unregisterChannel(channelId)
         }
 
         // 3. Gracefully stop the AudioTrack – stop() plays remaining buffer data

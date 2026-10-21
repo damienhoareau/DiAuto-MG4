@@ -102,7 +102,6 @@ object SettingsBackupManager {
         "auto-connect-single-usb" to ValueType.BOOLEAN,
         "enable-audio-sink" to ValueType.BOOLEAN,
         "media-audio-buffer-ms" to ValueType.INT,
-        "static-audio-focus" to ValueType.BOOLEAN,
         // Same reasoning: read through MediaKeyRoutingPolicy.Mode.fromInt, which falls back to
         // ALWAYS for anything out of range.
         "media-key-routing" to ValueType.INT,
@@ -178,7 +177,6 @@ object SettingsBackupManager {
         "enable-rotary",
         "enable-audio-sink",
         "media-audio-buffer-ms",
-        "static-audio-focus",
         "playback-focus-mode",
         "separate-audio-streams",
         "use-aac-audio",

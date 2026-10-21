@@ -32,7 +32,6 @@ internal class AapAudio(
     private val mediaAudioManager: AudioManager =
         SaicCarAudioSource.audioManager(context) ?: audioManager
 
-    private val staticAudioFocus = settings.staticAudioFocus
     private val separateAudioStreams = settings.separateAudioStreams
     private val mediaVolumeOffset = settings.mediaVolumeOffset
     private val assistantVolumeOffset = settings.assistantVolumeOffset
@@ -70,41 +69,6 @@ internal class AapAudio(
 
     /** The audio channels the phone is playing on: the stock app's isMediaPlaying and isGuidancePlaying. */
     private val activeAudioChannels = mutableSetOf<Int>()
-
-    @Volatile
-    private var isDucked = false
-    private val handler = Handler(Looper.getMainLooper())
-    private val unduckRunnable = Runnable {
-        unduckMedia()
-    }
-
-    private fun duckMedia() {
-        if (!isDucked) {
-            val mediaTrack = audioDecoder.getTrack(Channel.ID_AUD)
-            if (mediaTrack != null) {
-                val duckedVolume = getMediaGain() * DUCK_VOLUME_FACTOR
-                AppLog.i("Static Audio Focus: Ducking media volume to $duckedVolume")
-                mediaTrack.setVolume(duckedVolume)
-                isDucked = true
-            }
-        }
-    }
-
-    private fun unduckMedia() {
-        if (isDucked) {
-            val mediaTrack = audioDecoder.getTrack(Channel.ID_AUD)
-            if (mediaTrack != null) {
-                val originalVolume = getMediaGain()
-                AppLog.i("Static Audio Focus: Restoring media volume to $originalVolume")
-                mediaTrack.setVolume(originalVolume)
-            }
-            isDucked = false
-        }
-    }
-
-    private fun getMediaGain(): Float {
-        return (1.0f + (mediaVolumeOffset / 100.0f)).coerceIn(0.0f, 2.0f)
-    }
 
     fun requestFocusChange(stream: Int, focusRequest: Int, callback: AudioManager.OnAudioFocusChangeListener): Int {
         val effectiveFocus = focusRequest
@@ -358,7 +322,6 @@ internal class AapAudio(
             gain,
             effectiveMultiplier,
             audioQueueCapacity,
-            staticAudioFocus,
             attachHwDspEqualizer,
             mediaBufferMillis = jitterMs,
         )
@@ -375,12 +338,6 @@ internal class AapAudio(
         synchronized(activeAudioChannels) { activeAudioChannels.remove(channel) }
     }
 
-    fun precreateAudioTrack(channel: Int) {
-        if (!staticAudioFocus) return
-        if (channel != Channel.ID_AU2) return
-        startAudioTrack(channel)
-    }
-
     private fun decode(channel: Int, start: Int, buf: ByteArray, len: Int) {
         var length = len
         if (length > AUDIO_BUFS_SIZE) {
@@ -394,11 +351,6 @@ internal class AapAudio(
 
         audioDecoder.decode(channel, buf, start, length)
 
-        if ((channel == Channel.ID_AU1 || channel == Channel.ID_AU2) && staticAudioFocus) {
-            duckMedia()
-            handler.removeCallbacks(unduckRunnable)
-            handler.postDelayed(unduckRunnable, UNDUCK_DELAY_MS)
-        }
     }
 
     fun updateGains() {
@@ -418,20 +370,11 @@ internal class AapAudio(
 
     fun stopAudio(channel: Int) {
         AppLog.i("Audio Stop: " + Channel.name(channel))
-        if ((channel == Channel.ID_AU1 || channel == Channel.ID_AU2) && staticAudioFocus) {
-            // Keep the speech wrappers alive to prevent recreate overhead and keep state consistent.
-            // Just restore media volume.
-            handler.removeCallbacks(unduckRunnable)
-            unduckMedia()
-        } else {
-            audioDecoder.stop(channel)
-            onAudioPlaybackStopped(channel)
-        }
+        audioDecoder.stop(channel)
+        onAudioPlaybackStopped(channel)
     }
 
     companion object {
         private const val AUDIO_BUFS_SIZE = 65536 * 4  // Up to 256 Kbytes
-        private const val DUCK_VOLUME_FACTOR = 0.4f
-        private const val UNDUCK_DELAY_MS = 1500L
     }
 }

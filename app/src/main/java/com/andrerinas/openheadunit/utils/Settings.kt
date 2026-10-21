@@ -645,10 +645,6 @@ class Settings(private val context: Context) {
         get() = (context.getSystemService(Context.WINDOW_SERVICE) as android.view.WindowManager)
             .defaultDisplay.refreshRate
 
-    var staticAudioFocus: Boolean
-        get() = prefs.getBoolean("static-audio-focus", false)
-        set(value) { prefs.edit().putBoolean("static-audio-focus", value).apply() }
-
     // Whether the physical media buttons reach Android Auto, or are left to the Bluetooth side that
     // may already act on the same press — two consumers of one button skip two tracks. See
     // MediaKeyRoutingPolicy. ALWAYS is the stored zero value so an unset preference keeps the
@@ -714,7 +710,7 @@ class Settings(private val context: Context) {
         get() = prefs.getBoolean("mic-echo-canceler", false)
         set(value) { prefs.edit().putBoolean("mic-echo-canceler", value).apply() }
 
-    // Attach dummy Equalizer effect to AudioTrack/AudioMixer session to force HW DSP hardware routing
+    // Attach dummy Equalizer effect to AudioTrack session to force HW DSP hardware routing
     var attachHwDspEqualizer: Boolean
         get() = prefs.getBoolean("attach_hw_dsp_equalizer", false)
         set(value) { prefs.edit().putBoolean("attach_hw_dsp_equalizer", value).apply() }

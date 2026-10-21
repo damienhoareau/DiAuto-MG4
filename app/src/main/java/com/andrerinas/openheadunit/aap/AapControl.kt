@@ -98,7 +98,6 @@ internal class AapControlMedia(
 
         // Pushing AudioFocusNotification
         if (Channel.isAudio(channel)) {
-            aapAudio.precreateAudioTrack(channel)
             val focusNotification = Control.AudioFocusNotification.newBuilder()
                 .setFocusState(Control.AudioFocusNotification.AudioFocusStateType.STATE_GAIN)
                 .setUnsolicited(true)
@@ -390,18 +389,14 @@ internal class AapControlService(
         // really could not play it, instead of streaming into a source nobody hears.
         var systemResult: Int? = null
         if (settings.enableAudioSink) {
-            if (settings.staticAudioFocus) {
-                AppLog.i("Static Audio Focus active - skipping dynamic system focus request to prevent routing loss")
-            } else {
-                val separate = settings.separateAudioStreams
-                systemResult = aapAudio.requestFocusChange(
-                    AudioConfigs.stream(channel, separate),
-                    notification.request.number,
-                    AudioManager.OnAudioFocusChangeListener {
-                        AppLog.i("System audio focus changed: $it ${systemFocusName[it]}")
-                    },
-                )
-            }
+            val separate = settings.separateAudioStreams
+            systemResult = aapAudio.requestFocusChange(
+                AudioConfigs.stream(channel, separate),
+                notification.request.number,
+                AudioManager.OnAudioFocusChangeListener {
+                    AppLog.i("System audio focus changed: $it ${systemFocusName[it]}")
+                },
+            )
         } else {
             AppLog.i("Audio Sink disabled - skipping system audio focus request for channel ${Channel.name(channel)}")
         }
