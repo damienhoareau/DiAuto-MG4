@@ -17,7 +17,6 @@
     <string name="usb">USB</string>
     <string name="dpi">Densidad de píxeles (DPI)</string>
     <string name="mic_sample_rate">Tasa de muestreo del micro</string>
-    <string name="keymap">Mapa de teclas</string>
     <string name="night_mode">Modo oscuro (Android Auto)</string>
     <string name="night_mode_threshold">Umbral del modo noche</string>
     <string name="enter_threshold_value">Introducir valor de umbral</string>
@@ -107,7 +106,6 @@
 
 
     <string name="not_set">No establecido</string>
-    <string name="keymap_description">Cambiar asignación de teclas</string>
 
     <string name="key_soft_left">Tecla izquierda</string>
     <string name="key_soft_right">Tecla derecha</string>
@@ -946,8 +944,6 @@
     <string name="audio_queue_balanced">20 chunks (Balanced)</string>
     <string name="audio_queue_high">50 chunks (High latency)</string>
     <string name="audio_queue_backlog">Unbounded (Max backlog)</string>
-    <string name="keymap_test_hint">Press any key to test…</string>
-    <string name="keymap_test_event">Key: %1$s (%2$d) · %3$s</string>
 
     <string name="crash_report_title">Previous crash report</string>
     <string name="crash_report_empty">No crash details available.</string>

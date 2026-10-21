@@ -155,21 +155,6 @@ class Settings(private val context: Context) {
             prefs.edit().putInt("night-mode-threshold-brightness", value).apply()
         }
 
-    var keyCodes: MutableMap<Int, Int>
-        get() {
-            val set = prefs.getStringSet("key-codes", mutableSetOf())!!
-            val map = mutableMapOf<Int, Int>()
-            set.forEach {
-                val codes = it.split("-")
-                map[codes[0].toInt()] = codes[1].toInt()
-            }
-            return map
-        }
-        set(codesMap) {
-            val list: List<String> = codesMap.map { "${it.key}-${it.value}" }
-            prefs.edit().putStringSet("key-codes", list.toSet()).apply()
-        }
-
     var exporterLogLevel: LogExporter.LogLevel
         // Default Silent. Key renamed so existing installs drop the old Info default
         // and pick up Silent without a prefs migration.

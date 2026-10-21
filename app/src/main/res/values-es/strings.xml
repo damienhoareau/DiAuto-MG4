@@ -18,7 +18,6 @@
     <string name="wifi">Wi-Fi</string>
     <string name="dpi">Densidad de píxeles (DPI)</string>
     <string name="mic_sample_rate">Frecuencia de muestreo del micrófono</string>
-    <string name="keymap">Mapa de teclas</string>
     <string name="night_mode">Modo oscuro (Android Auto)</string>
     <string name="night_mode_threshold">Umbral del modo noche</string>
     <string name="enter_threshold_value">Ingrese el valor del umbral</string>
@@ -114,7 +113,6 @@
 
 
     <string name="not_set">No establecido</string>
-    <string name="keymap_description">Cambiar las asignaciones de teclas para tu radio</string>
 
     <string name="key_soft_left">Tecla izquierda</string>
     <string name="key_soft_right">Tecla derecha</string>
@@ -915,8 +913,6 @@
     <string name="audio_queue_balanced">20 bloques (equilibrado)</string>
     <string name="audio_queue_high">50 bloques (alta latencia)</string>
     <string name="audio_queue_backlog">Sin límite (máxima cola)</string>
-    <string name="keymap_test_hint">Pulsa cualquier tecla para probar…</string>
-    <string name="keymap_test_event">Tecla: %1$s (%2$d) · %3$s</string>
 
     <!-- Lint: MissingTranslation (EN fallback / TR localized) -->
     <string name="category_charging_info">Charging info</string>

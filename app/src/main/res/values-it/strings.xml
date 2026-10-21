@@ -18,7 +18,6 @@
     <string name="wifi">WiFi</string>
     <string name="dpi">Densità pixel (DPI)</string>
     <string name="mic_sample_rate">Frequenza campionamento microfono</string>
-    <string name="keymap">Mappatura tasti</string>
     <string name="night_mode">Modalità scura (Android Auto)</string>
     <string name="night_mode_threshold">Soglia modalità notte</string>
     <string name="enter_threshold_value">Inserisci valore soglia</string>
@@ -137,7 +136,6 @@
 
 
     <string name="not_set">Non impostato</string>
-    <string name="keymap_description">Cambia le associazioni dei tasti per la tua Headunit</string>
 
     <string name="key_soft_left">Soft Left</string>
     <string name="key_soft_right">Soft Right</string>
@@ -982,8 +980,6 @@
     <string name="audio_queue_balanced">20 chunks (Balanced)</string>
     <string name="audio_queue_high">50 chunks (High latency)</string>
     <string name="audio_queue_backlog">Unbounded (Max backlog)</string>
-    <string name="keymap_test_hint">Press any key to test…</string>
-    <string name="keymap_test_event">Key: %1$s (%2$d) · %3$s</string>
 
     <string name="crash_report_title">Previous crash report</string>
     <string name="crash_report_empty">No crash details available.</string>

@@ -46,7 +46,6 @@ import java.io.File
 class MainActivity : BaseActivity() {
 
     private var lastBackPressTime: Long = 0
-    var keyListener: KeyListener? = null
 
     private var isOrientationReceiverRegistered = false
     private var isFinishReceiverRegistered = false
@@ -86,10 +85,6 @@ class MainActivity : BaseActivity() {
                 }
             }
         }
-    }
-
-    interface KeyListener {
-        fun onKeyEvent(event: KeyEvent?): Boolean
     }
 
     private val orientationReceiver = object : BroadcastReceiver() {
@@ -965,19 +960,6 @@ class MainActivity : BaseActivity() {
         if (hasFocus) {
             setFullscreen()
         }
-    }
-
-    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        AppLog.i("dispatchKeyEvent: keyCode=%d, action=%d", event.keyCode, event.action)
-        
-        // Always give the KeymapFragment (if active) a chance to see the key
-        val handled = keyListener?.onKeyEvent(event) ?: false
-        
-        // If the key was handled by our listener (e.g. in KeymapFragment), stop here
-        if (handled) return true
-        
-        // Otherwise continue with standard handling
-        return super.dispatchKeyEvent(event)
     }
 
     override fun onDestroy() {

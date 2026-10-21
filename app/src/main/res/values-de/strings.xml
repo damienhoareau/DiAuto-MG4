@@ -19,7 +19,6 @@
     <string name="dpi">Pixeldichte (DPI)</string>
     <string name="pixel_aspect_ratio">Pixelseitenverhältnis</string>
     <string name="mic_sample_rate">Mikrofon-Abtastrate</string>
-    <string name="keymap">Tastenbelegung</string>
     <string name="night_mode">Dunkelmodus (Android Auto)</string>
     <string name="night_mode_threshold">Nachtmodus Schwellenwert</string>
     <string name="enter_threshold_value">Schwellenwert eingeben</string>
@@ -139,7 +138,6 @@
 
 
     <string name="not_set">Nicht gesetzt</string>
-    <string name="keymap_description">Tastenbelegung für Headunit ändern</string>
 
     <string name="key_soft_left">Soft Links</string>
     <string name="key_soft_right">Soft Rechts</string>
@@ -980,8 +978,6 @@
     <string name="audio_queue_balanced">20 chunks (Balanced)</string>
     <string name="audio_queue_high">50 chunks (High latency)</string>
     <string name="audio_queue_backlog">Unbounded (Max backlog)</string>
-    <string name="keymap_test_hint">Press any key to test…</string>
-    <string name="keymap_test_event">Key: %1$s (%2$d) · %3$s</string>
 
     <string name="crash_report_title">Previous crash report</string>
     <string name="crash_report_empty">No crash details available.</string>

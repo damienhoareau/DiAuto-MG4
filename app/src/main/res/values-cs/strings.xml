@@ -18,7 +18,6 @@
     <string name="wifi">WiFi</string>
     <string name="dpi">Hustota pixelů (DPI)</string>
     <string name="mic_sample_rate">Vzorkovací frekvence mikrofonu</string>
-    <string name="keymap">Mapování kláves</string>
     <string name="night_mode">Tmavý režim (Android Auto)</string>
     <string name="night_mode_threshold">Práh nočního režimu</string>
     <string name="enter_threshold_value">Zadejte hodnotu prahu</string>
@@ -114,7 +113,6 @@
 
 
     <string name="not_set">Nenastaveno</string>
-    <string name="keymap_description">Změnit přiřazení kláves pro vaši jednotku</string>
 
     <string name="key_soft_left">Softwarové levé</string>
     <string name="key_soft_right">Softwarové pravé</string>
@@ -979,8 +977,6 @@
     <string name="audio_queue_balanced">20 chunks (Balanced)</string>
     <string name="audio_queue_high">50 chunks (High latency)</string>
     <string name="audio_queue_backlog">Unbounded (Max backlog)</string>
-    <string name="keymap_test_hint">Press any key to test…</string>
-    <string name="keymap_test_event">Key: %1$s (%2$d) · %3$s</string>
 
     <string name="crash_report_title">Previous crash report</string>
     <string name="crash_report_empty">No crash details available.</string>

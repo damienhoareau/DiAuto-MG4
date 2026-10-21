@@ -18,7 +18,6 @@
     <string name="wifi">Wi‑Fi</string>
     <string name="dpi">Плотность пикселей (DPI)</string>
     <string name="mic_sample_rate">Частота дискретизации микрофона</string>
-    <string name="keymap">Раскладка клавиш</string>
     <string name="night_mode">Тёмный режим (Android Auto)</string>
     <string name="night_mode_threshold">Порог ночного режима</string>
     <string name="enter_threshold_value">Введите пороговое значение</string>
@@ -114,7 +113,6 @@
 
 
     <string name="not_set">Не назначено</string>
-    <string name="keymap_description">Изменить привязку клавиш для вашего ГУ</string>
 
     <string name="key_soft_left">Левая</string>
     <string name="key_soft_right">Правая</string>
@@ -906,8 +904,6 @@
     <string name="audio_queue_balanced">20 блоков (сбалансированно)</string>
     <string name="audio_queue_high">50 блоков (большая задержка)</string>
     <string name="audio_queue_backlog">Без ограничения (максимальная очередь)</string>
-    <string name="keymap_test_hint">Нажмите любую кнопку для проверки…</string>
-    <string name="keymap_test_event">Кнопка: %1$s (%2$d) · %3$s</string>
 
     <!-- Lint: MissingTranslation (EN fallback / TR localized) -->
     <string name="category_charging_info">Charging info</string>

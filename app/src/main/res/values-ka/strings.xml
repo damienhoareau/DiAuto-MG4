@@ -18,7 +18,6 @@
     <string name="wifi">WiFi</string>
     <string name="dpi">პიქსელების სიმკვრივე (DPI)</string>
     <string name="mic_sample_rate">მიკროფონის დისკრეტულობის სიხშირე</string>
-    <string name="keymap">ღილაკების განლაგება</string>
     <string name="night_mode">ბნელი რეჟიმი (Android Auto)</string>
     <string name="night_mode_threshold">ბნელი რეჟიმის ზღვარი</string>
     <string name="enter_threshold_value">შეიყვანეთ ზღვრული მნიშვნელობა</string>
@@ -141,7 +140,6 @@
     <string name="export_logs_description">ლოგების შენახვა გამართვისთვის</string>
 
     <string name="not_set">არ არის მითითებული</string>
-    <string name="keymap_description">შეცვალეთ თქვენი მონიტორის (Headunit) ღილაკების ფუნქციები</string>
 
     <string name="key_soft_left">მარცხენა პროგრამული ღილაკი</string>
     <string name="key_soft_right">მარჯვენა პროგრამული ღილაკი</string>
@@ -960,8 +958,6 @@
     <string name="audio_queue_balanced">20 chunks (Balanced)</string>
     <string name="audio_queue_high">50 chunks (High latency)</string>
     <string name="audio_queue_backlog">Unbounded (Max backlog)</string>
-    <string name="keymap_test_hint">Press any key to test…</string>
-    <string name="keymap_test_event">Key: %1$s (%2$d) · %3$s</string>
 
     <string name="crash_report_title">Previous crash report</string>
     <string name="crash_report_empty">No crash details available.</string>

@@ -276,32 +276,6 @@
             </intent-filter>
         </receiver>
 
-        <!-- Comprehensive receiver for steering wheel and hardware buttons,
-             covering both standard Android events and proprietary Chinese headunit broadcasts. -->
-        <receiver
-            android:name=".connection.CarKeyReceiver"
-            android:exported="true">
-            <intent-filter android:priority="1000">
-                <action android:name="android.intent.action.MEDIA_BUTTON" />
-                <action android:name="hy.intent.action.MEDIA_BUTTON" />
-                <action android:name="com.nwd.action.ACTION_KEY_VALUE" />
-                <action android:name="com.microntek.irkeyUp" />
-                <action android:name="com.microntek.irkeyDown" />
-                <action android:name="com.winca.service.Setting.KEY_ACTION" />
-                <action android:name="android.intent.action.C3_HARDKEY" />
-                <action android:name="IKeyClick.KEY_CLICK" />
-                <action android:name="com.eryanet.music.prev" />
-                <action android:name="com.eryanet.music.next" />
-                <action android:name="com.eryanet.media.playorpause" />
-                <action android:name="com.eryanet.media.play" />
-                <action android:name="com.eryanet.media.pause" />
-                <action android:name="com.bz.action.phone.pickup" />
-                <action android:name="com.bz.action.phone.hangup" />
-                <action android:name="com.tencent.qqmusiccar.action.MEDIA_BUTTON_INNER_ONKEY" />
-                <action android:name="cn.kuwo.kwmusicauto.action.MEDIA_BUTTON" />
-            </intent-filter>
-        </receiver>
-
         <receiver
             android:name=".app.BootCompleteReceiver"
             android:directBootAware="true"

@@ -18,7 +18,6 @@
     <string name="wifi">واي فاي</string>
     <string name="dpi">كثافة البكسل (DPI)</string>
     <string name="mic_sample_rate">معدل أخذ عينات الميكروفون</string>
-    <string name="keymap">مفاتيح التحكم</string>
     <string name="night_mode">الوضع الداكن (Android Auto)</string>
     <string name="night_mode_threshold">عتبة الوضع الليلي</string>
     <string name="enter_threshold_value">أدخل قيمة العتبة</string>
@@ -114,7 +113,6 @@
 
 
     <string name="not_set">غير محدد</string>
-    <string name="keymap_description">تغيير اختصارات المفاتيح لوحدة الرأس</string>
 
     <string name="key_soft_left">يسار</string>
     <string name="key_soft_right">يمين</string>
@@ -905,8 +903,6 @@
     <string name="audio_queue_balanced">20 مقطعاً (متوازن)</string>
     <string name="audio_queue_high">50 مقطعاً (تأخير مرتفع)</string>
     <string name="audio_queue_backlog">بلا حد (أقصى تراكم)</string>
-    <string name="keymap_test_hint">اضغط أي زر لاختباره…</string>
-    <string name="keymap_test_event">الزر: %1$s (%2$d) · %3$s</string>
 
     <!-- Lint: MissingTranslation (EN fallback / TR localized) -->
     <string name="category_charging_info">Charging info</string>

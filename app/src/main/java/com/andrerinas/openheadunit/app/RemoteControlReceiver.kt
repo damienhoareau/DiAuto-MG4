@@ -14,14 +14,6 @@ class RemoteControlReceiver : BroadcastReceiver() {
         val action = intent.action ?: return
         AppLog.i("RemoteControlReceiver received: $action")
 
-        // Broadcast for UI debugging (KeymapFragment)
-        val debugIntent = Intent("com.andrerinas.openheadunit.DEBUG_KEY").apply {
-            putExtra("action", action)
-            intent.extras?.let { putExtras(it) }
-            setPackage(context.packageName)
-        }
-        context.sendBroadcast(debugIntent)
-
         if (Intent.ACTION_MEDIA_BUTTON == action) {
             val event = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
                 intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT, KeyEvent::class.java)
@@ -45,17 +37,6 @@ class RemoteControlReceiver : BroadcastReceiver() {
         } else {
             // Handle command-based intents (common on many Android Headunits)
             val command = intent.getStringExtra("command") ?: intent.getStringExtra("action") ?: intent.getStringExtra("action_command")
-
-            // Broadcast command for UI debug (if not already handled by ACTION_MEDIA_BUTTON block)
-            if (action != Intent.ACTION_MEDIA_BUTTON) {
-                val debugIntent = Intent("com.andrerinas.openheadunit.DEBUG_KEY").apply {
-                    putExtra("action", action)
-                    putExtra("command", command)
-                    intent.extras?.let { putExtras(it) }
-                    setPackage(context.packageName)
-                }
-                context.sendBroadcast(debugIntent)
-            }
 
             val commManager = App.provide(context).commManager
             if (commManager.connectionState.value !is CommManager.ConnectionState.TransportStarted) {

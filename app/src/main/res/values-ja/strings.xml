@@ -18,7 +18,6 @@
     <string name="wifi">WiFi</string>
     <string name="dpi">ピクセル密度 (DPI)</string>
     <string name="mic_sample_rate">マイクサンプリングレート</string>
-    <string name="keymap">キーマップ</string>
     <string name="night_mode">ダークモード (Android Auto)</string>
     <string name="night_mode_threshold">ナイトモード値</string>
     <string name="enter_threshold_value">しきい値を入力</string>
@@ -137,7 +136,6 @@
 
 
     <string name="not_set">未設定</string>
-    <string name="keymap_description">Headunitのキーバインドを変更する</string>
 
     <string name="key_soft_left">Soft左</string>
     <string name="key_soft_right">Soft右</string>
@@ -984,8 +982,6 @@
     <string name="audio_queue_balanced">20 chunks (Balanced)</string>
     <string name="audio_queue_high">50 chunks (High latency)</string>
     <string name="audio_queue_backlog">Unbounded (Max backlog)</string>
-    <string name="keymap_test_hint">Press any key to test…</string>
-    <string name="keymap_test_event">Key: %1$s (%2$d) · %3$s</string>
 
     <string name="crash_report_title">Previous crash report</string>
     <string name="crash_report_empty">No crash details available.</string>

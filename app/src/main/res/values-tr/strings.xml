@@ -19,7 +19,6 @@
     <string name="wifi">WiFi</string>
     <string name="dpi">Piksel yoğunluğu (DPI)</string>
     <string name="mic_sample_rate">Mikrofon örnekleme hızı</string>
-    <string name="keymap">Tuş Haritası</string>
     <string name="night_mode">Koyu Mod (Android Auto)</string>
     <string name="night_mode_threshold">Gece Modu Eşiği</string>
     <string name="enter_threshold_value">Eşik Değerini Girin</string>
@@ -164,7 +163,6 @@
     <string name="export_logs">Günlükleri Dışa Aktar</string>
     <string name="export_logs_description">Hata ayıklama için günlükleri kaydet</string>
     <string name="not_set">Ayarlanmadı</string>
-    <string name="keymap_description">Multimedya sisteminiz için tuş atamalarını değiştirin</string>
 
     <string name="key_soft_left">Sol Yazılım Tuşu</string>
     <string name="key_soft_right">Sağ Yazılım Tuşu</string>
@@ -982,6 +980,4 @@
     <string name="audio_queue_balanced">20 parça (Dengeli)</string>
     <string name="audio_queue_high">50 parça (Yüksek gecikme)</string>
     <string name="audio_queue_backlog">Sınırsız (Maks. birikim)</string>
-    <string name="keymap_test_hint">Test için herhangi bir tuşa bas…</string>
-    <string name="keymap_test_event">Tuş: %1$s (%2$d) · %3$s</string>
 </resources>

@@ -82,7 +82,7 @@ class SettingsFragment : Fragment() {
         "appLanguage", "autoStartSettings", "autoConnectSettings", "resolution",
         "dpiPixelDensity", "viewMode", "fpsLimit",
         "enableAudioSink", "mediaAudioBuffer", "micSettings", "audioVolumeOffsets",
-        "keymap", "version", "about", "otaBeta", "otaStatus", "otaCheck",
+        "version", "about", "otaBeta", "otaStatus", "otaCheck",
     )
 
     // Local state to hold changes before saving
@@ -1338,19 +1338,6 @@ class SettingsFragment : Fragment() {
 
         // --- Input Settings ---
         items.add(SettingItem.CategoryHeader("input", R.string.category_input))
-
-        items.add(SettingItem.SettingEntry(
-            stableId = "keymap",
-            nameResId = R.string.keymap,
-            value = getString(R.string.keymap_description),
-            onClick = { _ ->
-                try {
-                    findNavController().navigate(R.id.action_settingsFragment_to_keymapFragment)
-                } catch (e: Exception) {
-                    // Failover
-                }
-            }
-        ))
 
         items.add(SettingItem.ToggleSettingEntry(
             stableId = "enableRotary",

@@ -592,19 +592,7 @@ class CommManager(
             return
         }
 
-        // 1. Remapping (Physical -> Logical)
-        // Check if the physical keyCode is mapped to a logical action in settings.
-        // If not mapped, we use the original keyCode as the logical code.
-        var logicalCode = settings.keyCodes.entries.find { it.value == keyCode }?.key ?: keyCode
-
-        // 2. Proprietary Key Filtering
-        // If the key is proprietary (internal ID > 1000) and NOT mapped, we drop it.
-        // These keys are intended to be learned/mapped in the Keymap settings.
-        // Sending them directly to AA would result in KEYCODE_UNKNOWN.
-        if (keyCode >= 1000 && logicalCode == keyCode) {
-            AppLog.v("CommManager: Ignoring unmapped proprietary key $keyCode")
-            return
-        }
+        var logicalCode = keyCode
 
         // [FIX] BMW/Rotary Enter remapping: Most AA apps expect DPAD_CENTER (23) for selection,
         // but physical rotary knobs often send ENTER (66). Remap 66 -> 23 to ensure selection works.

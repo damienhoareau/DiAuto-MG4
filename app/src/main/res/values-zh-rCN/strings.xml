@@ -17,7 +17,6 @@
     <string name="wifi">WiFi</string>
     <string name="dpi">像素密度 (DPI)</string>
     <string name="mic_sample_rate">麦克风采样率</string>
-    <string name="keymap">按键映射</string>
     <string name="night_mode">深色模式（Android Auto）</string>
     <string name="night_mode_threshold">夜间模式阈值</string>
     <string name="enter_threshold_value">输入阈值</string>
@@ -113,7 +112,6 @@
 
 
     <string name="not_set">尚未设置</string>
-    <string name="keymap_description">变更您的主机按键绑定</string>
 
     <string name="key_soft_left">软键左</string>
     <string name="key_soft_right">软键右</string>
@@ -906,8 +904,6 @@
     <string name="audio_queue_balanced">20 个音频块（均衡）</string>
     <string name="audio_queue_high">50 个音频块（高延迟）</string>
     <string name="audio_queue_backlog">无限制（最大积压）</string>
-    <string name="keymap_test_hint">按任意键进行测试…</string>
-    <string name="keymap_test_event">按键：%1$s（%2$d）· %3$s</string>
 
     <!-- Lint: MissingTranslation (EN fallback / TR localized) -->
     <string name="category_charging_info">Charging info</string>

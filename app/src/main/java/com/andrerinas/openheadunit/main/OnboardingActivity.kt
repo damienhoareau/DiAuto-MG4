@@ -121,9 +121,6 @@ class OnboardingActivity : BaseActivity() {
         findViewById<View>(R.id.onb_extra_loading).setOnClickListener {
             finishOnboardingInto(R.id.loadingScreenFragment)
         }
-        findViewById<View>(R.id.onb_extra_keymap).setOnClickListener {
-            finishOnboardingInto(R.id.keymapFragment)
-        }
         findViewById<View>(R.id.onb_extra_mic).setOnClickListener {
             finishOnboardingInto(R.id.micSettingsFragment)
         }
