@@ -109,6 +109,7 @@ internal object SaicNavigationOutputs {
     private const val TX_GET_DISTANCE_UNIT = 28
     private const val MAX_FAILURES = 3
     private const val FRESH_NS = 30_000_000_000L
+    private const val DISTANCE_LOG_EVERY_NS = 5_000_000_000L
 
     private const val TX_MAP_NAVIGATING = 22
     private const val TX_REQUEST_PROJECTION = 27
@@ -135,6 +136,7 @@ internal object SaicNavigationOutputs {
     @Volatile private var disabled = false
     private var sent: SaicGuidance? = null // only touched on the executor thread
     private var failures = 0
+    private var lastDistanceLogNs = 0L // only touched on the executor thread
     private var scheduled = false
 
     fun available(context: Context): Boolean =
@@ -152,7 +154,14 @@ internal object SaicNavigationOutputs {
         )
     }
 
-    fun update(value: SaicGuidance?) { latest.set(value) }
+    /**
+     * The new guidance goes out at once instead of at the next one-second tick: the cluster used to
+     * trail the phone's screen by up to a second, which shows as a larger distance while approaching.
+     */
+    fun update(value: SaicGuidance?) {
+        latest.set(value)
+        if (scheduled) executor.execute { runCatching { tick() } }
+    }
 
     /**
      * Test only: sends [calls] to the adapter in order and says what each one got. A refusal does not
@@ -275,6 +284,11 @@ internal object SaicNavigationOutputs {
         val iconSet = appContext?.let { ClusterIconSet.current(it.contentResolver) } ?: ClusterIconSet.TELENAV
         val value = latest.get()?.takeIf { now - it.updatedNs < FRESH_NS }?.copy(iconSet = iconSet)
         for (call in SaicCallPlan.plan(sent, value)) {
+            if (call is SaicCall.GuideInfos && now - lastDistanceLogNs >= DISTANCE_LOG_EVERY_NS) {
+                lastDistanceLogNs = now
+                val ageMs = value?.let { (now - it.updatedNs) / 1_000_000 }
+                AppLog.i("$TAG: cluster distance ${call.distanceMeters} m (guidance ${ageMs} ms old when sent)")
+            }
             if (!send(target, call)) {
                 if (++failures >= MAX_FAILURES) {
                     AppLog.w("$TAG: $MAX_FAILURES calls failed in a row - giving up until the adapter reconnects")
