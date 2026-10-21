@@ -359,7 +359,10 @@ internal class AapControlService(
         AppLog.i("Sending BYEYERESPONSE")
         aapTransport.send(msg)
         Utils.ms_sleep(500)
-        AppLog.i("Calling aapTransport.quit(clean=true)")
+        // The user ended the session on the phone: that is an exit, not a loss, so nothing restarts
+        // the connection behind their back.
+        if (request.reason == Control.ByeByeReason.USER_SELECTION) aapTransport.wasUserExit = true
+        AppLog.i("Calling aapTransport.quit(clean=true) (userExit=${aapTransport.wasUserExit})")
         aapTransport.quit(clean = true)
         return -1
     }
