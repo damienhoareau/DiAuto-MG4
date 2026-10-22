@@ -90,13 +90,19 @@ class CarKeyBroadcastReceiver : BroadcastReceiver(), CarKeyReceiver {
         }
 
         val event = decoder.accept(keyCode, isDown, isLong) ?: return
-        if (event.button == PhysicalButtonEventDecoder.Button.ASSISTANT &&
-            event.press != PhysicalButtonEventDecoder.Press.LONG) {
+        if (event.button != PhysicalButtonEventDecoder.Button.ASSISTANT) return
+        val commManager = App.provide(context).commManager
+        when {
             // Like the stock app, the key goes to the phone only to close a voice session that is open
             // there; otherwise the car's own assistant answers alone, and the phone's would keep the
             // music paused long after the car's has ended.
-            if (App.provide(context).commManager.isAssistantActive()) toggleVoiceAssistant(context)
-            else AppLog.i("CarKeyReceiver: voice key left to the car's assistant")
+            event.press != PhysicalButtonEventDecoder.Press.LONG ->
+                if (commManager.isAssistantActive()) toggleVoiceAssistant(context)
+                else AppLog.i("CarKeyReceiver: voice key left to the car's assistant")
+            // A long press opens the phone's assistant, unless one of the two is already running.
+            commManager.isAssistantActive() -> Unit
+            commManager.isNativeVoiceOngoing() -> AppLog.i("CarKeyReceiver: long voice key while the car's assistant runs, no action")
+            else -> toggleVoiceAssistant(context)
         }
     }
 

@@ -19,6 +19,10 @@ internal class AapAppFocus(
 ) {
     @Volatile private var voiceHeld = false
 
+    /** The stock app's isNativeVROnGoing: the car's own voice recognition holds the voice focus. */
+    @Volatile var nativeVoiceOngoing = false
+        private set
+
     init {
         listenToNativeVoice()
     }
@@ -74,7 +78,9 @@ internal class AapAppFocus(
      */
     private fun listenToNativeVoice() {
         CarAppFocus.listen(CarAppFocus.VOICE_COMMAND) { type, active ->
-            if (type != CarAppFocus.VOICE_COMMAND || !active || voiceHeld) return@listen
+            if (type != CarAppFocus.VOICE_COMMAND) return@listen
+            if (!voiceHeld) nativeVoiceOngoing = active
+            if (!active || voiceHeld) return@listen
             if (audio.isGuidancePlaying()) {
                 AppLog.i("AppFocus: the car's voice recognition started during guidance, telling the phone")
                 audio.tellPhoneLossTransient()
