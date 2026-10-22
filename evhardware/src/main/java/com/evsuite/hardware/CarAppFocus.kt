@@ -33,7 +33,16 @@ object CarAppFocus {
     private fun proxy(interfaceName: String, handler: InvocationHandler): Any? {
         val loader = EVHardware.appClassLoader() ?: return null
         return try {
-            Proxy.newProxyInstance(loader, arrayOf(loader.loadClass(interfaceName)), handler)
+            Proxy.newProxyInstance(loader, arrayOf(loader.loadClass(interfaceName))) { proxy, method, args ->
+                // hashCode, equals and toString reach a proxy too, and a null answer to the primitive
+                // ones fails the whole call: the car's service keeps its callbacks in a map.
+                when (method.name) {
+                    "hashCode" -> if (method.parameterCount == 0) System.identityHashCode(proxy) else handler.invoke(proxy, method, args)
+                    "equals" -> if (method.parameterCount == 1) proxy === args?.getOrNull(0) else handler.invoke(proxy, method, args)
+                    "toString" -> if (method.parameterCount == 0) "CarAppFocus.proxy" else handler.invoke(proxy, method, args)
+                    else -> handler.invoke(proxy, method, args)
+                }
+            }
         } catch (e: Exception) {
             AppLogger.w(TAG, "cannot implement $interfaceName: ${e.message}")
             null

@@ -13,8 +13,9 @@ import com.evsuite.hardware.PhysicalButtonEventDecoder
 
 /**
  * The MG4's steering-wheel keys, taken from the car's hardkey broadcast the way the stock Allgo app
- * takes them: next, previous and mute (87, 88, 164) go to the phone on a short press, the raw wheel
- * codes (297 to 301) do nothing, and the voice key toggles the assistant. The broadcast is not aborted.
+ * takes them: next, previous and mute (87, 88, 164) go to the phone on a short press, and the voice key
+ * toggles the assistant. The wheel's own left, right and OK codes (299 to 301) are sent as previous, next
+ * and play/pause. The broadcast is not aborted.
  */
 class CarKeyBroadcastReceiver : BroadcastReceiver(), CarKeyReceiver {
 
@@ -24,6 +25,12 @@ class CarKeyBroadcastReceiver : BroadcastReceiver(), CarKeyReceiver {
         private const val EXTRA_DOWN = "android.intent.extra.hardkey.down"
         private const val EXTRA_LONGPRESS = "android.intent.extra.hardkey.longpress"
         private const val KEYCODE_MUTE = 164
+
+        // What the MG4 wheel really sends (seen with adb): the car's own media layer is the only one that
+        // acts on these, and not while Android Auto is in front, so they go to the phone here.
+        private const val WHEEL_LEFT = 299
+        private const val WHEEL_RIGHT = 300
+        private const val WHEEL_OK = 301
     }
 
     private var context: Context? = null
@@ -71,6 +78,14 @@ class CarKeyBroadcastReceiver : BroadcastReceiver(), CarKeyReceiver {
                 onMute(context, commManager)
             } else {
                 handleClick(context, keyCode)
+            }
+        }
+
+        if (isDown && !isLong) {
+            when (keyCode) {
+                WHEEL_LEFT -> handleClick(context, KeyEvent.KEYCODE_MEDIA_PREVIOUS)
+                WHEEL_RIGHT -> handleClick(context, KeyEvent.KEYCODE_MEDIA_NEXT)
+                WHEEL_OK -> handleClick(context, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)
             }
         }
 
