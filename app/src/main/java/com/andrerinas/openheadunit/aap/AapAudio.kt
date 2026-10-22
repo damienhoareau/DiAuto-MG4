@@ -86,15 +86,15 @@ internal class AapAudio(
     private fun mediaGain(): Float = (1.0f + (mediaVolumeOffset / 100.0f)).coerceIn(0.0f, 2.0f)
 
     /**
-     * The stock app sets the media player up only while the head unit has the focus, or a transient
-     * one for media or the assistant, and again when the focus comes back. Here the player exists
-     * already, so it is silent until then.
+     * The phone may play without ever asking for the focus (after a play key sent from the car, as
+     * seen on the MG4), so the player is never muted for lack of it: only the level is applied, and
+     * the missing focus is logged.
      */
     private fun applyMediaOutput() {
         val track = audioDecoder.getTrack(Channel.ID_AUD) ?: return
         val allowed = phoneHasGain || transMediaFocus != null || assistantFocus != null
-        if (!allowed) AppLog.i("AapAudio: media is playing without the audio focus, keeping it silent until it is granted")
-        track.setVolume(if (allowed) mediaGain() else 0f)
+        if (!allowed) AppLog.i("AapAudio: media is playing without the audio focus, playing anyway")
+        track.setVolume(mediaGain())
     }
 
     /** The audio channels the phone is playing on: the stock app's isMediaPlaying and isGuidancePlaying. */
