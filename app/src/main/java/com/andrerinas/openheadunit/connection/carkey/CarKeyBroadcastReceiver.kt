@@ -92,7 +92,11 @@ class CarKeyBroadcastReceiver : BroadcastReceiver(), CarKeyReceiver {
         val event = decoder.accept(keyCode, isDown, isLong) ?: return
         if (event.button == PhysicalButtonEventDecoder.Button.ASSISTANT &&
             event.press != PhysicalButtonEventDecoder.Press.LONG) {
-            toggleVoiceAssistant(context)
+            // Like the stock app, the key goes to the phone only to close a voice session that is open
+            // there; otherwise the car's own assistant answers alone, and the phone's would keep the
+            // music paused long after the car's has ended.
+            if (App.provide(context).commManager.isAssistantActive()) toggleVoiceAssistant(context)
+            else AppLog.i("CarKeyReceiver: voice key left to the car's assistant")
         }
     }
 
