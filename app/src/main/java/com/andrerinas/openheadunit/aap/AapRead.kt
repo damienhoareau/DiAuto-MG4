@@ -172,11 +172,11 @@ internal interface AapRead {
             )
 
             // Read framing is a transport-shape question, not a handshake-timing one:
-            // every socket-backed connection (Nearby, WiFi Direct, Hotspot, manual IP) frames
+            // every socket-backed connection (Hotspot, manual IP) frames
             // one AA message per blocking read, same as it always has. Only USB/libusb bulk
             // transfers can batch multiple messages into one read and need the FIFO reassembly
             // in AapReadMultipleMessages. Do NOT key this off isSingleMessage - that flag only
-            // controls the Nearby-specific handshake settle-delay/drain skip in
+            // controls the handshake settle-delay/drain skip in
             // AapTransport.handshake() and is unrelated to read framing.
             // Only ever non-null for a Stage.READER mode; Stage.ASSEMBLER modes stay with AapVideo,
             // and VideoFaultInjector.isActiveAt is what keeps the two from both claiming one mode.

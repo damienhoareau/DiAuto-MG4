@@ -69,7 +69,6 @@ import android.media.AudioManager
 import com.andrerinas.openheadunit.utils.HotspotManager
 import com.andrerinas.openheadunit.utils.VpnControl
 import com.andrerinas.openheadunit.connection.NativeAaHandshakeManager
-import com.andrerinas.openheadunit.connection.NearbyManager
 import com.andrerinas.openheadunit.connection.SoftApCredentialsProvider
 import com.andrerinas.openheadunit.main.BackgroundNotification
 import android.annotation.SuppressLint
@@ -107,7 +106,6 @@ class AapService : Service(), UsbReceiver.Listener {
     // Mode 3's credential source: the head unit's own hotspot, which the app prepares and starts itself.
     private var softApCredentialsProvider: SoftApCredentialsProvider? = null
     private var nativeAaHandshakeManager: NativeAaHandshakeManager? = null
-    private var nearbyManager: NearbyManager? = null
     private var wifiAutoStartReceiver: WifiAutoStartReceiver? = null
     // @Volatile: the handshake can now ask for a repair from Dispatchers.IO, so this is no
     // longer read only from Main.
@@ -803,30 +801,6 @@ class AapService : Service(), UsbReceiver.Listener {
                 nativeAaHandshakeManager?.isHandoffSettling() == true
         }
 
-        // Google Nearby is not usable on Google-free head units such as the MG4. Merely creating
-        // its client posts work to GoogleApiHandler; there the missing GSF gservices provider
-        // throws an uncaught SecurityException outside this try/catch and kills the process.
-        // Do not touch the Nearby API at all unless the provider it requires is installed.
-        val hasGoogleServicesFramework = packageManager.resolveContentProvider(
-            "com.google.android.gsf.gservices",
-            0
-        ) != null
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && hasGoogleServicesFramework) {
-            try {
-                nearbyManager = NearbyManager(this, serviceScope) { socket ->
-                    val appSettings = App.provide(this).settings
-                    appSettings.saveLastConnection(Settings.CONNECTION_TYPE_NEARBY)
-                    serviceScope.launch(Dispatchers.IO) {
-                        commManager.connect(socket)
-                    }
-                }
-            } catch (e: Exception) {
-                AppLog.e("AapService: Failed to init NearbyManager: ${e.message}")
-            }
-        } else if (!hasGoogleServicesFramework) {
-            AppLog.i("AapService: Google Nearby disabled: GSF gservices provider is unavailable")
-        }
-
         initWifiMode()
         softApCredentialsProvider?.setCredentialsListener { ssid, psk, ip, bssid ->
             onNativeCredentials(ssid, psk, ip, bssid)
@@ -1264,8 +1238,6 @@ class AapService : Service(), UsbReceiver.Listener {
         safeMediaSessionCall { it.isActive = false }
         updateMediaSessionState(false)
         serviceScope.launch(Dispatchers.IO) {
-            nearbyManager?.stop() // Disconnect Nearby tunnel
-
             val settings = App.provide(this@AapService).settings
             val mode = settings.wifiConnectionMode
             val strategy = settings.helperConnectionStrategy
@@ -1392,9 +1364,7 @@ class AapService : Service(), UsbReceiver.Listener {
             serviceScope.launch {
                 delay(2000)
                 if (!commManager.isConnected) {
-                    if (settings.wifiConnectionMode == 2 && settings.helperConnectionStrategy == 2) {
-                        nearbyManager?.start()
-                    } else if (discoveryDormantAfterWifiLoss) {
+                    if (discoveryDormantAfterWifiLoss) {
                         AppLog.i(
                             "AapService: link-loss teardown — leaving discovery down until a " +
                                 "network comes back, rather than scanning the one that went away."
@@ -1634,7 +1604,6 @@ class AapService : Service(), UsbReceiver.Listener {
         // stopWirelessServer() already stops the scan and nulls the field; the networkDiscovery
         // .stop() that used to sit here could never see anything to stop.
         stopWirelessServer()
-        nearbyManager?.stop()
         nativeAaHandshakeManager?.stop()
         softApCredentialsProvider?.stop()
 
@@ -1652,9 +1621,6 @@ class AapService : Service(), UsbReceiver.Listener {
             if (mode == 2) {
                 when (strategy) {
                     0 -> startDiscovery(oneShot = false) // Common Wifi (NSD)
-                    2 -> { // Google Nearby
-                        nearbyManager?.start()
-                    }
                     3, 4 -> { /* Host/Passive - just wait for connection on WirelessServer port */ }
                 }
 
@@ -1785,7 +1751,6 @@ class AapService : Service(), UsbReceiver.Listener {
         unregisterNetworkMonitor()
         stopForeground(true)
         stopWirelessServer()
-        nearbyManager?.stop()
         try {
             mediaSession?.let {
                 it.isActive = false
@@ -1887,10 +1852,7 @@ class AapService : Service(), UsbReceiver.Listener {
                 userExitCooldownUntil = 0L
                 initWifiMode(force = true)
 
-                if (mode == 2 && strategy == 2) {
-                    AppLog.i("AapService: Force-starting Nearby discovery from UI")
-                    nearbyManager?.start()
-                } else if (mode != 3) {
+                if (mode != 3) {
                     startDiscovery(oneShot = (mode != 2))
                 }
             }
@@ -1935,13 +1897,6 @@ class AapService : Service(), UsbReceiver.Listener {
                     } else {
                         scheduleNativeAaArm(reason = "bt auto-start")
                     }
-                }
-            }
-            ACTION_NEARBY_CONNECT         -> {
-                val endpointId = intent?.getStringExtra(EXTRA_ENDPOINT_ID)
-                if (endpointId != null) {
-                    AppLog.i("AapService: Connecting to Nearby endpoint $endpointId")
-                    nearbyManager?.connectToEndpoint(endpointId)
                 }
             }
             ACTION_DISCONNECT            -> {
@@ -3534,7 +3489,6 @@ class AapService : Service(), UsbReceiver.Listener {
         /** Pill/overlay status text while waiting out the post-disconnect cooldown. */
         const val ACTION_AUTO_CONNECT_STATUS       = "com.andrerinas.openheadunit.ACTION_AUTO_CONNECT_STATUS"
         const val EXTRA_AUTO_CONNECT_STATUS        = "auto_connect_status"
-        const val ACTION_NEARBY_CONNECT             = "com.andrerinas.openheadunit.ACTION_NEARBY_CONNECT"
         const val ACTION_CHECK_USB                 = "com.andrerinas.openheadunit.ACTION_CHECK_USB"
         const val ACTION_STOP_SERVICE              = "com.andrerinas.openheadunit.aap.action.STOP_SERVICE"
         const val ACTION_DISCONNECT                = "com.andrerinas.openheadunit.ACTION_DISCONNECT"
@@ -3586,6 +3540,5 @@ class AapService : Service(), UsbReceiver.Listener {
         private const val HIBERNATE_WAKE_THRESHOLD_MS = 60_000L
 
         const val EXTRA_MAC = "extra_mac"
-        const val EXTRA_ENDPOINT_ID = "extra_endpoint_id"
     }
 }

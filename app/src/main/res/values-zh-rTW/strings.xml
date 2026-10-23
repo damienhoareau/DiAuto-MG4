@@ -474,9 +474,6 @@
         <item>車機熱點 (Passive)</item>
     </string-array>
 
-    <string name="select_nearby_device">選擇附近裝置</string>
-    <string name="nearby_device_found">已發現附近裝置</string>
-    <string name="connecting_to_nearby">正在連線至 %s…</string>
 
     <string name="exit_dialog_title">退出 Android Auto</string>
     <string name="exit_dialog_stop">停止連線</string>

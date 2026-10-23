@@ -1039,7 +1039,6 @@ class Settings(private val context: Context) {
 
         const val CONNECTION_TYPE_WIFI = "wifi"
         const val CONNECTION_TYPE_USB = "usb"
-        const val CONNECTION_TYPE_NEARBY = "nearby"
 
         /** SharedPreferences key; also used by [AapService] for change listener.
          *  Was sync-media-session-aa-metadata (default OFF). v2 defaults ON for Allgo-like publish. */
@@ -1411,31 +1410,19 @@ class Settings(private val context: Context) {
         get() = prefs.getBoolean("kill-on-disconnect", false)
         set(value) { prefs.edit().putBoolean("kill-on-disconnect", value).apply() }
 
-    // 0 = Common Wifi (NSD), 2 = Nearby Devices, 3 = Phone Hotspot (Host), 4 = Headunit Hotspot (Passive)
+    // 0 = Common Wifi (NSD), 3 = Phone Hotspot (Host), 4 = Headunit Hotspot (Passive)
     var helperConnectionStrategy: Int
         get() {
             val stored = prefs.getInt("helper-connection-strategy", 4)
-            if (stored == 1) {
-                // WiFi Direct strategy was removed; the car hotspot is the same job without P2P.
+            if (stored == 1 || stored == 2) {
+                // The WiFi Direct and Nearby strategies were removed; the car hotspot is the same
+                // job without them.
                 prefs.edit().putInt("helper-connection-strategy", 4).apply()
                 return 4
             }
-            if (stored != 2 || hasGoogleServicesFramework()) return stored
-
-            // Existing MG4 installs may have inherited the old Nearby default. Nearby depends on
-            // GSF and crashes Google-free firmware, so migrate those installs to the same passive
-            // car-hotspot transport used by the stable wireless setup.
-            prefs.edit().putInt("helper-connection-strategy", 4).apply()
-            return 4
+            return stored
         }
         set(value) = prefs.edit().putInt("helper-connection-strategy", value).apply()
-
-    private fun hasGoogleServicesFramework(): Boolean =
-        context.packageManager.resolveContentProvider("com.google.android.gsf.gservices", 0) != null
-
-    var lastNearbyDeviceName: String
-        get() = prefs.getString("last-nearby-device-name", "")!!
-        set(value) = prefs.edit().putString("last-nearby-device-name", value).apply()
 
     var bluetoothManagerServiceName: String
         get() = prefs.getString("bluetooth-manager-service-name", "bluetooth_manager")!!

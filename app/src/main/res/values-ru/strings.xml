@@ -502,9 +502,6 @@
         <item>Точка доступа головного устройства (пассивная)</item>
     </string-array>
 
-    <string name="select_nearby_device">Выберите устройство поблизости</string>
-    <string name="nearby_device_found">Устройство поблизости найдено</string>
-    <string name="connecting_to_nearby">Подключение к %s…</string>
 
     <string name="exit_dialog_title">Выйти из Android Auto</string>
     <string name="exit_dialog_stop">Остановить соединение</string>

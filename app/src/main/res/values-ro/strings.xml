@@ -475,9 +475,6 @@
         <item>Hotspot unitate (Pasiv)</item>
     </string-array>
 
-    <string name="select_nearby_device">Selectează dispozitiv în apropiere</string>
-    <string name="nearby_device_found">Dispozitiv în apropiere găsit</string>
-    <string name="connecting_to_nearby">Conectare la %s…</string>
 
     <string name="exit_dialog_title">Ieșire din Android Auto</string>
     <string name="exit_dialog_stop">Oprește conexiunea</string>

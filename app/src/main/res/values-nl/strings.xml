@@ -474,9 +474,6 @@
         <item>Headunit-hotspot (Passief)</item>
     </string-array>
 
-    <string name="select_nearby_device">Selecteer apparaat in de buurt</string>
-    <string name="nearby_device_found">Apparaat in de buurt gevonden</string>
-    <string name="connecting_to_nearby">Verbinden met %s…</string>
 
     <string name="exit_dialog_title">Android Auto afsluiten</string>
     <string name="exit_dialog_stop">Verbinding stoppen</string>

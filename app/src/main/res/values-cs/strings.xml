@@ -474,9 +474,6 @@
         <item>Hotspot autorádia (Pasivní)</item>
     </string-array>
 
-    <string name="select_nearby_device">Vybrat zařízení v okolí</string>
-    <string name="nearby_device_found">Nalezeno zařízení v okolí</string>
-    <string name="connecting_to_nearby">Připojování k %s…</string>
 
     <string name="exit_dialog_title">Ukončit Android Auto</string>
     <string name="exit_dialog_stop">Zastavit připojení</string>

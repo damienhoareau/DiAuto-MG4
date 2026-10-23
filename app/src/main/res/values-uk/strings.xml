@@ -475,9 +475,6 @@
         <item>Точка доступу магнітоли (Пасивний)</item>
     </string-array>
 
-    <string name="select_nearby_device">Виберіть пристрій поблизу</string>
-    <string name="nearby_device_found">Виявлено пристрій поблизу</string>
-    <string name="connecting_to_nearby">Підключення до %s…</string>
 
     <string name="exit_dialog_title">Вийти з Android Auto</string>
     <string name="exit_dialog_stop">Зупинити з\'єднання</string>

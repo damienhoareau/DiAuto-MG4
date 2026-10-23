@@ -474,9 +474,6 @@
         <item>Punto de acceso de la radio (Pasivo)</item>
     </string-array>
 
-    <string name="select_nearby_device">Seleccionar dispositivo cercano</string>
-    <string name="nearby_device_found">Dispositivo cercano encontrado</string>
-    <string name="connecting_to_nearby">Conectando a %s…</string>
 
     <string name="exit_dialog_title">Salir de Android Auto</string>
     <string name="exit_dialog_stop">Detener conexión</string>

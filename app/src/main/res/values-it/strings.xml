@@ -481,9 +481,6 @@
         <item>Hotspot Headunit (Passivo)</item>
     </string-array>
 
-    <string name="select_nearby_device">Seleziona dispositivo nelle vicinanze</string>
-    <string name="nearby_device_found">Dispositivo nelle vicinanze trovato</string>
-    <string name="connecting_to_nearby">Connessione a %s…</string>
 
     <string name="exit_dialog_title">Esci da Android Auto</string>
     <string name="exit_dialog_stop">Interrompi connessione</string>

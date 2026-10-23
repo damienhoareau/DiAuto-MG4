@@ -18,11 +18,6 @@ class SocketAccessoryConnection(private val ip: String, private val port: Int, p
     private var output: OutputStream? = null
     private var input: DataInputStream? = null
     private var transport: Socket
-    // Only true for genuine Nearby tunnels, where the handshake's AA-16.4+ settle delay
-    // and stale-byte drain must be skipped because every byte from the start matters.
-    // Regular WirelessServer-accepted sockets (Hotspot/WiFi Direct/Headunit Server) and
-    // manual-IP connections are NOT single-message and need those handshake safeguards.
-    private var singleMessage: Boolean = false
 
     init {
         transport = Socket()
@@ -30,8 +25,7 @@ class SocketAccessoryConnection(private val ip: String, private val port: Int, p
 
     constructor(socket: Socket, context: Context) : this(socket.inetAddress.hostAddress ?: "", socket.port, context) {
         this.transport = socket
-        this.singleMessage = socket is NearbySocket
-        // Pre-connected sockets (like NearbySocket) need their streams initialized immediately
+        // Pre-connected sockets need their streams initialized immediately
         // because connect() might not be called or might be bypassed.
         if (socket.isConnected) {
             try {
@@ -45,7 +39,7 @@ class SocketAccessoryConnection(private val ip: String, private val port: Int, p
 
 
     override val isSingleMessage: Boolean
-        get() = singleMessage
+        get() = false
 
     override fun sendBlocking(buf: ByteArray, length: Int, timeout: Int): Int {
         val out = output ?: return -1

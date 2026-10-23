@@ -531,9 +531,6 @@
         <item>헤드유닛 핫스팟(Passive)</item>
     </string-array>
 
-    <string name="select_nearby_device">Nearby 기기 선택</string>
-    <string name="nearby_device_found">Nearby 기기 발견</string>
-    <string name="connecting_to_nearby">%s에 연결 중…</string>
 
     <string name="exit_dialog_title">Android Auto 종료</string>
     <string name="exit_dialog_stop">연결 해제</string>

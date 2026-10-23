@@ -474,9 +474,6 @@
         <item>车机热点 (Passive)</item>
     </string-array>
 
-    <string name="select_nearby_device">选择附近设备</string>
-    <string name="nearby_device_found">已发现附近设备</string>
-    <string name="connecting_to_nearby">正在连接至 %s…</string>
 
     <string name="exit_dialog_title">退出 Android Auto</string>
     <string name="exit_dialog_stop">停止连接</string>

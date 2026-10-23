@@ -551,9 +551,6 @@
         <item>Multimedya Sistemi Erişim Noktası (Passive)</item>
     </string-array>
 
-    <string name="select_nearby_device">Yakındaki Cihazı Seç</string>
-    <string name="nearby_device_found">Yakındaki cihaz bulundu</string>
-    <string name="connecting_to_nearby">%s cihazına bağlanılıyor…</string>
 
     <string name="exit_dialog_title">Android Auto\'dan Çık</string>
     <string name="exit_dialog_stop">Bağlantıyı Durdur</string>

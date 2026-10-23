@@ -483,9 +483,6 @@
         <item>車載機のホットスポット (パッシブ)</item>
     </string-array>
 
-    <string name="select_nearby_device">周辺のデバイスを選択</string>
-    <string name="nearby_device_found">周辺のデバイスが見つかりました</string>
-    <string name="connecting_to_nearby">%s に接続中…</string>
 
     <string name="exit_dialog_title">Android Auto を終了</string>
     <string name="exit_dialog_stop">接続を停止</string>

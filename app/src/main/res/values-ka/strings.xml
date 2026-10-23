@@ -512,9 +512,6 @@
         <item>მონიტორის ჰოტსპოტი (პასიური)</item>
     </string-array>
 
-    <string name="select_nearby_device">აირჩიეთ ახლომდებარე მოწყობილობა</string>
-    <string name="nearby_device_found">ახლომდებარე მოწყობილობა ნაპოვნია</string>
-    <string name="connecting_to_nearby">მიმდინარეობს დაკავშირება მოწყობილობასთან %s…</string>
 
     <string name="exit_dialog_title">Android Auto-დან გასვლა</string>
     <string name="exit_dialog_stop">კავშირის შეწყვეტა</string>

@@ -473,9 +473,6 @@
         <item>Fejegység hotspot (Passzív)</item>
     </string-array>
 
-    <string name="select_nearby_device">Válasszon közeli eszközt</string>
-    <string name="nearby_device_found">Közeli eszköz található</string>
-    <string name="connecting_to_nearby">Csatlakozás: %s…</string>
 
     <string name="exit_dialog_title">Kilépés az Android Auto-ból</string>
     <string name="exit_dialog_stop">Kapcsolat leállítása</string>

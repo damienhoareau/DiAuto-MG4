@@ -486,9 +486,6 @@
         <item>Hotspot Headunit (Bị động)</item>
     </string-array>
 
-    <string name="select_nearby_device">Chọn thiết bị gần đây</string>
-    <string name="nearby_device_found">Đã tìm thấy thiết bị gần</string>
-    <string name="connecting_to_nearby">Đang kết nối tới %s…</string>
 
     <string name="exit_dialog_title">Thoát Android Auto</string>
     <string name="exit_dialog_stop">Dừng kết nối</string>

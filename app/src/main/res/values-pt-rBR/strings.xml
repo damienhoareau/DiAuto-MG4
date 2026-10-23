@@ -475,9 +475,6 @@
         <item>Roteador da multimídia (Passivo)</item>
     </string-array>
 
-    <string name="select_nearby_device">Selecionar dispositivo próximo</string>
-    <string name="nearby_device_found">Dispositivo próximo encontrado</string>
-    <string name="connecting_to_nearby">Conectando a %s…</string>
 
     <string name="exit_dialog_title">Sair do Android Auto</string>
     <string name="exit_dialog_stop">Parar conexão</string>

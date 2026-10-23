@@ -475,9 +475,6 @@
         <item>Hotspot radia (Pasywny)</item>
     </string-array>
 
-    <string name="select_nearby_device">Wybierz urządzenie w pobliżu</string>
-    <string name="nearby_device_found">Znaleziono urządzenie w pobliżu</string>
-    <string name="connecting_to_nearby">Łączenie z %s…</string>
 
     <string name="exit_dialog_title">Wyjdź z Android Auto</string>
     <string name="exit_dialog_stop">Zatrzymaj połączenie</string>

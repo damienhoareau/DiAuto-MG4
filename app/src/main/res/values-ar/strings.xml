@@ -474,9 +474,6 @@
         <item>نقطة اتصال الشاشة (Passive)</item>
     </string-array>
 
-    <string name="select_nearby_device">اختر جهازاً قريباً</string>
-    <string name="nearby_device_found">تم العثور على جهاز قريب</string>
-    <string name="connecting_to_nearby">جاري الاتصال بـ %s…</string>
 
     <string name="exit_dialog_title">خروج من Android Auto</string>
     <string name="exit_dialog_stop">إيقاف الاتصال</string>
