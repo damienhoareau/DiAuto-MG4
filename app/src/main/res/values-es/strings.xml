@@ -850,7 +850,7 @@
     <string name="media_key_routing_auto_hint">Deja de enviarlos cuando la unidad tiene una conexión multimedia Bluetooth con el teléfono, ya que esta ejecuta la acción. Elígelo si una pulsación salta dos pistas y el teléfono está emparejado con esta unidad.</string>
     <string name="media_key_routing_never_hint">Nunca los envía y deja los botones a Bluetooth. Elígelo si una pulsación salta dos pistas y el teléfono está emparejado con el sistema original del coche, no con esta unidad; el modo automático no detecta esa conexión.</string>
     <string name="media_key_routing_hint_common">Solo afecta a los botones multimedia. Los mandos giratorios, la cruceta, Atrás e Intro siempre llegan a Android Auto.</string>
-    <string name="github_issues_url">https://github.com/shihabal3amri/DiAuto/issues</string>
+    <string name="github_issues_url">https://github.com/damienhoareau/DiAuto-MG4/issues</string>
     <string name="support_rules_english_title">All posts in English</string>
     <string name="vehicle_make_hint">Una marca de coche muestra su logotipo en el botón de salida de Android Auto, pero oculta las aplicaciones instaladas fuera de Play Store. Vuelve a Google para mostrarlas.</string>
     <string name="external_bt_nativeaa">La conexión inalámbrica nativa no funciona en esta unidad</string>
@@ -928,8 +928,6 @@
     <string name="battery_live_waiting">Waiting for car data…</string>
     <string name="battery_live_unavailable">Not available (need platform-signed MG4 car install / live telemetry)</string>
     <string name="battery_live_refresh">Refresh from car</string>
-    <string name="check_ota_beta">Also check beta releases</string>
-    <string name="check_ota_beta_description">Include GitHub pre-release builds when checking for updates.</string>
     <string name="btn_ota_check">Check for updates</string>
     <string name="btn_ota_download">Download update</string>
     <string name="ota_status_idle">Update not checked yet</string>

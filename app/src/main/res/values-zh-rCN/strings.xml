@@ -841,7 +841,7 @@
     <string name="media_key_routing_auto_hint">车机与手机存在蓝牙媒体连接时停止发送，因为该连接已执行相同操作。如果按一次会跳过两首曲目，且手机与此车机配对，请选择此项。</string>
     <string name="media_key_routing_never_hint">从不发送媒体按键，由蓝牙处理。如果按一次会跳过两首曲目，且手机与车辆原装系统而非此车机配对，请选择此项；自动模式无法检测这种连接。</string>
     <string name="media_key_routing_hint_common">仅影响媒体按键。旋钮、方向键、返回和确认始终发送到 Android Auto。</string>
-    <string name="github_issues_url">https://github.com/shihabal3amri/DiAuto/issues</string>
+    <string name="github_issues_url">https://github.com/damienhoareau/DiAuto-MG4/issues</string>
     <string name="support_rules_english_title">All posts in English</string>
     <string name="vehicle_make_hint">真实汽车品牌会在 Android Auto 退出按钮上显示品牌标志，但会隐藏 Play 商店以外安装的应用。切回 Google 可重新显示这些应用。</string>
     <string name="external_bt_nativeaa">此车机不支持原生无线连接</string>
@@ -919,8 +919,6 @@
     <string name="battery_live_waiting">Waiting for car data…</string>
     <string name="battery_live_unavailable">Not available (need platform-signed MG4 car install / live telemetry)</string>
     <string name="battery_live_refresh">Refresh from car</string>
-    <string name="check_ota_beta">Also check beta releases</string>
-    <string name="check_ota_beta_description">Include GitHub pre-release builds when checking for updates.</string>
     <string name="btn_ota_check">Check for updates</string>
     <string name="btn_ota_download">Download update</string>
     <string name="ota_status_idle">Update not checked yet</string>

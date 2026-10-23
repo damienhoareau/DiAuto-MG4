@@ -840,7 +840,7 @@
     <string name="media_key_routing_auto_hint">يتوقف إرسالها عند وجود اتصال وسائط Bluetooth بين وحدة القيادة والهاتف، لأن ذلك الاتصال ينفذ الأمر بالفعل. اختره إذا تخطت الضغطة مقطعين وكان هاتفك مقترناً بهذه الوحدة.</string>
     <string name="media_key_routing_never_hint">لا يرسلها أبداً ويترك الأزرار لـ Bluetooth. اختره إذا تخطت الضغطة مقطعين وكان الهاتف مقترناً بنظام السيارة الأصلي بدلاً من هذه الوحدة؛ لا يستطيع الوضع التلقائي اكتشاف ذلك الاتصال.</string>
     <string name="media_key_routing_hint_common">تتأثر أزرار الوسائط فقط. تصل أدوات التحكم الدوارة وأزرار الاتجاهات والرجوع والإدخال دائماً إلى Android Auto.</string>
-    <string name="github_issues_url">https://github.com/shihabal3amri/DiAuto/issues</string>
+    <string name="github_issues_url">https://github.com/damienhoareau/DiAuto-MG4/issues</string>
     <string name="support_rules_english_title">All posts in English</string>
     <string name="vehicle_make_hint">تعرض علامة السيارة شعارها على زر الخروج في Android Auto، لكنها تخفي التطبيقات المثبتة من خارج Play Store. أعد اختيار Google لإظهار تلك التطبيقات.</string>
     <string name="external_bt_nativeaa">الاتصال اللاسلكي الأصلي غير مدعوم على هذه الوحدة</string>
@@ -918,8 +918,6 @@
     <string name="battery_live_waiting">Waiting for car data…</string>
     <string name="battery_live_unavailable">Not available (need platform-signed MG4 car install / live telemetry)</string>
     <string name="battery_live_refresh">Refresh from car</string>
-    <string name="check_ota_beta">Also check beta releases</string>
-    <string name="check_ota_beta_description">Include GitHub pre-release builds when checking for updates.</string>
     <string name="btn_ota_check">Check for updates</string>
     <string name="btn_ota_download">Download update</string>
     <string name="ota_status_idle">Update not checked yet</string>

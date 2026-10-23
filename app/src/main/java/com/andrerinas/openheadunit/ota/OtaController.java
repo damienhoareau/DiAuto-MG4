@@ -11,7 +11,6 @@ import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.CheckBox;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -30,7 +29,6 @@ import java.util.Locale;
 public final class OtaController {
 
     private static final String PREFS_NAME = "diauto_ota";
-    private static final String KEY_ALLOW_BETA = "allowBetaUpdates";
 
     public interface StatusListener {
         void onOtaStatus(String statusText, boolean updateAvailable, boolean checking);
@@ -39,7 +37,6 @@ public final class OtaController {
     private final FragmentActivity activity;
     private TextView statusView;
     private Button checkButton;
-    private CheckBox betaCheck;
     private StatusListener statusListener;
 
     private OtaUpdateManager.UpdateInfo lastCheckInfo;
@@ -61,19 +58,8 @@ public final class OtaController {
         this.statusListener = listener;
     }
 
-    /** Settings / UI without dedicated Button/CheckBox views. */
+    /** Settings / UI without dedicated Button views. */
     public void bindWithoutViews() {
-        renderStatus(null, false);
-    }
-
-    public boolean isAllowBeta() {
-        return allowBeta();
-    }
-
-    public void setAllowBeta(boolean allow) {
-        activity.getSharedPreferences(PREFS_NAME, 0)
-                .edit().putBoolean(KEY_ALLOW_BETA, allow).apply();
-        lastCheckInfo = null;
         renderStatus(null, false);
     }
 
@@ -82,24 +68,9 @@ public final class OtaController {
         onCheckClicked();
     }
 
-    public void setup(Button checkButton, TextView statusView, CheckBox betaCheck) {
+    public void setup(Button checkButton, TextView statusView) {
         this.checkButton = checkButton;
         this.statusView = statusView;
-        this.betaCheck = betaCheck;
-
-        SharedPreferences prefs = activity.getSharedPreferences(PREFS_NAME, 0);
-        if (betaCheck != null) {
-            betaCheck.setChecked(prefs.getBoolean(KEY_ALLOW_BETA, false));
-            betaCheck.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                prefs.edit().putBoolean(KEY_ALLOW_BETA, isChecked).apply();
-                lastCheckInfo = null;
-                renderStatus(null, true);
-                OtaUpdateManager.checkForUpdates(activity, isChecked, info -> {
-                    lastCheckInfo = info;
-                    renderStatus(info, false);
-                });
-            });
-        }
 
         renderStatus(null, false);
         if (checkButton != null) {
@@ -109,8 +80,7 @@ public final class OtaController {
 
     /** Açılışta sessiz kontrol; güncelleme varsa toast. */
     public void checkOnStartup() {
-        boolean allowBeta = allowBeta();
-        OtaUpdateManager.checkForUpdates(activity, allowBeta, info -> {
+        OtaUpdateManager.checkForUpdates(activity, info -> {
             lastCheckInfo = info;
             renderStatus(info, false);
             if (info != null && info.success && info.updateAvailable) {
@@ -140,7 +110,7 @@ public final class OtaController {
             Toast.makeText(activity, R.string.ota_toast_checking, Toast.LENGTH_SHORT).show();
         }
         renderStatus(null, true);
-        OtaUpdateManager.checkForUpdates(activity, allowBeta(), info -> {
+        OtaUpdateManager.checkForUpdates(activity, info -> {
             lastCheckInfo = info;
             renderStatus(info, false);
             if (info != null && info.success && info.updateAvailable) {
@@ -153,12 +123,6 @@ public final class OtaController {
                         activity.getString(R.string.ota_dialog_check_failed_message));
             }
         });
-    }
-
-    private boolean allowBeta() {
-        SharedPreferences prefs = activity.getSharedPreferences(PREFS_NAME, 0);
-        if (betaCheck != null) return betaCheck.isChecked();
-        return prefs.getBoolean(KEY_ALLOW_BETA, false);
     }
 
     private void maybeStartDownload(OtaUpdateManager.UpdateInfo info) {

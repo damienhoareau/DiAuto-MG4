@@ -17,28 +17,27 @@ import java.nio.charset.StandardCharsets;
 final class OtaReleaseFetcher {
 
     private static final String GITHUB_RELEASES_URL =
-            "https://api.github.com/repos/merthankaraman/DiAuto-MG4/releases?per_page=20";
+            "https://api.github.com/repos/damienhoareau/DiAuto-MG4/releases?per_page=20";
 
     private OtaReleaseFetcher() {
     }
 
-    static OtaUpdateManager.UpdateInfo fetchLatestRelease(Context context, boolean allowBetaUpdates) {
+    static OtaUpdateManager.UpdateInfo fetchLatestRelease(Context context) {
         try {
             JSONArray releases = new JSONArray(readUrl(GITHUB_RELEASES_URL, "application/vnd.github+json"));
-            JSONObject release = selectGitHubRelease(releases, allowBetaUpdates);
+            JSONObject release = selectGitHubRelease(releases);
             if (release == null) {
-                return failure(context.getString(R.string.ota_error_no_release), allowBetaUpdates);
+                return failure(context.getString(R.string.ota_error_no_release));
             }
-            return buildUpdateInfoFromGitHubRelease(context, release, allowBetaUpdates);
+            return buildUpdateInfoFromGitHubRelease(context, release);
         } catch (Exception e) {
-            return failure(e.getClass().getSimpleName(), allowBetaUpdates);
+            return failure(e.getClass().getSimpleName());
         }
     }
 
     private static OtaUpdateManager.UpdateInfo buildUpdateInfoFromGitHubRelease(
             Context context,
-            JSONObject release,
-            boolean allowBetaUpdates
+            JSONObject release
     ) throws Exception {
         String latestVersion = normalizeVersion(
                 OtaReleaseAssets.firstNonEmpty(
@@ -99,7 +98,7 @@ final class OtaReleaseFetcher {
         );
     }
 
-    private static OtaUpdateManager.UpdateInfo failure(String detail, boolean allowBetaUpdates) {
+    private static OtaUpdateManager.UpdateInfo failure(String detail) {
         return new OtaUpdateManager.UpdateInfo(
                 false, false, BuildConfig.VERSION_NAME, BuildConfig.VERSION_NAME,
                 null, null, null, null, null, detail, false
@@ -127,7 +126,7 @@ final class OtaReleaseFetcher {
         }
     }
 
-    private static JSONObject selectGitHubRelease(JSONArray releases, boolean allowBetaUpdates) {
+    private static JSONObject selectGitHubRelease(JSONArray releases) {
         if (releases == null || releases.length() == 0) return null;
 
         JSONObject best = null;
@@ -136,7 +135,7 @@ final class OtaReleaseFetcher {
             JSONObject candidate = releases.optJSONObject(i);
             if (candidate == null || candidate.optBoolean("draft", false)) continue;
             boolean prerelease = candidate.optBoolean("prerelease", false);
-            if (prerelease && !allowBetaUpdates) continue;
+            if (prerelease) continue;
 
             String candidateVersion = normalizeVersion(OtaReleaseAssets.firstNonEmpty(
                     candidate.optString("tag_name", null),

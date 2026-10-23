@@ -64,7 +64,6 @@ class SettingsFragment : Fragment() {
     private var otaController: OtaController? = null
     private var otaStatusText: String = ""
     private var otaUpdateAvailable: Boolean = false
-    private var otaAllowBeta: Boolean = false
 
     // Basic/Advanced tab + search state (Feature A)
     private enum class SettingsTier { BASIC, ADVANCED }
@@ -81,7 +80,7 @@ class SettingsFragment : Fragment() {
         "appLanguage", "autoConnectSettings", "resolution",
         "dpiPixelDensity", "viewMode", "fpsLimit",
         "enableAudioSink", "mediaAudioBuffer", "micSettings", "audioVolumeOffsets",
-        "version", "about", "otaBeta", "otaStatus", "otaCheck",
+        "version", "about", "otaStatus", "otaCheck",
     )
 
     // Local state to hold changes before saving
@@ -278,7 +277,6 @@ class SettingsFragment : Fragment() {
         }
         if (otaController == null) {
             otaController = OtaController(requireActivity()).also { controller ->
-                otaAllowBeta = controller.isAllowBeta
                 controller.setStatusListener { text, available, _ ->
                     if (!isAdded || !::settingsRecyclerView.isInitialized) return@setStatusListener
                     otaStatusText = text
@@ -1655,17 +1653,6 @@ class SettingsFragment : Fragment() {
             onClick = { /* Read only */ }
         ))
 
-        items.add(SettingItem.ToggleSettingEntry(
-            stableId = "otaBeta",
-            nameResId = R.string.check_ota_beta,
-            descriptionResId = R.string.check_ota_beta_description,
-            isChecked = otaAllowBeta,
-            onCheckedChanged = { enabled ->
-                otaAllowBeta = enabled
-                otaController?.setAllowBeta(enabled)
-                updateSettingsList()
-            }
-        ))
         items.add(SettingItem.SettingEntry(
             stableId = "otaStatus",
             nameResId = R.string.ota_status_label,

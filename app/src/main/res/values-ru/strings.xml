@@ -841,7 +841,7 @@
     <string name="media_key_routing_auto_hint">Не передавать кнопки при наличии Bluetooth-медиасоединения с телефоном: оно уже выполняет команду. Выберите, если одно нажатие переключает два трека и телефон сопряжён с этой головной системой.</string>
     <string name="media_key_routing_never_hint">Не передавать медиакнопки, оставив их Bluetooth. Выберите, если одно нажатие переключает два трека, а телефон сопряжён со штатной системой автомобиля, а не с этой головной системой: автоматический режим не видит такое соединение.</string>
     <string name="media_key_routing_hint_common">Влияет только на медиакнопки. Поворотные контроллеры, крестовина, «Назад» и «Ввод» всегда передаются в Android Auto.</string>
-    <string name="github_issues_url">https://github.com/shihabal3amri/DiAuto/issues</string>
+    <string name="github_issues_url">https://github.com/damienhoareau/DiAuto-MG4/issues</string>
     <string name="support_rules_english_title">All posts in English</string>
     <string name="vehicle_make_hint">Марка автомобиля показывает её логотип на кнопке выхода Android Auto, но скрывает приложения не из Play Store. Верните Google, чтобы они снова появились.</string>
     <string name="external_bt_nativeaa">Штатное беспроводное подключение недоступно на этой системе</string>
@@ -919,8 +919,6 @@
     <string name="battery_live_waiting">Waiting for car data…</string>
     <string name="battery_live_unavailable">Not available (need platform-signed MG4 car install / live telemetry)</string>
     <string name="battery_live_refresh">Refresh from car</string>
-    <string name="check_ota_beta">Also check beta releases</string>
-    <string name="check_ota_beta_description">Include GitHub pre-release builds when checking for updates.</string>
     <string name="btn_ota_check">Check for updates</string>
     <string name="btn_ota_download">Download update</string>
     <string name="ota_status_idle">Update not checked yet</string>

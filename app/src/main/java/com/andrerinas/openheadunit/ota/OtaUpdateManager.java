@@ -68,10 +68,10 @@ final class OtaUpdateManager {
         }
     }
 
-    static void checkForUpdates(Context context, boolean allowBetaUpdates, CheckCallback callback) {
+    static void checkForUpdates(Context context, CheckCallback callback) {
         final Context appContext = context.getApplicationContext();
         EXECUTOR.execute(() -> {
-            UpdateInfo info = OtaReleaseFetcher.fetchLatestRelease(appContext, allowBetaUpdates);
+            UpdateInfo info = OtaReleaseFetcher.fetchLatestRelease(appContext);
             MAIN_HANDLER.post(() -> callback.onResult(info));
         });
     }
