@@ -16,7 +16,6 @@ import com.andrerinas.openheadunit.utils.AppLog
 import com.andrerinas.openheadunit.utils.AppThemeManager
 import com.andrerinas.openheadunit.utils.Settings
 import android.os.SystemClock
-import android.os.Process
 import java.io.File
 
 class App : Application() {
@@ -49,13 +48,6 @@ class App : Application() {
         // profile is still locked. Boot receivers are directBootAware; constructing Settings
         // here used to crash the whole process with IllegalStateException before unlock.
         if (isUserUnlocked()) {
-            // A platform-signed car build already has the system identity it needs. Avoid
-            // eagerly constructing the root/Shizuku stack before the first Activity on
-            // vendor Android 9; ordinary phone builds retain the original behaviour.
-            if (Process.myUid() != Process.SYSTEM_UID) {
-                component.suExecutor.register()
-            }
-
             val settings = Settings(this) // Create a Settings instance
             AppLog.init(settings, this) // Initialize AppLog with settings for conditional logging
 
