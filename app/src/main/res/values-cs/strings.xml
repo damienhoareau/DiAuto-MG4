@@ -579,9 +579,6 @@
     <string name="use_libusb">Použít nativní USB ovladač</string>
     <string name="use_libusb_description">Použít libusb pro komunikaci. Vypnutím použijete standardní USB API pro Android.</string>
 
-    <string name="software_video_decoder">Zdroj softwarového dekodéru</string>
-    <string name="software_video_decoder_bundled">Integrovaný FFmpeg</string>
-    <string name="software_video_decoder_device">MediaCodec zařízení</string>
 
     <string name="btn_show_qr">Zobrazit QR kód</string>
     <string name="renderer_fallback_surface">Video se pořád zasekávalo, proto bylo zobrazení pro tuto relaci přepnuto na SurfaceView. Pokud je to stabilní, nastavte Režim zobrazení na SurfaceView v Nastavení.</string>

@@ -195,9 +195,6 @@
     <string name="category_video">Видео</string>
     <string name="force_software_decoding">Принудительное программное декодирование</string>
     <string name="force_software_decoding_description">Может решить проблемы на некоторых устройствах, но менее производительно</string>
-    <string name="software_video_decoder">Источник программного декодера</string>
-    <string name="software_video_decoder_bundled">Встроенный FFmpeg</string>
-    <string name="software_video_decoder_device">MediaCodec устройства</string>
     <string name="wireless_mode">Беспроводной режим</string>
     <string name="wireless_mode_description">Выберите способ беспроводного подключения (ручной список, автопоиск или режим помощника)</string>
     <string-array name="wireless_connection_modes">

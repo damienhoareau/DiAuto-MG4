@@ -579,9 +579,6 @@
     <string name="use_libusb">使用原生 USB 驅動程式</string>
     <string name="use_libusb_description">使用 libusb 進行通訊。停用以使用 Android 的標準 USB API。</string>
 
-    <string name="software_video_decoder">軟體解碼器來源</string>
-    <string name="software_video_decoder_bundled">內置 FFmpeg</string>
-    <string name="software_video_decoder_device">裝置 MediaCodec</string>
 
     <string name="btn_show_qr">顯示 QR 碼</string>
     <string name="renderer_fallback_surface">影像持續卡住，因此本次連線已切換為 SurfaceView。若運作穩定，請在設定中將檢視模式設為 SurfaceView。</string>

@@ -33,7 +33,6 @@ import com.andrerinas.openheadunit.connection.CommManager
 import com.andrerinas.openheadunit.contract.KeyIntent
 import kotlinx.coroutines.launch
 import com.andrerinas.openheadunit.decoder.DecoderStopPolicy
-import com.andrerinas.openheadunit.decoder.SoftwareYuvFrameSink
 import com.andrerinas.openheadunit.decoder.VideoDecoder
 import com.andrerinas.openheadunit.decoder.VideoDimensionsListener
 import com.andrerinas.openheadunit.utils.AppLog
@@ -459,7 +458,6 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
                 // discarded view would land after the replacement's onSurfaceChanged and release
                 // video focus for the new view's running stream.
                 projectionView.removeCallback(this)
-                videoDecoder.softwareYuvFrameSink = null
                 videoDecoder.stop(DecoderStopPolicy.REASON_PROJECTION_VIEW_RECREATE)
                 container.removeView(projectionView as View)
             }
@@ -572,11 +570,9 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
         val reason = if (collapsed) "$longFramesInWindow slow frames in window" else "no draw for ${now - effectiveDrawn}ms"
 
         val effectiveMode = forcedViewModeOverride ?: settings.viewMode
-        // After a plain rebuild fails to stick, escalate away from a non-SurfaceView backend
-        // (unless the bundled software HEVC decoder is active, which needs the GLES YUV sink).
+        // After a plain rebuild fails to stick, escalate away from a non-SurfaceView backend.
         val shouldFallBack = displayStallRecoveries >= 2 &&
-            effectiveMode != Settings.ViewMode.SURFACE &&
-            !videoDecoder.usingBundledSoftwareHevc
+            effectiveMode != Settings.ViewMode.SURFACE
         if (shouldFallBack) {
             AppLog.w("Display stall ($reason) again on $effectiveMode. Falling back to SurfaceView for this session. See issue #650.")
             forcedViewModeOverride = Settings.ViewMode.SURFACE
@@ -1757,9 +1753,6 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
         // surface-destroy, and its listeners get nulled out from under it.
         if (::projectionView.isInitialized) projectionView.removeCallback(this)
         if (videoDecoder.onFpsChanged === fpsListener) videoDecoder.onFpsChanged = null
-        (if (::projectionView.isInitialized) projectionView as? SoftwareYuvFrameSink else null)?.let {
-            if (videoDecoder.softwareYuvFrameSink === it) videoDecoder.softwareYuvFrameSink = null
-        }
         if (videoDecoder.dimensionsListener === this) videoDecoder.dimensionsListener = null
     }
 
@@ -1845,10 +1838,6 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
 
         val view = projectionView as View
         container.addView(view)
-        videoDecoder.softwareYuvFrameSink = projectionView as? SoftwareYuvFrameSink
-        if (videoDecoder.softwareYuvFrameSink != null) {
-            AppLog.i("Using GLES YUV sink for bundled software HEVC")
-        }
 
         projectionView.addCallback(this)
         // Baseline for the "no frame drawn while streaming" renderer check (issue #767).

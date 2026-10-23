@@ -588,9 +588,6 @@
     <string name="use_libusb">Nativen USB-Treiber nutzen</string>
     <string name="use_libusb_description">Nutzt libusb für die USB-Verbindung. Deaktivieren, um die Android-Standard-USB-API zu nutzen.</string>
 
-    <string name="software_video_decoder">Software-Decoder-Quelle</string>
-    <string name="software_video_decoder_bundled">Integriertes FFmpeg</string>
-    <string name="software_video_decoder_device">Geräte-MediaCodec</string>
 
     <string name="btn_show_qr">QR-Code anzeigen</string>
     <string name="renderer_fallback_surface">Das Video ist immer wieder eingefroren, daher wurde die Anzeige für diese Sitzung auf SurfaceView umgestellt. Wenn es stabil läuft, stelle den View-Modus in den Einstellungen auf SurfaceView.</string>

@@ -585,9 +585,6 @@
     <string name="use_libusb">Sử dụng trình điều khiển USB gốc</string>
     <string name="use_libusb_description">Sử dụng libusb để giao tiếp. Tắt để sử dụng API USB tiêu chuẩn của Android.</string>
 
-    <string name="software_video_decoder">Nguồn bộ giải mã phần mềm</string>
-    <string name="software_video_decoder_bundled">FFmpeg tích hợp</string>
-    <string name="software_video_decoder_device">MediaCodec thiết bị</string>
 
     <string name="btn_show_qr">Hiển thị mã QR</string>
     <string name="renderer_fallback_surface">Video liên tục bị đứng, nên màn hình đã chuyển sang SurfaceView cho phiên này. Nếu ổn định, hãy đặt Chế độ hiển thị thành SurfaceView trong Cài đặt.</string>

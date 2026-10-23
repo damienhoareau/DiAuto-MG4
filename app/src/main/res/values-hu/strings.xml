@@ -578,9 +578,6 @@
     <string name="use_libusb">Natív USB-illesztőprogram használata</string>
     <string name="use_libusb_description">Libusb használata a kommunikációhoz. Kapcsolja ki az Android szabványos USB API-jának használatához.</string>
 
-    <string name="software_video_decoder">Szoftveres dekódoló forrása</string>
-    <string name="software_video_decoder_bundled">Beépített FFmpeg</string>
-    <string name="software_video_decoder_device">Eszköz MediaCodec</string>
 
     <string name="btn_show_qr">QR-kód megjelenítése</string>
     <string name="renderer_fallback_surface">A videó folyamatosan lefagyott, ezért a megjelenítés erre a munkamenetre SurfaceView-ra váltott. Ha stabil, állítsd a Megjelenítési módot SurfaceView-ra a Beállításokban.</string>
