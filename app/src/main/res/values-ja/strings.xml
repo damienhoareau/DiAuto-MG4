@@ -185,8 +185,6 @@
 
     <string name="listen_for_usb_devices_label">USBデバイスへの反応</string>
     <string name="listen_for_usb_devices_description">USBデバイスが接続されたときにAndroidのシステムプロンプトを表示します。</string>
-    <string name="block_oem_android_auto_label">DiAuto 実行中は OEM Android Auto をブロック</string>
-    <string name="block_oem_android_auto_description">DiAuto の実行中は純正 AllGo Android Auto（com.allgo.app.androidauto / caradapter）を停止し、ケーブルで先に DiAuto が開くようにします。CarPlay と共有の AllGo RUI サービスには触れません。永続ではありません — DiAuto をアンインストールすれば OEM Android Auto は再び動作します。</string>
     <string name="show_toast_messages">トースト通知を表示</string>
     <string name="show_toast_messages_description">接続・切断・モード切替時にステータスのトースト通知を表示します。</string>
     <string name="auto_start_usb_label">USBから自動起動</string>

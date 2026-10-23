@@ -254,7 +254,7 @@ class Settings(private val context: Context) {
         set(value) { prefs.edit().putInt("inset-right", value).apply() }
 
     var insetBottom: Int
-        get() = prefs.getInt("inset-bottom", 0) // DiLink fullscreen is handled by BydFullscreen (no letterbox inset)
+        get() = prefs.getInt("inset-bottom", 0)
         set(value) { prefs.edit().putInt("inset-bottom", value).apply() }
 
     // Cached Surface Dimensions (used to avoid mismatch flicker on next start)
@@ -748,14 +748,6 @@ class Settings(private val context: Context) {
     var listenForUsbDevices: Boolean
         get() = prefs.getBoolean("listen-for-usb-devices", true)
         set(value) { prefs.edit().putBoolean("listen-for-usb-devices", value).apply() }
-
-    /**
-     * When true, force-stop the OEM AllGo / SAIC Android Auto packages while DiAuto is running so
-     * wired USB goes to DiAuto first. Runtime only — never disables those packages permanently.
-     */
-    var blockOemAndroidAutoWhileRunning: Boolean
-        get() = prefs.getBoolean("block-oem-android-auto-while-running", false)
-        set(value) { prefs.edit().putBoolean("block-oem-android-auto-while-running", value).apply() }
 
     var showToastMessages: Boolean
         get() = prefs.getBoolean("show-toast-messages", true)

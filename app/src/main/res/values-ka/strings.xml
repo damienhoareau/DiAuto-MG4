@@ -179,8 +179,6 @@
     <string name="auto_start_bt_description">Open Headunit-ის ავტომატური გახსნა კონკრეტული Bluetooth მოწყობილობის დაკავშირებისას.</string>
     <string name="listen_for_usb_devices_label">USB მოწყობილობების მონიტორინგი</string>
     <string name="listen_for_usb_devices_description">USB მოწყობილობის შეერთებისას Android სისტემური მოთხოვნის ჩვენება.</string>
-    <string name="block_oem_android_auto_label">OEM Android Auto-ს დაბლოკვა, სანამ DiAuto მუშაობს</string>
-    <string name="block_oem_android_auto_description">აჩერებს ქარხნულ AllGo Android Auto-ს (com.allgo.app.androidauto / caradapter), სანამ DiAuto მუშაობს, რომ კაბელმა ჯერ DiAuto გახსნას. არ ეხება CarPlay-ს და საერთო AllGo RUI სერვისს. არ არის მუდმივი — DiAuto-ს წაშლის შემდეგ OEM Android Auto კვლავ იმუშავებს.</string>
     <string name="show_toast_messages">Toast შეტყობინებების ჩვენება</string>
     <string name="show_toast_messages_description">სტატუსის შეტყობინებების ჩვენება დაკავშირების, გათიშვის და რეჟიმის შეცვლისას.</string>
     <string name="auto_start_usb_label">ავტო-გაშვება USB-ით</string>

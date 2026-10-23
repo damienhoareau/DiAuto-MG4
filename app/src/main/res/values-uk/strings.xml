@@ -162,8 +162,6 @@
 
     <string name="listen_for_usb_devices_label">Реагувати на USB-пристрої</string>
     <string name="listen_for_usb_devices_description">Показувати системний запит Android під час підключення USB-пристрою.</string>
-    <string name="block_oem_android_auto_label">Блокувати OEM Android Auto, поки працює DiAuto</string>
-    <string name="block_oem_android_auto_description">Зупиняє заводський AllGo Android Auto (com.allgo.app.androidauto / caradapter), поки працює DiAuto, щоб кабель спочатку відкривав DiAuto. Не чіпає CarPlay і спільний сервіс AllGo RUI. Не постійно — після видалення DiAuto OEM Android Auto знову працює.</string>
     <string name="show_toast_messages">Показувати сповіщення (Toast)</string>
     <string name="show_toast_messages_description">Відображати спливаючі повідомлення про статус під час підключення, відключення та зміни режиму.</string>
     <string name="auto_start_usb_label">Автозапуск через USB</string>

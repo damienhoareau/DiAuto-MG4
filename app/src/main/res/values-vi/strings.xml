@@ -168,8 +168,6 @@
     <string name="auto_start_bt_description">Tự động mở Open Headunit khi một thiết bị Bluetooth nhất định kết nối.</string>
     <string name="listen_for_usb_devices_label">Lắng nghe thiết bị USB</string>
     <string name="listen_for_usb_devices_description">Hiển thị yêu cầu hệ thống Android khi cắm thiết bị USB.</string>
-    <string name="block_oem_android_auto_label">Chặn OEM Android Auto khi DiAuto đang chạy</string>
-    <string name="block_oem_android_auto_description">Dừng AllGo Android Auto gốc (com.allgo.app.androidauto / caradapter) khi DiAuto đang chạy để cáp mở DiAuto trước. Không đụng tới CarPlay hay dịch vụ AllGo RUI dùng chung. Không vĩnh viễn — gỡ DiAuto thì OEM Android Auto lại hoạt động.</string>
     <string name="show_toast_messages">Hiển thị thông báo Toast</string>
     <string name="show_toast_messages_description">Hiển thị thông báo trạng thái khi kết nối, ngắt kết nối và chuyển chế độ.</string>
     <string name="auto_start_usb_label">Tự khởi động khi có USB</string>

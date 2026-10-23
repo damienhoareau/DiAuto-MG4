@@ -161,8 +161,6 @@
 
     <string name="listen_for_usb_devices_label">USB-eszközök figyelése</string>
     <string name="listen_for_usb_devices_description">Az Android rendszerüzenet megjelenítése USB-eszköz csatlakoztatásakor.</string>
-    <string name="block_oem_android_auto_label">OEM Android Auto blokkolása, amíg a DiAuto fut</string>
-    <string name="block_oem_android_auto_description">Leállítja a gyári AllGo Android Auto-t (com.allgo.app.androidauto / caradapter), amíg a DiAuto fut, hogy a kábel először a DiAuto-t nyissa meg. A CarPlay-t és a közös AllGo RUI szolgáltatást nem érinti. Nem tartós — a DiAuto eltávolítása után az OEM Android Auto újra működik.</string>
     <string name="show_toast_messages">Toast üzenetek megjelenítése</string>
     <string name="show_toast_messages_description">Állapotjelző felugró üzenetek megjelenítése csatlakozáskor, bontáskor és módváltáskor.</string>
     <string name="auto_start_usb_label">Automatikus indítás USB-n</string>

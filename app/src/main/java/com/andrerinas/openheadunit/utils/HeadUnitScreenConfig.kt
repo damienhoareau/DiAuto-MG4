@@ -66,7 +66,7 @@ object HeadUnitScreenConfig {
             // appBounds (and therefore displayMetrics) to 1920x984 while the window frame
             // (currentWindowMetrics.bounds) really is the full 1920x1080 with both system
             // bars hidden. Taking displayMetrics at face value makes the "real" screen
-            // 96px shorter than the view BydFullscreen actually draws into, which shows up
+            // 96px shorter than the view the app actually draws into, which shows up
             // as a vertically stretched picture plus a growing touch offset down the screen.
             // The real area can never be smaller than the window we are given, so clamp it up.
             realW = Math.max(displayMetrics.widthPixels, bounds.width())

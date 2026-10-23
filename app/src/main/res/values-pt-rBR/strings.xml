@@ -162,8 +162,6 @@
 
     <string name="listen_for_usb_devices_label">Ouvir dispositivos USB</string>
     <string name="listen_for_usb_devices_description">Mostrar o aviso do sistema Android quando um dispositivo USB for conectado.</string>
-    <string name="block_oem_android_auto_label">Bloquear OEM Android Auto enquanto o DiAuto estiver ativo</string>
-    <string name="block_oem_android_auto_description">Interrompe o AllGo Android Auto de fábrica (com.allgo.app.androidauto / caradapter) enquanto o DiAuto estiver em execução para o cabo abrir o DiAuto primeiro. Não mexe no CarPlay nem no serviço compartilhado AllGo RUI. Não é permanente — desinstale o DiAuto e o OEM Android Auto volta a funcionar.</string>
     <string name="show_toast_messages">Mostrar mensagens Toast</string>
     <string name="show_toast_messages_description">Exibir pop-ups de status na conexão, desconexão e troca de modo.</string>
     <string name="auto_start_usb_label">Início automático por USB</string>
