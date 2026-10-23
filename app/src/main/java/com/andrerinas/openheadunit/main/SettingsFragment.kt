@@ -78,7 +78,7 @@ class SettingsFragment : Fragment() {
     // Curated everyday options shown in the Basic tab. Advanced shows everything.
     // Wireless items here only appear in Basic when the user connects wirelessly (see filterSettings).
     private val basicSettingIds = setOf(
-        "appLanguage", "autoStartSettings", "autoConnectSettings", "resolution",
+        "appLanguage", "autoConnectSettings", "resolution",
         "dpiPixelDensity", "viewMode", "fpsLimit",
         "enableAudioSink", "mediaAudioBuffer", "micSettings", "audioVolumeOffsets",
         "version", "about", "otaBeta", "otaStatus", "otaCheck",
@@ -755,156 +755,6 @@ class SettingsFragment : Fragment() {
             ))
         }
 
-        // --- Wireless Connection ---
-        items.add(SettingItem.CategoryHeader("wirelessConnection", R.string.category_wireless))
-
-        // Add 2.4GHz Warning Banner
-        items.add(SettingItem.InfoBanner(
-            stableId = "wireless24ghzWarning",
-            textResId = R.string.wireless_24ghz_warning
-        ))
-
-        val wirelessModeOptions = listOf(
-            getString(R.string.wireless_mode_helper),
-            getString(R.string.wireless_mode_native),
-            getString(R.string.wireless_mode_server)
-        )
-
-        val wirelessSelectedIndex = when (pendingWifiConnectionMode) {
-            2 -> 0 // Helper
-            3 -> 1 // Native
-            0, 1 -> 2 // Server
-            else -> 2
-        }
-
-        items.add(SettingItem.SegmentedButtonSettingEntry(
-            stableId = "wifiConnectionMode",
-            nameResId = R.string.wireless_mode,
-            options = wirelessModeOptions,
-            selectedIndex = wirelessSelectedIndex,
-            onOptionSelected = { index ->
-                val newMode = when (index) {
-                    0 -> 2 // Helper
-                    1 -> 3 // Native
-                    2 -> if (pendingWifiConnectionMode == 0) 0 else 1 // Keep manual/auto choice if already in server mode
-                    else -> 1
-                }
-
-                if (newMode == 3) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-                        ContextCompat.checkSelfPermission(requireContext(), android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                        bluetoothPermissionLauncher.launch(android.Manifest.permission.BLUETOOTH_CONNECT)
-                    } else {
-                        handleNativeAaSelection()
-                    }
-                } else {
-                    pendingWifiConnectionMode = newMode
-                    checkChanges()
-                    updateSettingsList()
-                }
-            }
-        ))
-
-        if (pendingWifiConnectionMode == 3) {
-            val currentServiceName = pendingBluetoothManagerServiceName ?: "bluetooth_manager"
-            items.add(SettingItem.SettingEntry(
-                stableId = "bluetoothAdapterServiceName",
-                nameResId = R.string.bluetooth_adapter_label,
-                value = BluetoothHelper.getAdapterDescription(requireContext(), currentServiceName),
-                onClick = { _ ->
-                    val serviceNames = BluetoothHelper.listBluetoothServices()
-                    val displayNames = serviceNames.map { name ->
-                        BluetoothHelper.getAdapterDescription(requireContext(), name)
-                    }.toTypedArray()
-
-                    val selectedIndex = serviceNames.indexOf(currentServiceName).coerceAtLeast(0)
-
-                    MaterialAlertDialogBuilder(requireContext(), R.style.DarkAlertDialog)
-                        .setTitle(R.string.select_bt_adapter)
-                        .setSingleChoiceItems(displayNames, selectedIndex) { dialog, which ->
-                            dialog.dismiss()
-                            pendingBluetoothManagerServiceName = serviceNames[which]
-                            checkChanges()
-                            updateSettingsList()
-                        }
-                        .show()
-                }
-            ))
-
-            val manualSecondary = pendingManualSecondaryBluetoothServiceName
-            items.add(SettingItem.SettingEntry(
-                stableId = "manualSecondaryBluetoothService",
-                nameResId = R.string.manual_secondary_bt_service_title,
-                value = if (manualSecondary.isNullOrEmpty()) getString(R.string.auto)
-                         else BluetoothHelper.getAdapterDescription(requireContext(), manualSecondary),
-                onClick = { _ ->
-                    DialogUtils.showTextInputDialogWithMessage(
-                        requireContext(),
-                        R.string.manual_secondary_bt_service_title,
-                        R.string.manual_secondary_bt_service_message,
-                        manualSecondary ?: "",
-                        { newVal ->
-                            pendingManualSecondaryBluetoothServiceName = newVal.trim()
-                            checkChanges()
-                            updateSettingsList()
-                        }
-                    )
-                }
-            ))
-
-            items.add(SettingItem.ToggleSettingEntry(
-                stableId = "nativeWifiVersionExchange",
-                nameResId = R.string.native_wifi_version_exchange,
-                descriptionResId = R.string.native_wifi_version_exchange_description,
-                isChecked = pendingNativeWifiVersionExchange ?: false,
-                onCheckedChanged = { isChecked ->
-                    pendingNativeWifiVersionExchange = isChecked
-                    checkChanges()
-                    updateSettingsList()
-                }
-            ))
-        }
-
-        // Sub-setting for Headunit Server (Manual vs Auto)
-        if (pendingWifiConnectionMode == 0 || pendingWifiConnectionMode == 1) {
-            items.add(SettingItem.SegmentedButtonSettingEntry(
-                stableId = "serverModeSelection",
-                nameResId = R.string.server_mode_label,
-                options = listOf(getString(R.string.server_mode_manual), getString(R.string.server_mode_auto)),
-                selectedIndex = if (pendingWifiConnectionMode == 0) 0 else 1,
-                onOptionSelected = { index ->
-                    pendingWifiConnectionMode = if (index == 0) 0 else 1
-                    checkChanges()
-                    updateSettingsList()
-                }
-            ))
-        }
-
-        // Sub-setting for Wireless Helper Strategy
-        if (pendingWifiConnectionMode == 2) {
-            // Strategy 1 (WiFi Direct) no longer exists; its slot in the array is skipped, not renumbered,
-            // because the stored value is the array index.
-            val allStrategies = resources.getStringArray(R.array.helper_strategies)
-            val strategyIds = allStrategies.indices.filter { it != 1 }
-            val helperStrategies = strategyIds.map { allStrategies[it] }.toTypedArray()
-            items.add(SettingItem.SettingEntry(
-                stableId = "helperStrategy",
-                nameResId = R.string.helper_strategy_label,
-                value = allStrategies.getOrElse(pendingHelperConnectionStrategy!!) { "" },
-                onClick = {
-                    MaterialAlertDialogBuilder(requireContext(), R.style.DarkAlertDialog)
-                        .setTitle(R.string.helper_strategy_label)
-                        .setSingleChoiceItems(helperStrategies, strategyIds.indexOf(pendingHelperConnectionStrategy!!)) { dialog, which ->
-                            pendingHelperConnectionStrategy = strategyIds[which]
-                            checkChanges()
-                            dialog.dismiss()
-                            updateSettingsList()
-                        }
-                        .show()
-                }
-            ))
-        }
-
         // --- Dark Mode ---
         items.add(SettingItem.CategoryHeader("darkMode", R.string.category_dark_mode))
 
@@ -933,21 +783,6 @@ class SettingsFragment : Fragment() {
 
         // --- Automation ---
         items.add(SettingItem.CategoryHeader("automation", R.string.category_automation))
-
-        items.add(SettingItem.SettingEntry(
-            stableId = "autoStartSettings",
-            nameResId = R.string.auto_start_settings,
-            value = getString(R.string.auto_start_settings_description),
-            searchKeywords = kw(
-                R.string.auto_start_on_boot_label, R.string.auto_start_screen_on_label,
-                R.string.auto_start_usb_label, R.string.auto_start_bt_label, R.string.auto_start_wifi_label
-            ),
-            onClick = {
-                try {
-                    findNavController().navigate(R.id.action_settingsFragment_to_autoStartFragment)
-                } catch (e: Exception) { }
-            }
-        ))
 
         items.add(SettingItem.SettingEntry(
             stableId = "autoConnectSettings",
@@ -1322,64 +1157,6 @@ class SettingsFragment : Fragment() {
                     .show()
             }
         ))
-
-        // --- Input Settings ---
-        items.add(SettingItem.CategoryHeader("input", R.string.category_input))
-
-        items.add(SettingItem.ToggleSettingEntry(
-            stableId = "enableRotary",
-            nameResId = R.string.enable_rotary,
-            descriptionResId = R.string.enable_rotary_description,
-            isChecked = pendingEnableRotary ?: false,
-            onCheckedChanged = { isChecked ->
-                pendingEnableRotary = isChecked
-                checkChanges()
-                updateSettingsList()
-            }
-        ))
-
-        // Media buttons only. The rotary controller, D-pad and the rest are never affected by this,
-        // which is the point: the head unit's Bluetooth side competes for the transport controls
-        // and for nothing else.
-        val mediaKeyModes = listOf(
-            MediaKeyRoutingPolicy.Mode.ALWAYS,
-            MediaKeyRoutingPolicy.Mode.AUTO,
-            MediaKeyRoutingPolicy.Mode.NEVER
-        )
-        val currentMediaKeyMode = pendingMediaKeyRouting ?: MediaKeyRoutingPolicy.Mode.ALWAYS
-        items.add(SettingItem.SegmentedButtonSettingEntry(
-            stableId = "mediaKeyRouting",
-            nameResId = R.string.media_key_routing,
-            options = listOf(
-                getString(R.string.media_key_routing_always),
-                getString(R.string.media_key_routing_auto),
-                getString(R.string.media_key_routing_never)
-            ),
-            selectedIndex = mediaKeyModes.indexOf(currentMediaKeyMode).coerceAtLeast(0),
-            onOptionSelected = { index ->
-                pendingMediaKeyRouting = mediaKeyModes.getOrElse(index) { MediaKeyRoutingPolicy.Mode.ALWAYS }
-                checkChanges()
-                updateSettingsList()
-            }
-        ))
-
-        items.add(SettingItem.InfoBanner(
-            stableId = "mediaKeyRoutingHint",
-            textResId = when (currentMediaKeyMode) {
-                MediaKeyRoutingPolicy.Mode.AUTO -> R.string.media_key_routing_auto_hint
-                MediaKeyRoutingPolicy.Mode.NEVER -> R.string.media_key_routing_never_hint
-                else -> R.string.media_key_routing_always_hint
-            }
-        ))
-
-        // Only worth saying once the setting is actually holding something back: the reason to reach
-        // for this is a doubled track skip, and the fear it raises is losing the rotary with it.
-        if (currentMediaKeyMode != MediaKeyRoutingPolicy.Mode.ALWAYS) {
-            items.add(SettingItem.InfoBanner(
-                stableId = "mediaKeyRoutingScopeHint",
-                textResId = R.string.media_key_routing_hint_common
-            ))
-        }
 
         // --- Audio Settings ---
         items.add(SettingItem.CategoryHeader("audio", R.string.category_audio))
