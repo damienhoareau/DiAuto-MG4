@@ -85,18 +85,6 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
      */
     private var kenBurnsAnimator: ObjectAnimator? = null
 
-    private var initialX = 0f
-    private var initialY = 0f
-    private var isPotentialGesture = false
-
-    // 3-finger swipe-down → return to DiAuto main screen
-    private var threeFingerInitialX = 0f
-    private var threeFingerInitialY = 0f
-    private var isPotentialThreeFingerSwipe = false
-
-    // Activity-local override for fullscreen mode. If non-null, setFullscreen() will use this
-    // instead of persisting to Settings. This keeps toggles local to the Activity lifecycle.
-    private var activityFullscreenOverride: Settings.FullscreenMode? = null
     private var fpsTextView: TextView? = null
     private var touchOverlayView: OverlayTouchView? = null
     private var currentFps: Int? = null
@@ -936,12 +924,6 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
                 if (settings.pendingRendererConfirm && !rendererConfirmResolved) {
                     showRendererConfirmBanner("the setup wizard changed the renderer")
                 }
-
-                // Show one-time gesture hint
-                if (!settings.gestureHintShown) {
-                    Toast.makeText(this@AapProjectionActivity, R.string.gesture_hint, Toast.LENGTH_LONG).show()
-                    settings.gestureHintShown = true
-                }
             }
         }
 
@@ -955,9 +937,6 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
         AppLog.i("AapProjectionActivity: onPause")
         super.onPause()
         RenameNotice.dismiss()
-        // Clear any activity-local fullscreen override when leaving the Activity so
-        // the stored settings remain authoritative on next resume.
-        activityFullscreenOverride = null
         // Before the handler is cleared below, and never after it.
         settleFocusCycle()
         watchdogHandler.removeCallbacks(warmRelaunchCheckRunnable)
@@ -1317,8 +1296,7 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
     private fun setFullscreen() {
         val container = findViewById<View>(R.id.container)
 
-        // Use activity-local override if present, otherwise use stored settings
-        val mode = activityFullscreenOverride ?: settings.fullscreenMode
+        val mode = settings.fullscreenMode
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT && mode != Settings.FullscreenMode.NONE) {
             window.addFlags(android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN)
@@ -1350,7 +1328,7 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
                 if ((visibility and View.SYSTEM_UI_FLAG_FULLSCREEN) == 0) {
                     // Bars are visible. Hide them again.
                     android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                        val effectiveMode = activityFullscreenOverride ?: settings.fullscreenMode
+                        val effectiveMode = settings.fullscreenMode
                         SystemUI.apply(window, container, effectiveMode) {
                             if (::projectionView.isInitialized) {
                                 ProjectionViewScaler.updateScale(projectionView as View, videoDecoder.videoWidth, videoDecoder.videoHeight)
@@ -1428,16 +1406,6 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
         quickSettings.show(supportFragmentManager, "quick_settings")
     }
 
-    private fun returnToMainScreen() {
-        commManager.disconnect(sendByeBye = true)
-        startActivity(
-            Intent(this, com.andrerinas.openheadunit.main.MainActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            }
-        )
-        finish()
-    }
-
     private fun enterPiP() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             try {
@@ -1511,80 +1479,7 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
         // The car asked for touch to be off (RemoteUI disableTouchInput): swallow everything.
         if (ProjectionGate.touchDisabled) return true
 
-        // 1. 2-finger swipe detection from the left or right edge (to open exit menu or toggle fullscreen)
-        if (ev.pointerCount == 2) {
-            isPotentialThreeFingerSwipe = false
-            when (ev.actionMasked) {
-                MotionEvent.ACTION_POINTER_DOWN -> {
-                    initialX = ev.getX(0)
-                    initialY = ev.getY(0)
-                    isPotentialGesture = initialX < 100 || initialX > HeadUnitScreenConfig.getUsableWidth() - 100
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    if (isPotentialGesture) {
-                        val deltaX = ev.getX(0) - initialX
-                        val deltaY = abs(ev.getY(0) - initialY)
-                        if (deltaX > 200 && deltaY < 100) {
-                            isPotentialGesture = false
-                            showExitDialog()
-                            return true // Consume
-                        }
-
-                        if (deltaX < -200 && deltaY < 100) {
-                            isPotentialGesture = false
-                            val currentEffective = activityFullscreenOverride ?: settings.fullscreenMode
-                            if (currentEffective != Settings.FullscreenMode.NONE) {
-                                activityFullscreenOverride = Settings.FullscreenMode.NONE
-                                setFullscreen()
-                            } else {
-                                activityFullscreenOverride = null
-                                setFullscreen()
-                            }
-                            return true // Consume
-                        }
-                    }
-                }
-            }
-        }
-
-        // 2. 3-finger swipe down → disconnect and return to DiAuto main screen
-        if (ev.pointerCount >= 3) {
-            isPotentialGesture = false
-            when (ev.actionMasked) {
-                MotionEvent.ACTION_POINTER_DOWN -> {
-                    if (ev.pointerCount == 3) {
-                        threeFingerInitialX = ev.getX(0)
-                        threeFingerInitialY = ev.getY(0)
-                        isPotentialThreeFingerSwipe = true
-                    }
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    if (isPotentialThreeFingerSwipe) {
-                        val deltaY = ev.getY(0) - threeFingerInitialY
-                        val deltaX = abs(ev.getX(0) - threeFingerInitialX)
-                        if (deltaY > 200 && deltaX < 150) {
-                            isPotentialThreeFingerSwipe = false
-                            returnToMainScreen()
-                            return true
-                        }
-                    }
-                }
-                MotionEvent.ACTION_UP,
-                MotionEvent.ACTION_CANCEL -> {
-                    isPotentialThreeFingerSwipe = false
-                }
-            }
-        } else if (ev.pointerCount < 3) {
-            when (ev.actionMasked) {
-                MotionEvent.ACTION_UP,
-                MotionEvent.ACTION_CANCEL,
-                MotionEvent.ACTION_POINTER_UP -> {
-                    isPotentialThreeFingerSwipe = false
-                }
-            }
-        }
-
-        // 3. Legacy Touch handling for older devices (API < 19)
+        // Legacy Touch handling for older devices (API < 19)
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) {
             sendTouchEvent(ev)
         }
@@ -1716,7 +1611,7 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
         }
 
         val view = projectionView as View
-        val effectiveFullscreenMode = activityFullscreenOverride ?: settings.fullscreenMode
+        val effectiveFullscreenMode = settings.fullscreenMode
         val measuredTouchSurfaceEnabled = settings.useMeasuredTouchSurface &&
             effectiveFullscreenMode == Settings.FullscreenMode.IMMERSIVE
         val overlay = touchOverlayView

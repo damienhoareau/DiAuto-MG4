@@ -483,7 +483,6 @@
     <string name="exit_dialog_stop">Зупинити з\'єднання</string>
     <string name="exit_dialog_pip">Картинка в картинці (PiP)</string>
     <string name="exit_dialog_background">У фоновий режим</string>
-    <string name="gesture_hint">Порада: Проведіть двома пальцями від лівого краю, щоб відкрити меню виходу.</string>
     <string name="audio_latency_multiplier">Множник затримки аудіо</string>
     <string name="audio_latency_multiplier_description">Налаштування розміру аудіо-буфера (Менше = менше затримка, Більше = менше заїкань)</string>
     <string name="audio_queue_capacity">Ємність аудіо-черги (Backpressure)</string>

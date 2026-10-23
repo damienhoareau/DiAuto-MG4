@@ -510,7 +510,6 @@
     <string name="exit_dialog_stop">Остановить соединение</string>
     <string name="exit_dialog_pip">Картинка в картинке (PiP)</string>
     <string name="exit_dialog_background">В фоновый режим</string>
-    <string name="gesture_hint">Совет: Проведите двумя пальцами от левого края, чтобы открыть меню выхода.</string>
     <string name="audio_latency_multiplier">Множитель задержки звука</string>
     <string name="audio_latency_multiplier_description">Настройка размера аудио-буфера (Меньше = меньше задержка, Больше = меньше заиканий)</string>
     <string name="audio_queue_capacity">Емкость аудио-очереди (Backpressure)</string>

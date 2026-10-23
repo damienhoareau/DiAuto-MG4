@@ -482,7 +482,6 @@
     <string name="exit_dialog_stop">إيقاف الاتصال</string>
     <string name="exit_dialog_pip">صورة داخل صورة (PiP)</string>
     <string name="exit_dialog_background">نقل إلى الخلفية</string>
-    <string name="gesture_hint">نصيحة: اسحب بإصبعين من الحافة اليسرى لفتح قائمة الخروج.</string>
     <string name="audio_latency_multiplier">مضاعف زمن انتقال الصوت</string>
     <string name="audio_latency_multiplier_description">ضبط حجم مخزن الصوت (أقل = تأخير أقل، أعلى = تقطع أقل)</string>
     <string name="audio_queue_capacity">سعة قائمة انتظار الصوت (Backpressure)</string>

@@ -494,7 +494,6 @@
     <string name="exit_dialog_stop">Dừng kết nối</string>
     <string name="exit_dialog_pip">Picture-in-Picture</string>
     <string name="exit_dialog_background">Đưa xuống nền</string>
-    <string name="gesture_hint">Mẹo: Vuốt từ cạnh trái bằng 2 ngón để mở menu thoát.</string>
     <string name="audio_latency_multiplier">Hệ số độ trễ âm thanh</string>
     <string name="audio_latency_multiplier_description">Điều chỉnh kích thước bộ đệm âm thanh (Thấp = ít lag, Cao = ít giật)</string>
     <string name="audio_queue_capacity">Sức chứa hàng đợi âm thanh (Backpressure)</string>

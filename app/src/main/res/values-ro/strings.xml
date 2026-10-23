@@ -483,7 +483,6 @@
     <string name="exit_dialog_stop">Oprește conexiunea</string>
     <string name="exit_dialog_pip">Picture-in-Picture (PiP)</string>
     <string name="exit_dialog_background">Mută în fundal</string>
-    <string name="gesture_hint">Sugestie: Glisează cu 2 degete de la marginea stângă pentru a deschide meniul de ieșire.</string>
     <string name="audio_latency_multiplier">Multiplicator latență audio</string>
     <string name="audio_latency_multiplier_description">Ajustare dimensiune buffer audio (Mai mic = latență mai mică, Mai mare = mai puține întreruperi)</string>
     <string name="audio_queue_capacity">Capacitate coadă audio (Backpressure)</string>

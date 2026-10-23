@@ -482,7 +482,6 @@
     <string name="exit_dialog_stop">Verbinding stoppen</string>
     <string name="exit_dialog_pip">Beeld-in-beeld (PiP)</string>
     <string name="exit_dialog_background">Verplaats naar achtergrond</string>
-    <string name="gesture_hint">Tip: Veeg met 2 vingers vanaf de linkerrand om het afsluitmenu te openen.</string>
     <string name="audio_latency_multiplier">Audiovertraging vermenigvuldiger</string>
     <string name="audio_latency_multiplier_description">Audio-buffergrootte aanpassen (Lager = minder vertraging, Hoger = minder stotteren)</string>
     <string name="audio_queue_capacity">Audio-wachtrijcapaciteit (Backpressure)</string>

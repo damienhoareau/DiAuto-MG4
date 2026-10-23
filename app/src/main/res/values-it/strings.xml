@@ -489,7 +489,6 @@
     <string name="exit_dialog_stop">Interrompi connessione</string>
     <string name="exit_dialog_pip">Picture-in-Picture</string>
     <string name="exit_dialog_background">Sposta in background</string>
-    <string name="gesture_hint">Suggerimento: Scorri dal bordo sinistro con 2 dita per aprire il menu di uscita.</string>
     <string name="audio_latency_multiplier">Moltiplicatore di latenza audio</string>
     <string name="audio_latency_multiplier_description">Regola la dimensione del buffer audio (Più basso = meno lag, Più alto = meno stutter)</string>
     <string name="audio_queue_capacity">Capacità della coda audio (Backpressure)</string>

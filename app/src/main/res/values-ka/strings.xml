@@ -521,7 +521,6 @@
     <string name="exit_dialog_pip">სურათი სურათში (PiP)</string>
     <string name="exit_dialog_background">ფონურ რეჟიმში გადაყვანა</string>
     <string name="exit_dialog_settings">სწრაფი პარამეტრები</string>
-    <string name="gesture_hint">რჩევა: გადაუსვით მარცხენა კიდიდან 2 თითით გასვლის მენიუს გასახსნელად.</string>
     <string name="audio_latency_multiplier">აუდიო დაყოვნების მულტიპლიკატორი</string>
     <string name="audio_latency_multiplier_description">აუდიო ბუფერის ზომის რეგულირება (დაბალი = ნაკლები დაყოვნება, მაღალი = ნაკლები წყვეტა)</string>
     <string name="audio_queue_capacity">აუდიო რიგის ტევადობა (Backpressure)</string>

@@ -482,7 +482,6 @@
     <string name="exit_dialog_stop">Zastavit připojení</string>
     <string name="exit_dialog_pip">Obraz v obraze (PiP)</string>
     <string name="exit_dialog_background">Přesunout na pozadí</string>
-    <string name="gesture_hint">Tip: Přejetím 2 prsty od levého okraje otevřete nabídku ukončení.</string>
     <string name="audio_latency_multiplier">Násobitel latence zvuku</string>
     <string name="audio_latency_multiplier_description">Úprava velikosti zvukové vyrovnávací paměti (Nižší = menší zpoždění, Vyšší = méně sekání)</string>
     <string name="audio_queue_capacity">Kapacita zvukové fronty (Backpressure)</string>

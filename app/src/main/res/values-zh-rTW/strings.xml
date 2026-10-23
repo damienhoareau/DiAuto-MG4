@@ -482,7 +482,6 @@
     <string name="exit_dialog_stop">停止連線</string>
     <string name="exit_dialog_pip">畫中畫 (PiP)</string>
     <string name="exit_dialog_background">移至背景</string>
-    <string name="gesture_hint">提示：用兩根手指從左側邊緣滑動即可開啟退出功能表。</string>
     <string name="audio_latency_multiplier">音訊延遲倍增器</string>
     <string name="audio_latency_multiplier_description">調整音訊緩衝區大小 (低 = 低延遲, 高 = 低斷斷續續)</string>
     <string name="audio_queue_capacity">音訊佇列容量 (Backpressure)</string>

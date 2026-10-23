@@ -482,7 +482,6 @@
     <string name="exit_dialog_stop">Detener conexión</string>
     <string name="exit_dialog_pip">Imagen en imagen (PiP)</string>
     <string name="exit_dialog_background">Mover a segundo plano</string>
-    <string name="gesture_hint">Consejo: Deslice desde el borde izquierdo con 2 dedos para abrir el menú de salida.</string>
     <string name="audio_latency_multiplier">Multiplicador de latencia de audio</string>
     <string name="audio_latency_multiplier_description">Ajusta el tamaño del búfer de audio (Menor = menos lag, Mayor = menos entrecortado)</string>
     <string name="audio_queue_capacity">Capacidad de la cola de audio (Backpressure)</string>

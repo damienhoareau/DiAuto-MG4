@@ -230,12 +230,6 @@ class Settings(private val context: Context) {
             prefs.edit().putBoolean("fake_speed", value).apply()
         }
 
-    var gestureHintShown: Boolean
-        get() = prefs.getBoolean("gesture_hint_shown", false)
-        set(value) {
-            prefs.edit().putBoolean("gesture_hint_shown", value).apply()
-        }
-
     // One-time notice telling users the app is being rebranded. Shown once on the home screen.
     // The key is versioned on purpose: an earlier build could spend the original flag behind the
     // onboarding wizard without the notice ever being seen, so a new key lets the corrected

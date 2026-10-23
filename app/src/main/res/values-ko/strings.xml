@@ -540,7 +540,6 @@
     <string name="exit_dialog_pip">PIP 모드</string>
     <string name="exit_dialog_background">백그라운드로 이동</string>
     <string name="exit_dialog_settings">빠른 설정</string>
-    <string name="gesture_hint">팁: 왼쪽 가장자리에서 두 손가락으로 스와이프하면 종료 메뉴가 열립니다</string>
     <string name="audio_latency_multiplier">오디오 지연 배율</string>
     <string name="audio_latency_multiplier_description">오디오 버퍼 크기를 조정합니다. 낮을수록 지연이 줄고, 높을수록 끊김이 줄어듭니다</string>
     <string name="audio_queue_capacity">오디오 큐 용량</string>

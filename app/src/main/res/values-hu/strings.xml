@@ -481,7 +481,6 @@
     <string name="exit_dialog_stop">Kapcsolat leállítása</string>
     <string name="exit_dialog_pip">Kép a képben (PiP)</string>
     <string name="exit_dialog_background">Áthelyezés a háttérbe</string>
-    <string name="gesture_hint">Tipp: Legyintsen 2 ujjal a bal szélről a kilépés menü megnyitásához.</string>
     <string name="audio_latency_multiplier">Audio késleltetési szorzó</string>
     <string name="audio_latency_multiplier_description">Audió pufferméret beállítása (Alacsonyabb = kisebb késleltetés, Magasabb = kevesebb akadozás)</string>
     <string name="audio_queue_capacity">Audió sor kapacitása (Backpressure)</string>

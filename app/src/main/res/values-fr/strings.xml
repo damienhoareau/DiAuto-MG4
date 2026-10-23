@@ -842,7 +842,6 @@
     <string name="exit_dialog_pip">Picture-in-Picture</string>
     <string name="exit_dialog_background">Move to Background</string>
     <string name="exit_dialog_settings">Quick Settings</string>
-    <string name="gesture_hint">Astuce : 2 doigts depuis le bord gauche ouvrent le menu de sortie ; 3 doigts vers le bas reviennent à l’écran principal.</string>
     <string name="audio_latency_multiplier">Audio Latency Multiplier</string>
     <string name="audio_latency_multiplier_description">Adjust audio buffer size (Lower = Less Lag, Higher = Less Stutter)</string>
     <string name="audio_queue_capacity">Audio Queue Capacity (Backpressure)</string>

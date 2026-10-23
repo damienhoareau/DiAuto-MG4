@@ -491,7 +491,6 @@
     <string name="exit_dialog_stop">接続を停止</string>
     <string name="exit_dialog_pip">ピクチャー・イン・ピクチャー (PiP)</string>
     <string name="exit_dialog_background">バックグラウンドへ移動</string>
-    <string name="gesture_hint">ヒント：左端から 2 本の指でスワイプすると、終了メニューが開きます。</string>
     <string name="audio_latency_multiplier">オーディオ遅延倍率</string>
     <string name="audio_latency_multiplier_description">オーディオバッファサイズの調整（低 = 遅延減、高 = 音飛び減）</string>
     <string name="audio_queue_capacity">オーディオキュー容量 (Backpressure)</string>

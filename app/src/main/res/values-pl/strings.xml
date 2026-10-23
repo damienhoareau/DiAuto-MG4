@@ -483,7 +483,6 @@
     <string name="exit_dialog_stop">Zatrzymaj połączenie</string>
     <string name="exit_dialog_pip">Obraz w obrazie (PiP)</string>
     <string name="exit_dialog_background">Przenieś do tła</string>
-    <string name="gesture_hint">Wskazówka: Przesuń dwoma palcami od lewej krawędzi, aby otworzyć menu wyjścia.</string>
     <string name="audio_latency_multiplier">Mnożnik opóźnienia dźwięku</string>
     <string name="audio_latency_multiplier_description">Dostosuj rozmiar bufora audio (Niższy = mniejsze opóźnienie, Wyższy = mniej zacinania)</string>
     <string name="audio_queue_capacity">Pojemność kolejki audio (Backpressure)</string>

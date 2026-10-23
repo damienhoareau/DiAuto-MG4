@@ -501,7 +501,6 @@
     <string name="exit_dialog_stop">Verbindung stoppen</string>
     <string name="exit_dialog_pip">Bild-in-Bild</string>
     <string name="exit_dialog_background">In den Hintergrund</string>
-    <string name="gesture_hint">Tipp: Wischen Sie mit 2 Fingern vom linken Rand, um das Beenden-Menü zu öffnen.</string>
     <string name="audio_latency_multiplier">Audio-Latenz-Multiplikator</string>
     <string name="audio_latency_multiplier_description">Audio-Puffergröße anpassen (Niedriger = weniger Verzögerung, Höher = weniger Stottern)</string>
     <string name="audio_queue_capacity">Audio-Warteschlangenkapazität (Backpressure)</string>
