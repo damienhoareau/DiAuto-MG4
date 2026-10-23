@@ -503,7 +503,8 @@ class Settings(private val context: Context) {
         set(value) { prefs.edit().putInt("wifi-connection-mode", value).apply() }
 
     var videoCodec: String
-        get() = prefs.getString("video-codec", "Auto")!!
+        // TEST BUILD: always ask the phone for H.265, to try the MT2712 hardware HEVC decoder.
+        get() = "H.265"
         set(value) { prefs.edit().putString("video-codec", value).apply() }
 
     var fpsLimit: Int
