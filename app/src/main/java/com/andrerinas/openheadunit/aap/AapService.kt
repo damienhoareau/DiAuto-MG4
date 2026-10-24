@@ -1268,11 +1268,11 @@ class AapService : Service(), UsbReceiver.Listener {
                 // — so the access point has to go, and for the same reason as above only once
                 // CommManager has finished.
                 //
-                // Restarted rather than left down. It has to disappear for the phone to be put off
-                // it, but leaving it off charges the whole bring-up — measured at ~20s on a unit
-                // that refuses setSoftApConfiguration() — to the next connection, with the phone
-                // waiting through it. Paying it here spends the same seconds while the user is
-                // already walking away.
+                // Left down. The user chose to leave, so nothing should bring the phone back onto
+                // the network behind their back: a hotspot that reappears seconds later is joined
+                // by the phone, and Android Auto starts connecting again. It is switched back on
+                // by the next connection (Bluetooth auto-start, or the phone opening the
+                // handshake, see ensureHotspotForHandshake).
                 val action = UserExitHotspotPolicy.onUserExit(
                     mode, strategy, settings.hotspotTeardownProvenUnsafe
                 )
@@ -1285,22 +1285,8 @@ class AapService : Service(), UsbReceiver.Listener {
                 }
                 when (action) {
                     HotspotExitAction.DISABLE -> {
-                        AppLog.i("AapService: CommManager teardown complete. Restarting the hotspot so the phone leaves the network.")
-                        if (!HotspotManager.restart(this@AapService)) {
-                            // The one way to learn that this radio will not host an access point
-                            // again once it has been taken down. Remembered so it costs the user
-                            // one hotspot rather than one per session — from here on this device's
-                            // access point is left alone and the phone is told, in the branch
-                            // below, what that means.
-                            settings.hotspotTeardownProvenUnsafe = true
-                            AppLog.w(
-                                "AapService: This device did not bring its access point back after " +
-                                    "the app took it down, so it will not be taken down again. " +
-                                    "Ending a session will leave the phone on the network from now " +
-                                    "on — end it from the phone's own Android Auto notification if " +
-                                    "that becomes a problem."
-                            )
-                        }
+                        AppLog.i("AapService: CommManager teardown complete. Switching the hotspot off so the phone leaves the network; it stays off until the next connection.")
+                        HotspotManager.setHotspotEnabled(this@AapService, false)
                     }
                     HotspotExitAction.WARN_LEFT_UP -> AppLog.w(
                         "AapService: Stopping the connection does not switch this device's hotspot " +
@@ -1313,6 +1299,14 @@ class AapService : Service(), UsbReceiver.Listener {
                     )
                     HotspotExitAction.NONE -> {}
                 }
+            }
+
+            if (mode == 3 && state.isUserExit && !preemptingWirelessForUsb) {
+                // Keep announcing Android Auto Wireless over Bluetooth, so the phone can still
+                // offer it (its notification). Nothing is poked and the hotspot stays off: the
+                // handshake switches it on when the phone actually asks.
+                AppLog.i("AapService: Native AA user exit — Bluetooth handshake servers re-armed, no hotspot, no poke.")
+                nativeAaHandshakeManager?.start()
             }
 
             App.provide(this@AapService).audioDecoder.stop()
@@ -2647,6 +2641,19 @@ class AapService : Service(), UsbReceiver.Listener {
         if (commManager.isBusy || App.provide(this).settings.wifiConnectionMode != 3) return
         AppLog.i("AapService: Phone could not join the hotspot — discarding credentials and resolving the access point again.")
         softApCredentialsProvider?.refresh()
+    }
+
+    /**
+     * Called by the Bluetooth handshake when a phone opens it. After a user exit the hotspot is off
+     * and its credentials provider stopped, so the phone asking to connect is what switches them
+     * back on. Does nothing when the provider is already running.
+     */
+    fun ensureHotspotForHandshake() {
+        if (App.provide(this).settings.wifiConnectionMode != 3) return
+        val provider = softApCredentialsProvider ?: return
+        if (provider.isActive()) return
+        AppLog.i("AapService: The phone opened the handshake with the hotspot off — starting it.")
+        provider.start()
     }
 
     fun triggerHotspotRefresh() {

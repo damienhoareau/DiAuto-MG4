@@ -183,6 +183,9 @@ class SoftApCredentialsProvider(
         beginResolve()
     }
 
+    /** Whether [start] has been called and [stop] has not. */
+    fun isActive(): Boolean = isRunning
+
     @Synchronized
     fun stop() {
         isRunning = false

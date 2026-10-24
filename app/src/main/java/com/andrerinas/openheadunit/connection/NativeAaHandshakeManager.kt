@@ -1199,6 +1199,8 @@ class NativeAaHandshakeManager(
             // The phone cannot join the hotspot while the head unit is itself a Wi-Fi client, so the
             // client goes off now. A hotspot that was started while it was on is restarted, which
             // drops the credentials: the wait just below picks up the republished ones.
+            // After a user exit the hotspot is off; the phone asking to connect switches it back on.
+            (context as? AapService)?.ensureHotspotForHandshake()
             com.andrerinas.openheadunit.utils.CarWifiClient.suspendForWirelessSession(context)
 
             AppLog.i("NativeAA: Waiting for WiFi credentials to be ready (Max ${CREDENTIALS_WAIT_MS / 1000}s)...")
