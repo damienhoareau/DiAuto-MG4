@@ -87,6 +87,8 @@ internal class AapControlMedia(
             this.maxUnacked = maxUnacked
 
             addConfigurationIndices(0)
+            // A second video profile (H.264 after H.265) is accepted as well.
+            if (channel == Channel.ID_VID) addConfigurationIndices(1)
         }.build()
         AppLog.i("Config response: %s (maxUnacked=%d)", configResponse, maxUnacked)
         val msg = AapMessage(channel, Media.MsgType.MEDIA_MESSAGE_CONFIG_VALUE, configResponse)

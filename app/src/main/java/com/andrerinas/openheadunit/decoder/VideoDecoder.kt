@@ -141,7 +141,9 @@ class VideoDecoder(
                     hw.startsWith("gs") || hw.contains("google") || // Google Tensor
                     soc.contains("qualcomm") || soc.contains("samsung") || soc.contains("google") ||
                     // High-end MediaTek (Dimensity 700/800/900/1000/9000+ series)
-                    hw.startsWith("mt68") || hw.startsWith("mt69")
+                    hw.startsWith("mt68") || hw.startsWith("mt69") ||
+                    // MT2712 (MG4 head unit): hardware HEVC verified in the car, 1080p30 without drops
+                    hw.startsWith("mt2712") || Build.BOARD.lowercase().startsWith("mt2712")
 
             if (!isReliable) return false
 

@@ -111,17 +111,9 @@ class ServiceDiscoveryResponse(private val context: Context)
                         } else {
                             Media.MediaCodecType.MEDIA_CODEC_VIDEO_H264_BP
                         }
-                        "Auto" -> {
-                            // Only use H.265 in Auto mode for 4K or if explicitly needed, 
-                            // otherwise prefer stable H.264
-                            val negotiatedResolution = HeadUnitScreenConfig.negotiatedResolutionType
-                            if (negotiatedResolution == Control.Service.MediaSinkService.VideoConfiguration.VideoCodecResolutionType._3840x2160 &&
-                                com.andrerinas.openheadunit.decoder.VideoDecoder.isHevcReliable()) {
-                                Media.MediaCodecType.MEDIA_CODEC_VIDEO_H265
-                            } else {
-                                Media.MediaCodecType.MEDIA_CODEC_VIDEO_H264_BP
-                            }
-                        }
+                        // Auto: the head unit's primary type stays H.264, and the H.265 profile
+                        // is offered next to it below when the decoder is known to be reliable.
+                        "Auto" -> Media.MediaCodecType.MEDIA_CODEC_VIDEO_H264_BP
                         else -> Media.MediaCodecType.MEDIA_CODEC_VIDEO_H264_BP
                     }
 
@@ -141,6 +133,14 @@ class ServiceDiscoveryResponse(private val context: Context)
                         codecToRequest
                     }
 
+                    // In Auto, a reliable hardware HEVC decoder gets a second profile: the phone
+                    // takes H.265 when it can encode it and falls back to the H.264 one otherwise.
+                    val offerBoth = settings.videoCodec == "Auto" &&
+                        effectiveCodec == Media.MediaCodecType.MEDIA_CODEC_VIDEO_H264_BP &&
+                        com.andrerinas.openheadunit.decoder.VideoDecoder.isHevcReliable()
+                    AppLog.i("[ServiceDiscovery] Video profiles offered: " +
+                        if (offerBoth) "H.265 then H.264" else effectiveCodec.name)
+
                     mediaSinkServiceBuilder.availableType = effectiveCodec
                     mediaSinkServiceBuilder.audioType = Media.AudioStreamType.NONE
                     mediaSinkServiceBuilder.availableWhileInCall = true
@@ -150,7 +150,7 @@ class ServiceDiscoveryResponse(private val context: Context)
                     AppLog.i("[ServiceDiscovery] Margins are: ${phoneWidthMargin}x${phoneHeightMargin}")
                     HeadUnitScreenConfig.markMarginsSent()
 
-                    mediaSinkServiceBuilder.addVideoConfigs(Control.Service.MediaSinkService.VideoConfiguration.newBuilder().apply {
+                    val videoConfig = { codecType: Media.MediaCodecType -> Control.Service.MediaSinkService.VideoConfiguration.newBuilder().apply {
                         codecResolution = negotiatedResolution
                         frameRate = when (settings.fpsLimit) {
                             30 -> Control.Service.MediaSinkService.VideoConfiguration.VideoFrameRateType._30
@@ -163,8 +163,10 @@ class ServiceDiscoveryResponse(private val context: Context)
                         // Stock AllGo on MG4 EH32 advertises depth 1 so the phone sends idle frames
                         // for the HU decoder pipeline (see HUIG / aap_system_attributes).
                         setDecoderAdditionalDepth(1)
-                        setVideoCodecType(effectiveCodec)
-                    }.build())
+                        setVideoCodecType(codecType)
+                    }.build() }
+                    if (offerBoth) mediaSinkServiceBuilder.addVideoConfigs(videoConfig(Media.MediaCodecType.MEDIA_CODEC_VIDEO_H265))
+                    mediaSinkServiceBuilder.addVideoConfigs(videoConfig(effectiveCodec))
                 }.build()
             }.build()
 
