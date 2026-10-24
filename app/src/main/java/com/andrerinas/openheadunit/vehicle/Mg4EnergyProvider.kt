@@ -86,6 +86,13 @@ object Mg4EnergyProvider {
                     EVHardware.whenCarPropertyManagerReady {
                         AppLog.i("$TAG CarPropertyManager ready — refreshing SoC/range")
                         refresh()
+                        // What this car answers for the pack size and the other energy properties,
+                        // once per start: the capacity is a setting because it has never been seen.
+                        executor.execute {
+                            runCatching {
+                                EVHardware.probeTelemetryProperties().forEach { AppLog.i("$TAG probe $it") }
+                            }.onFailure { AppLog.w("$TAG property probe failed: ${it.message}") }
+                        }
                     }
                     EVHardware.whenSaicHubReady {
                         AppLog.i("$TAG SaicHub ready — refreshing SoC/range")

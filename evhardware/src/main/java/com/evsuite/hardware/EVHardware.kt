@@ -671,6 +671,7 @@ object EVHardware {
         probeProperty("EV_INSTANTANEOUS_CHARGE_RATE", PROP_EV_INSTANTANEOUS_CHARGE_RATE, AREA_GLOBAL, Float::class.javaObjectType),
         probeProperty("EV_BATTERY_LEVEL", PROP_EV_BATTERY_LEVEL, AREA_GLOBAL, Float::class.javaObjectType),
         probeProperty("INFO_EV_BATTERY_CAPACITY", PROP_INFO_EV_BATTERY_CAPACITY, AREA_GLOBAL, Float::class.javaObjectType),
+        probeProperty("EV_CURRENT_BATTERY_CAPACITY", PROP_EV_CURRENT_BATTERY_CAPACITY, AREA_GLOBAL, Float::class.javaObjectType),
         probeProperty("RANGE_REMAINING", PROP_RANGE_REMAINING, AREA_GLOBAL, Float::class.javaObjectType),
         probeProperty("ENV_OUTSIDE_TEMPERATURE", PROP_OUTSIDE_TEMP, AREA_GLOBAL, Float::class.javaObjectType),
         probeProperty("PERF_ODOMETER", PROP_ODOMETER, AREA_GLOBAL, Float::class.javaObjectType),
