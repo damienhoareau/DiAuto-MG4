@@ -40,9 +40,8 @@ object AudioConfigs {
         }.build()
         audioTracks.put(Channel.ID_AU1, audioConfig1)
 
-        // Guidance is 48 kHz mono, like the stock Allgo app (codec PCM_48KHZ_1).
         val audioConfig2 = Media.AudioConfiguration.newBuilder().apply {
-            sampleRate = AudioDecoder.SAMPLE_RATE_HZ_48
+            sampleRate = AudioDecoder.SAMPLE_RATE_HZ_16
             numberOfBits = 16
             numberOfChannels = 1
         }.build()
