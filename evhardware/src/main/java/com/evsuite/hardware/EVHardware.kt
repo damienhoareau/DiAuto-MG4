@@ -419,6 +419,15 @@ object EVHardware {
     private const val PROP_EV_BATTERY_LEVEL = 0x11600309             // Wh
     private const val PROP_RANGE_REMAINING = 0x11600308              // metres
     private const val PROP_INFO_EV_BATTERY_CAPACITY = 0x11600106     // Wh
+
+    // Vendor identification properties from the YFvehicle HAL list (YFVehicleProperty). Probed only,
+    // to learn which of them the SWI133 answers and whether one tells the battery variant.
+    private const val PROP_INFO_VIN = 0x11100100                     // string
+    private const val PROP_CAL_VEHICLE_VIN = 0x21104253              // string
+    private const val PROP_CONFIG_VEHICLEID = 0x21104268             // string
+    private const val PROP_CONFIG_YEAR = 0x21104269                  // string
+    private const val PROP_CAL_CAR_MODEL = 0x2170422C                // bytes
+    private const val PROP_CAL_DRIVING_PACKAGE = 0x21704232          // bytes
     private const val PROP_ODOMETER = 0x11600204                     // km
     private const val PROP_CABIN_TEMP = 0x15600502                   // °C, zoned
     private const val PROP_TIRE_PRESSURE = 0x17600309                // kPa, per wheel
@@ -682,7 +691,20 @@ object EVHardware {
         probeProperty("BMS_PACK_VOL", PROP_BMS_PACK_VOLT_SWI68, AREA_GLOBAL, Float::class.javaObjectType),
         probeProperty("BMS_PACK_CRNT", PROP_BMS_PACK_CURRENT_SWI68, AREA_GLOBAL, Float::class.javaObjectType),
         probeProperty("HVAC_AMBIENT_TEMPERATURE", PROP_HVAC_AMBIENT_TEMP_SWI68, AREA_GLOBAL, Float::class.javaObjectType),
+        probeProperty("INFO_VIN", PROP_INFO_VIN, AREA_GLOBAL, String::class.java),
+        probeProperty("CAL_Vehicle_VIN", PROP_CAL_VEHICLE_VIN, AREA_GLOBAL, String::class.java),
+        probeProperty("CONFIG_VEHICLEID", PROP_CONFIG_VEHICLEID, AREA_GLOBAL, String::class.java),
+        probeProperty("CONFIG_YEAR", PROP_CONFIG_YEAR, AREA_GLOBAL, String::class.java),
+        probeProperty("CAL_CAR_MODEL", PROP_CAL_CAR_MODEL, AREA_GLOBAL, ByteArray::class.java),
+        probeProperty("CAL_DRIVING_PACKAGE", PROP_CAL_DRIVING_PACKAGE, AREA_GLOBAL, ByteArray::class.java),
     )
+
+    /** Bytes as hex, and a VIN-looking string cut after its first eight characters: the report gets shared. */
+    private fun describeProbeValue(value: Any?): String = when (value) {
+        is ByteArray -> "bytes[${value.size}]=" + value.joinToString("") { "%02x".format(it) }
+        is String -> if (value.length == 17) "${value.take(8)}*********(17)" else value
+        else -> value.toString()
+    }
 
     private fun probeProperty(name: String, propId: Int, areaId: Int, boxed: Class<*>): PropertyReport {
         val cpm = sCarPropertyManager
@@ -697,7 +719,7 @@ object EVHardware {
                 ?.let(CarPropertyEvidence::describe) ?: "no status"
             val value = holder.javaClass.getMethod("getValue").invoke(holder)
             val timestamp = holder.javaClass.getMethod("getTimestamp").invoke(holder) as? Long
-            PropertyReport(name, propId, areaId, "$status, value=$value, t=${timestamp ?: "?"}")
+            PropertyReport(name, propId, areaId, "$status, value=${describeProbeValue(value)}, t=${timestamp ?: "?"}")
         } catch (e: Exception) {
             PropertyReport(name, propId, areaId, e.readFailureReason())
         }
