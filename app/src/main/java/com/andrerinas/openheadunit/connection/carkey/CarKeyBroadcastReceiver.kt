@@ -9,6 +9,7 @@ import androidx.core.content.ContextCompat
 import com.andrerinas.openheadunit.App
 import com.andrerinas.openheadunit.connection.CommManager
 import com.andrerinas.openheadunit.utils.AppLog
+import com.evsuite.hardware.EVHardware
 import com.evsuite.hardware.PhysicalButtonEventDecoder
 
 /**
@@ -81,11 +82,19 @@ class CarKeyBroadcastReceiver : BroadcastReceiver(), CarKeyReceiver {
             }
         }
 
-        if (isDown && !isLong) {
-            when (keyCode) {
-                WHEEL_LEFT -> handleClick(context, KeyEvent.KEYCODE_MEDIA_PREVIOUS)
-                WHEEL_RIGHT -> handleClick(context, KeyEvent.KEYCODE_MEDIA_NEXT)
-                WHEEL_OK -> handleClick(context, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)
+        if (isDown && !isLong && (keyCode == WHEEL_LEFT || keyCode == WHEEL_RIGHT || keyCode == WHEEL_OK)) {
+            // The focus key hands the wheel to the instrument cluster, whose menus these three then
+            // drive. The stock app reads the wheel's function and leaves them alone unless it is 0.
+            val function = EVHardware.getSteeringWheelFunction()
+            if (function != null && function != 0) {
+                AppLog.i("CarKeyReceiver: key $keyCode left to the cluster, the wheel function is $function")
+            } else {
+                AppLog.i("CarKeyReceiver: key $keyCode sent to the phone, the wheel function is ${function ?: "unreadable"}")
+                when (keyCode) {
+                    WHEEL_LEFT -> handleClick(context, KeyEvent.KEYCODE_MEDIA_PREVIOUS)
+                    WHEEL_RIGHT -> handleClick(context, KeyEvent.KEYCODE_MEDIA_NEXT)
+                    WHEEL_OK -> handleClick(context, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)
+                }
             }
         }
 

@@ -422,7 +422,8 @@ object EVHardware {
 
     // Vendor identification properties from the YFvehicle HAL list (YFVehicleProperty). Probed only,
     // to learn which of them the SWI133 answers and whether one tells the battery variant.
-    private const val PROP_INFO_VIN = 0x11100100                     // string
+    private const val PROP_SWC_FUNCTION_CHANGE_SWA = 0x21407B14      // int, 0 = wheel drives the head unit
+    private const val PROP_INFO_VIN = 0x11100100                    // string
     private const val PROP_CAL_VEHICLE_VIN = 0x21104253              // string
     private const val PROP_CONFIG_VEHICLEID = 0x21104268             // string
     private const val PROP_CONFIG_YEAR = 0x21104269                  // string
@@ -2060,6 +2061,20 @@ object EVHardware {
     private const val PROP_PARKING_BRAKE_ON = 0x11200402
 
     /** The gear status as the firmware numbers it (park is [GEAR_PARK_VALUE]); null when unreadable. */
+    /**
+     * The steering wheel's function selector (SWC_FUNCTION_CHANGE_SWA), the property the stock Android
+     * Auto app reads before it acts on the wheel's left, right and OK keys: it acts on them only
+     * while this is 0, and leaves them alone otherwise. null = unreadable.
+     */
+    fun getSteeringWheelFunction(): Int? {
+        val raw = if (FirmwareInfo.getGeneration() == FirmwareInfo.Gen.SWI133) {
+            if (sVpm == null) -1 else getIntPropertyVpm(PROP_SWC_FUNCTION_CHANGE_SWA)
+        } else {
+            getIntPropertyCPM(PROP_SWC_FUNCTION_CHANGE_SWA, AREA_GLOBAL)
+        }
+        return raw.takeIf { it >= 0 }
+    }
+
     fun getGearRaw(): Int? {
         val gen = FirmwareInfo.getGeneration()
         val gear = when {
