@@ -190,9 +190,10 @@ class AndroidAutoMainService : Service() {
     }
 
     /**
-     * RemoteUI resolves the device of a session callback with getReferenceFor(): only type 1 (matched on
+     * RemoteUI resolves the device of a callback with getReferenceFor(): only type 1 (matched on
      * the Bluetooth address) or type 2 over USB are found. A wireless Android Auto device is neither, so
-     * session events are sent as type 1; it is matched against the entry the device callback created.
+     * session, disconnect and connect events are sent as type 1. The first connect creates the entry
+     * (RemoteUI stores it as type 2); the later ones find it by its address instead of adding another.
      */
     private fun sessionView(device: MirroringDevice, status: Int = device.sessionStatus): MirroringDevice =
         MirroringDevice(device).also {
@@ -223,7 +224,7 @@ class AndroidAutoMainService : Service() {
                 if (!deviceAnnounced) {
                     deviceAnnounced = true
                     announcedAddress = device.BTMacAddress
-                    fanOutDevice { it.onDeviceConnected(device) }
+                    fanOutDevice { it.onDeviceConnected(sessionView(device)) }
                 }
             }
             is CommManager.ConnectionState.TransportStarted -> {
@@ -237,7 +238,7 @@ class AndroidAutoMainService : Service() {
                     val announced = describeDevice(MirroringDevice.SESSION_STARTING)
                     announcedAddress = announced.BTMacAddress
                     AppLog.i("AndroidAutoMainService: announcing the device ahead of its session")
-                    fanOutDevice { it.onDeviceConnected(announced) }
+                    fanOutDevice { it.onDeviceConnected(sessionView(announced)) }
                 }
                 if (!sessionAnnounced) {
                     sessionAnnounced = true
@@ -403,7 +404,7 @@ class AndroidAutoMainService : Service() {
             // Not "activeDevice" alone: inside the Stub that name is its own getActiveDevice().
             val active = this@AndroidAutoMainService.activeDevice
             if (active != null && device != null && deviceAnnounced) {
-                try { device.onDeviceConnected(MirroringDevice(active)) } catch (_: Exception) {}
+                try { device.onDeviceConnected(sessionView(active)) } catch (_: Exception) {}
             }
             // Same for the session: RemoteUI restarts on its own, and the launcher tile only follows events.
             if (active != null && session != null && sessionAnnounced) {
