@@ -86,10 +86,10 @@ class CarKeyBroadcastReceiver : BroadcastReceiver(), CarKeyReceiver {
             // The focus key hands the wheel to the instrument cluster, whose menus these three then
             // drive. The stock app reads the wheel's function and leaves them alone unless it is 0.
             val function = EVHardware.getSteeringWheelFunction()
-            if (function != null && function != 0) {
-                AppLog.i("CarKeyReceiver: key $keyCode left to the cluster, the wheel function is $function")
+            if (function != 0) {
+                AppLog.i("CarKeyReceiver: key $keyCode left to the cluster, the wheel function is ${function ?: "unreadable"}")
             } else {
-                AppLog.i("CarKeyReceiver: key $keyCode sent to the phone, the wheel function is ${function ?: "unreadable"}")
+                AppLog.i("CarKeyReceiver: key $keyCode sent to the phone, the wheel function is 0")
                 when (keyCode) {
                     WHEEL_LEFT -> handleClick(context, KeyEvent.KEYCODE_MEDIA_PREVIOUS)
                     WHEEL_RIGHT -> handleClick(context, KeyEvent.KEYCODE_MEDIA_NEXT)

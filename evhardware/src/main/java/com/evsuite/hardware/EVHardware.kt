@@ -2067,12 +2067,18 @@ object EVHardware {
      * while this is 0, and leaves them alone otherwise. null = unreadable.
      */
     fun getSteeringWheelFunction(): Int? {
-        val raw = if (FirmwareInfo.getGeneration() == FirmwareInfo.Gen.SWI133) {
-            if (sVpm == null) -1 else getIntPropertyVpm(PROP_SWC_FUNCTION_CHANGE_SWA)
-        } else {
-            getIntPropertyCPM(PROP_SWC_FUNCTION_CHANGE_SWA, AREA_GLOBAL)
+        // The stock app reads it from the vendor instrument cluster manager (not the property managers,
+        // which return nothing for it): getGlobalProperty(Integer.class, id).
+        val car = sCar ?: return null
+        return try {
+            val manager = car.javaClass.getMethod("getCarManager", String::class.java)
+                .invoke(car, "vendorinstrumentcluster") ?: return null
+            manager.javaClass.getMethod("getGlobalProperty", Class::class.java, Int::class.javaPrimitiveType)
+                .invoke(manager, Int::class.javaObjectType, PROP_SWC_FUNCTION_CHANGE_SWA) as? Int
+        } catch (e: Exception) {
+            AppLogger.d(TAG, "  getSteeringWheelFunction: ${e.cause?.message ?: e.message}")
+            null
         }
-        return raw.takeIf { it >= 0 }
     }
 
     fun getGearRaw(): Int? {
