@@ -74,7 +74,6 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
     private var overlayState = OverlayState.STARTING
     private val watchdogHandler = android.os.Handler(android.os.Looper.getMainLooper())
     /** Suppresses reconnect toast spam when the phone keeps retrying TCP. */
-    private var lastWifiDisconnectToastAtMs = 0L
 
     /**
      * Ken Burns scale animation applied to a static image loading screen.
@@ -791,20 +790,6 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
                             dismissRendererConfirmBanner()
                             if (!state.isClean && !state.isUserExit) {
                                 AppLog.w("AapProjectionActivity: Disconnected unexpectedly.")
-                                val now = SystemClock.elapsedRealtime()
-                                if (now - lastWifiDisconnectToastAtMs >= WIFI_DISCONNECT_TOAST_COOLDOWN_MS) {
-                                    lastWifiDisconnectToastAtMs = now
-                                    ToastUtils.showToast(
-                                        this@AapProjectionActivity,
-                                        getString(R.string.wifi_disconnect_toast),
-                                        Toast.LENGTH_LONG,
-                                    )
-                                } else {
-                                    AppLog.i(
-                                        "AapProjectionActivity: wifi_disconnect_toast suppressed " +
-                                            "(cooldown ${WIFI_DISCONNECT_TOAST_COOLDOWN_MS}ms)",
-                                    )
-                                }
                             }
                             // Only finish immediately if the user explicitly exited, it was a clean close, or killOnDisconnect is enabled.
                             if (state.isUserExit || state.isClean || settings.killOnDisconnect) {
@@ -1759,7 +1744,6 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
     companion object {
         const val EXTRA_FOCUS = "focus"
         /** Align with AapService USER_EXIT_COOLDOWN_MS so reconnect spam stays quiet for one settle window. */
-        private const val WIFI_DISCONNECT_TOAST_COOLDOWN_MS = 15_000L
         @Volatile var isForeground = false
 
         /**
