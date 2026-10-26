@@ -53,6 +53,9 @@ class AndroidAutoMainService : Service() {
 
     @Volatile private var activeDevice: MirroringDevice? = null
     private var deviceAnnounced = false
+
+    /** The Bluetooth address RemoteUI stored the device under, to find it again when it goes. */
+    private var announcedAddress: String? = null
     private var sessionAnnounced = false
 
     // A session is being ended so that another phone's can start: the car is not sent back to its
@@ -219,6 +222,7 @@ class AndroidAutoMainService : Service() {
                 AppLog.i("AndroidAutoMainService: Connected, device=${device.name} transport=${device.transport} mac=${device.BTMacAddress} announced=$deviceAnnounced")
                 if (!deviceAnnounced) {
                     deviceAnnounced = true
+                    announcedAddress = device.BTMacAddress
                     fanOutDevice { it.onDeviceConnected(device) }
                 }
             }
@@ -231,6 +235,7 @@ class AndroidAutoMainService : Service() {
                 if (!deviceAnnounced) {
                     deviceAnnounced = true
                     val announced = describeDevice(MirroringDevice.SESSION_STARTING)
+                    announcedAddress = announced.BTMacAddress
                     AppLog.i("AndroidAutoMainService: announcing the device ahead of its session")
                     fanOutDevice { it.onDeviceConnected(announced) }
                 }
@@ -270,10 +275,18 @@ class AndroidAutoMainService : Service() {
                     }
                 }
                 if (deviceAnnounced && device != null) {
-                    val gone = MirroringDevice(device).also { it.sessionStatus = MirroringDevice.SESSION_NOT_STARTED }
+                    // RemoteUI finds the device of a disconnect with getReferenceFor(): a wireless Android
+                    // Auto device (type 2, Wi-Fi) matches neither of its two rules, so the event was
+                    // dropped and the launcher kept its Android Auto icon lit. Sent as type 1, matched on
+                    // the Bluetooth address the device was announced with, it reaches the launcher.
+                    val gone = sessionView(device, MirroringDevice.SESSION_NOT_STARTED).also {
+                        it.BTMacAddress = announcedAddress ?: it.BTMacAddress
+                    }
+                    AppLog.i("AndroidAutoMainService: telling RemoteUI the device is gone (type=${gone.type}, mac=${gone.BTMacAddress})")
                     fanOutDevice { it.onDeviceDisconnected(gone) }
                 }
                 activeDevice = null
+                announcedAddress = null
                 deviceAnnounced = false
                 sessionAnnounced = false
                 AaStatusBus.reset()
