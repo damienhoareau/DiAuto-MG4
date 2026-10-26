@@ -237,7 +237,10 @@ class SoftApCredentialsProvider(
         resolveJob = scope.launch(Dispatchers.IO + CoroutineName("SoftApCredentials-Resolve")) {
             // Take charge of the hotspot first, once per run: start it if it is down, fix it if it
             // is up but not 5 GHz / WPA2. Blocking (it waits for the access point), hence this thread.
-            if (!triedAutoEnable && isSessionActive()) {
+            // A session in flight only protects an access point that is up: after a user exit the hotspot
+            // is off and the handshake the phone just opened is itself the "session", so honouring the
+            // guard there left nothing to hand the phone for the whole 60 s the handshake waits.
+            if (!triedAutoEnable && isSessionActive() && pickApInterface() != null) {
                 AppLog.i("SoftApCredentials: A session is active; not touching the hotspot.")
             } else if (!triedAutoEnable) {
                 triedAutoEnable = true
