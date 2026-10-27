@@ -909,7 +909,7 @@ class AapService : Service(), UsbReceiver.Listener {
 
         // Reactivate the existing MediaSession (created in onCreate, kept alive across disconnects)
         safeMediaSessionCall { it.isActive = true }
-        updateMediaSessionState(true)
+        updateMediaSessionState(false)
         applyPlaceholderMediaMetadata()
 
         // Link audio focus state changes to our MediaSession state
@@ -977,11 +977,8 @@ class AapService : Service(), UsbReceiver.Listener {
                 )
                 delay(3_000L)
             }
-            // Radio keeps SAIC amp priority even while DiAuto decodes Wi‑Fi PCM. Pause the
-            // tuner, claim the Allgo-style AA media source (SRC_AA), then re-take Android
-            // focus now that A2DP is gone (AUTO skipped it earlier).
-            silenceSaicRadioForWifiAudio()
-            claimSaicAndroidAutoMediaSource()
+            // The source claim follows the phone's playback (see the publication loop), so a radio
+            // that is playing is not paused just because a session is up.
         }
     }
 
@@ -1019,17 +1016,22 @@ class AapService : Service(), UsbReceiver.Listener {
     private fun startSaicAndroidAutoMediaPublication() {
         saicAaMediaClaimJob?.cancel()
         saicAaMediaClaimJob = serviceScope.launch(Dispatchers.IO) {
-            silenceSaicRadioForWifiAudio()
-            claimSaicAndroidAutoMediaSource()
+            // Only while the phone holds the media focus: an idle session leaves the radio (or whatever
+            // else the user chose) alone, and the claim comes when the phone starts playing.
+            var lastClaimAt = 0L
             while (isActive) {
-                delay(8_000L)
+                delay(1_000L)
                 when (commManager.connectionState.value) {
                     is CommManager.ConnectionState.Disconnected,
                     is CommManager.ConnectionState.Error -> return@launch
                     else -> Unit
                 }
+                if (!commManager.phoneHasAudioGain()) continue
                 if (SaicMediaPlayer.isAndroidAutoSource()) continue
-                AppLog.i("AapService: SAIC source left Android Auto — re-claiming (Allgo-style publish)")
+                val now = SystemClock.elapsedRealtime()
+                if (now - lastClaimAt < SAIC_CLAIM_RETRY_MS) continue
+                lastClaimAt = now
+                AppLog.i("AapService: the phone is playing and the car source is not Android Auto — claiming it")
                 silenceSaicRadioForWifiAudio()
                 claimSaicAndroidAutoMediaSource()
             }
@@ -3517,6 +3519,9 @@ class AapService : Service(), UsbReceiver.Listener {
 
         /** Cap automatic reconnect / discovery restarts after unexpected disconnects. */
         private const val MAX_AUTOMATIC_RECONNECT_ATTEMPTS = 5
+
+        /** Least time between two claims of the car's media source while the phone plays. */
+        private const val SAIC_CLAIM_RETRY_MS = 8_000L
 
         /**
          * `NetworkCallback.onAvailable` fires per network and again on re-validation, so a
