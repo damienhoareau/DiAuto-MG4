@@ -11,6 +11,7 @@ import com.andrerinas.openheadunit.connection.CommManager
 import com.andrerinas.openheadunit.utils.AppLog
 import com.evsuite.hardware.EVHardware
 import com.evsuite.hardware.PhysicalButtonEventDecoder
+import com.evsuite.hardware.saic.SaicMediaPlayer
 
 /**
  * The MG4's steering-wheel keys, taken from the car's hardkey broadcast the way the stock Allgo app
@@ -75,6 +76,8 @@ class CarKeyBroadcastReceiver : BroadcastReceiver(), CarKeyReceiver {
             if (!commManager.isConnected) muteSent = false
             if (commManager.phoneHasAudioGain()) {
                 AppLog.i("CarKeyReceiver: key $keyCode left to the car, the phone holds the audio focus")
+            } else if (!SaicMediaPlayer.isAndroidAutoSource()) {
+                AppLog.i("CarKeyReceiver: key $keyCode left to the car, the audio source is not Android Auto")
             } else if (keyCode == KEYCODE_MUTE) {
                 onMute(context, commManager)
             } else {
@@ -88,6 +91,8 @@ class CarKeyBroadcastReceiver : BroadcastReceiver(), CarKeyReceiver {
             val function = EVHardware.getSteeringWheelFunction()
             if (function != 0) {
                 AppLog.i("CarKeyReceiver: key $keyCode left to the cluster, the wheel function is ${function ?: "unreadable"}")
+            } else if (!SaicMediaPlayer.isAndroidAutoSource()) {
+                AppLog.i("CarKeyReceiver: key $keyCode left to the car, the audio source is not Android Auto")
             } else {
                 AppLog.i("CarKeyReceiver: key $keyCode sent to the phone, the wheel function is 0")
                 when (keyCode) {
