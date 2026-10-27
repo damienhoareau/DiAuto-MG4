@@ -74,6 +74,9 @@ internal class AapAudio(
     /** The stock app's isAAPhasGain. */
     fun hasGain(): Boolean = phoneHasGain
 
+    /** The stock app's isMediaPlaying: the phone is streaming on the media channel, focus or not. */
+    fun isMediaPlaying(): Boolean = synchronized(activeAudioChannels) { Channel.ID_AUD in activeAudioChannels }
+
     /** The stock app's isGuidancePlaying. */
     fun isGuidancePlaying(): Boolean = synchronized(activeAudioChannels) { Channel.ID_AU2 in activeAudioChannels }
 

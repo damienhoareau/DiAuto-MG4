@@ -761,6 +761,9 @@ class CommManager(
     /** The stock app's isAAPhasGain: whether the phone believes the head unit holds the audio focus. */
     fun phoneHasAudioGain(): Boolean = _transport?.aapAudio?.hasGain() ?: false
 
+    /** Whether the phone is playing media: it may do so without ever asking for the focus. */
+    fun phoneIsPlayingMedia(): Boolean = _transport?.aapAudio?.let { it.hasGain() || it.isMediaPlaying() } ?: false
+
     fun isNativeVoiceOngoing(): Boolean = _transport?.appFocus?.nativeVoiceOngoing ?: false
 
     fun isAssistantActive(): Boolean = _transport?.isAssistantActive ?: false

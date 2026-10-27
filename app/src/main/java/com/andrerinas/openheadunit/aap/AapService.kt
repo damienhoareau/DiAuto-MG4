@@ -1018,20 +1018,22 @@ class AapService : Service(), UsbReceiver.Listener {
         saicAaMediaClaimJob = serviceScope.launch(Dispatchers.IO) {
             // Only while the phone holds the media focus: an idle session leaves the radio (or whatever
             // else the user chose) alone, and the claim comes when the phone starts playing.
-            var lastClaimAt = 0L
+            // The phone can play without asking for the focus, so its stream counts too. One claim per
+            // start of playback: a stream that goes on after the user chose another source is not fought.
+            var wasPlaying = false
             while (isActive) {
-                delay(1_000L)
+                delay(500L)
                 when (commManager.connectionState.value) {
                     is CommManager.ConnectionState.Disconnected,
                     is CommManager.ConnectionState.Error -> return@launch
                     else -> Unit
                 }
-                if (!commManager.phoneHasAudioGain()) continue
+                val playing = commManager.phoneIsPlayingMedia()
+                val started = playing && !wasPlaying
+                wasPlaying = playing
+                if (!started) continue
                 if (SaicMediaPlayer.isAndroidAutoSource()) continue
-                val now = SystemClock.elapsedRealtime()
-                if (now - lastClaimAt < SAIC_CLAIM_RETRY_MS) continue
-                lastClaimAt = now
-                AppLog.i("AapService: the phone is playing and the car source is not Android Auto — claiming it")
+                AppLog.i("AapService: the phone started playing and the car source is not Android Auto — claiming it")
                 silenceSaicRadioForWifiAudio()
                 claimSaicAndroidAutoMediaSource()
             }
@@ -3519,10 +3521,6 @@ class AapService : Service(), UsbReceiver.Listener {
 
         /** Cap automatic reconnect / discovery restarts after unexpected disconnects. */
         private const val MAX_AUTOMATIC_RECONNECT_ATTEMPTS = 5
-
-        /** Least time between two claims of the car's media source while the phone plays. */
-        private const val SAIC_CLAIM_RETRY_MS = 8_000L
-
         /**
          * `NetworkCallback.onAvailable` fires per network and again on re-validation, so a
          * single join can produce several. One discovery kick per join is what is wanted.
