@@ -761,8 +761,12 @@ class CommManager(
     /** The stock app's isAAPhasGain: whether the phone believes the head unit holds the audio focus. */
     fun phoneHasAudioGain(): Boolean = _transport?.aapAudio?.hasGain() ?: false
 
-    /** Whether the phone is playing media: it may do so without ever asking for the focus. */
-    fun phoneIsPlayingMedia(): Boolean = _transport?.aapAudio?.let { it.hasGain() || it.isMediaPlaying() } ?: false
+    /**
+     * Whether the phone is streaming media: it may do so without ever asking for the focus. The focus
+     * flag is left out on purpose, it comes back each time the car hands the focus back, as when the
+     * user returns to the radio.
+     */
+    fun phoneIsPlayingMedia(): Boolean = _transport?.aapAudio?.isMediaPlaying() ?: false
 
     fun isNativeVoiceOngoing(): Boolean = _transport?.appFocus?.nativeVoiceOngoing ?: false
 
