@@ -56,6 +56,19 @@ class AndroidAutoMainService : Service() {
 
     /** The Bluetooth address RemoteUI stored the device under, to find it again when it goes. */
     private var announcedAddress: String? = null
+        set(value) {
+            field = value
+            getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString(KEY_ANNOUNCED, value).apply()
+        }
+
+    /**
+     * The address of a device an earlier process announced and never retracted, because it was killed
+     * mid-session: RemoteUI still holds it, and the launcher keeps its Android Auto icon lit for a
+     * phone that is not there. Each callback is told once, when it registers.
+     */
+    private var staleAddress: String? = null
+    private var staleDeviceSent = false
+    private var staleSessionSent = false
     private var sessionAnnounced = false
 
     // A session is being ended so that another phone's can start: the car is not sent back to its
@@ -66,6 +79,9 @@ class AndroidAutoMainService : Service() {
     private var switchTarget: String? = null
 
     private companion object {
+        const val PREFS = "rui_announced"
+        const val KEY_ANNOUNCED = "address"
+        const val KEY_REMEMBERED = "remembered"
         /** The original reports a reason code with onSessionFailed; DiAuto has no finer cause to give. */
         const val SESSION_FAILED_GENERIC = -1
         const val UNKNOWN_ADDRESS = DeviceSwitchPolicy.UNKNOWN_ADDRESS
@@ -112,6 +128,11 @@ class AndroidAutoMainService : Service() {
     override fun onCreate() {
         super.onCreate()
         AppLog.i("AndroidAutoMainService: created")
+        val prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
+        // The first run of a build that remembers the address has nothing stored for a process killed
+        // before it: the phone's own address is what that one announced.
+        staleAddress = if (prefs.getBoolean(KEY_REMEMBERED, false)) prefs.getString(KEY_ANNOUNCED, null) else phoneAddress()
+        prefs.edit().putBoolean(KEY_REMEMBERED, true).apply()
         val aroundView = IntentFilter().apply {
             addAction(OemSignals.ACTION_AROUND_VIEW_START)
             addAction(OemSignals.ACTION_AROUND_VIEW_STOP)
@@ -395,11 +416,33 @@ class AndroidAutoMainService : Service() {
         }
     }
 
+    private fun retractStaleDevice(device: IAndroidAutoDeviceCallback?, session: IAndroidAutoSessionCallback?) {
+        val address = staleAddress ?: return
+        if (commManager.isConnected || deviceAnnounced) {
+            staleAddress = null
+            return
+        }
+        val gone = sessionView(describeDevice(MirroringDevice.SESSION_NOT_STARTED), MirroringDevice.SESSION_NOT_STARTED)
+            .also { it.BTMacAddress = address }
+        if (session != null && !staleSessionSent) {
+            staleSessionSent = true
+            AppLog.i("AndroidAutoMainService: closing the session a killed process left on RemoteUI (mac=$address)")
+            try { session.onScreenStopped(); session.onSessionDisconnected(gone, 0) } catch (_: Exception) {}
+        }
+        if (device != null && !staleDeviceSent) {
+            staleDeviceSent = true
+            AppLog.i("AndroidAutoMainService: telling RemoteUI the device a killed process left is gone (mac=$address)")
+            try { device.onDeviceDisconnected(gone) } catch (_: Exception) {}
+        }
+        if (staleSessionSent && staleDeviceSent) staleAddress = null
+    }
+
     private val binder = object : IAndroidAutoMainService.Stub() {
         override fun register(device: IAndroidAutoDeviceCallback?, session: IAndroidAutoSessionCallback?) {
             AppLog.i("AndroidAutoMainService: register(device=${device != null}, session=${session != null})")
             if (device != null) deviceCallbacks.register(device)
             if (session != null) sessionCallbacks.register(session)
+            retractStaleDevice(device, session)
             // A client that arrives while a phone is already connected must learn about it.
             // Not "activeDevice" alone: inside the Stub that name is its own getActiveDevice().
             val active = this@AndroidAutoMainService.activeDevice
