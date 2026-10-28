@@ -1020,7 +1020,13 @@ class AapService : Service(), UsbReceiver.Listener {
             // else the user chose) alone, and the claim comes when the phone starts playing.
             // The phone can play without asking for the focus, so its stream counts too. One claim per
             // start of playback: a stream that goes on after the user chose another source is not fought.
+            // The phone restarts its stream when the car takes the source from it, which looks like a
+            // new start: once the user has left Android Auto, only a stream that had been silent for
+            // a while counts as one.
             var wasPlaying = false
+            var wasAndroidAuto = false
+            var yielded = false
+            var idleSinceMs = 0L
             while (isActive) {
                 delay(500L)
                 when (commManager.connectionState.value) {
@@ -1028,11 +1034,25 @@ class AapService : Service(), UsbReceiver.Listener {
                     is CommManager.ConnectionState.Error -> return@launch
                     else -> Unit
                 }
+                val now = SystemClock.elapsedRealtime()
                 val playing = commManager.phoneIsPlayingMedia()
+                val androidAuto = SaicMediaPlayer.isAndroidAutoSource()
+                if (androidAuto) yielded = false else if (wasAndroidAuto) yielded = true
+                wasAndroidAuto = androidAuto
+                if (!playing && idleSinceMs == 0L) idleSinceMs = now
                 val started = playing && !wasPlaying
                 wasPlaying = playing
-                if (!started) continue
-                if (SaicMediaPlayer.isAndroidAutoSource()) continue
+                if (!started) {
+                    if (playing) idleSinceMs = 0L
+                    continue
+                }
+                val idleForMs = if (idleSinceMs == 0L) 0L else now - idleSinceMs
+                idleSinceMs = 0L
+                if (androidAuto) continue
+                if (yielded && idleForMs < SAIC_RECLAIM_IDLE_MS) {
+                    AppLog.i("AapService: the phone's stream restarted after the user left Android Auto — not claiming the source")
+                    continue
+                }
                 AppLog.i("AapService: the phone started playing and the car source is not Android Auto — claiming it")
                 silenceSaicRadioForWifiAudio()
                 claimSaicAndroidAutoMediaSource()
@@ -3465,6 +3485,7 @@ class AapService : Service(), UsbReceiver.Listener {
     companion object {
         /** Bind attempts before the wireless server gives up and reports the port unusable. */
         private const val BIND_ATTEMPTS = 3
+        private const val SAIC_RECLAIM_IDLE_MS = 5_000L
 
         /** Gap between them. A port released by a peer that just left frees within this. */
         private const val BIND_RETRY_DELAY_MS = 700L
