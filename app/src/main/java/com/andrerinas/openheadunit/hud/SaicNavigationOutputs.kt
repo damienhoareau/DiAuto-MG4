@@ -138,6 +138,7 @@ internal object SaicNavigationOutputs {
     private var failures = 0
     private var lastDistanceLogNs = 0L // only touched on the executor thread
     private var scheduled = false
+    private var cleared = false // only touched on the executor thread
 
     fun available(context: Context): Boolean =
         runCatching { context.packageManager.getPackageInfo(PACKAGE, 0) }.isSuccess
@@ -267,7 +268,7 @@ internal object SaicNavigationOutputs {
             binder = service
             disabled = false
             failures = 0
-            executor.execute { sent = null } // a reconnected adapter has heard nothing
+            executor.execute { sent = null; cleared = false } // a reconnected adapter has heard nothing
             AppLog.i("$TAG: connected to the map adapter")
         }
 
@@ -283,6 +284,17 @@ internal object SaicNavigationOutputs {
         // The cluster reads its set of icons from the system's navigation setting: the numbers follow it.
         val iconSet = appContext?.let { ClusterIconSet.current(it.contentResolver) } ?: ClusterIconSet.TELENAV
         val value = latest.get()?.takeIf { now - it.updatedNs < FRESH_NS }?.copy(iconSet = iconSet)
+        if (!cleared) {
+            // A process killed in the middle of guidance never said it had ended, and the adapter goes on
+            // showing it (launcher card, cluster) while this process, which remembers nothing, sends
+            // nothing. So the first thing said to the adapter is that guidance is over, unless there is some.
+            if (value == null) {
+                val end = listOf(SaicCall.LaneInfo(""), SaicCall.GuideStatus(SaicCallPlan.STATUS_IDLE), SaicCall.MapNavigating(false))
+                if (!end.all { send(target, it) }) return
+                AppLog.i("$TAG: guidance closed on the adapter at start, in case a killed process left it open")
+            }
+            cleared = true
+        }
         for (call in SaicCallPlan.plan(sent, value)) {
             if (call is SaicCall.GuideInfos && now - lastDistanceLogNs >= DISTANCE_LOG_EVERY_NS) {
                 lastDistanceLogNs = now

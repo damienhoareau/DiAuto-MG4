@@ -35,6 +35,9 @@ class App : Application() {
 
         com.evsuite.hardware.diag.CrashLogger.install(this, "DiAuto-MG4")
 
+        // Closes the guidance a killed process may have left open on the car.
+        com.andrerinas.openheadunit.hud.SaicNavigationOutputs.start(this)
+
 
 
         // Enable vector drawable support on older Android versions
