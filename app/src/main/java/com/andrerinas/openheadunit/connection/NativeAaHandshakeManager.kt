@@ -1201,7 +1201,9 @@ class NativeAaHandshakeManager(
             // After a user exit the hotspot is off; the phone asking to connect switches it back on.
             // Probe: when the car is itself on a Wi-Fi network, the phone is sent there instead of to the
             // hotspot, and the car's client stays on.
-            val shared = if (SharedWifiNetwork.probeEnabled()) SharedWifiNetwork.current(context) else null
+            val shared = if (SharedWifiNetwork.probeEnabled()) {
+                SharedWifiNetwork.current(context)?.takeIf { SharedWifiNetwork.shouldTry(context, it) }
+            } else null
             if (shared != null) {
                 AppLog.i("NativeAA: SHARED-NETWORK PROBE - the phone is sent to '${shared.ssid}' (${shared.ip}) instead of the car hotspot.")
             } else {

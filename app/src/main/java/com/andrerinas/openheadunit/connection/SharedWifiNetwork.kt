@@ -12,7 +12,12 @@ import com.andrerinas.openheadunit.utils.AppLog
  *
  * Probe only. A phone that is on this same network does not need the head unit's access point, and
  * whether the phone accepts being sent here (above all when it is the one hosting the network) is
- * what this is meant to find out. Switched on with `setprop debug.diauto.sharednet 1`.
+ * what this is meant to find out. On unless `setprop debug.diauto.sharednet 0`.
+ *
+ * Without a way to know from the car that the phone is on the same network, the network is tried and
+ * remembered: a network that was tried and led to no session is left alone for a week, and the car's
+ * own hotspot is used for it, so a phone that cannot join (its own hotspot, another place) costs one
+ * failed attempt instead of one every trip.
  */
 internal object SharedWifiNetwork {
     private const val TAG = "SharedWifi"
@@ -20,11 +25,48 @@ internal object SharedWifiNetwork {
 
     data class Network(val ssid: String, val psk: String, val ip: String, val bssid: String)
 
+    private const val PREFS = "shared_wifi"
+    private const val FAILED_PREFIX = "failed:"
+    private const val FAILED_FOR_MS = 7L * 24 * 60 * 60 * 1000
+
+    // The network last sent to a phone, until a session shows it worked. Only touched under the lock.
+    private var pendingSsid: String? = null
+
     fun probeEnabled(): Boolean = try {
         Class.forName("android.os.SystemProperties").getMethod("get", String::class.java, String::class.java)
-            .invoke(null, PROPERTY, "") == "1"
+            .invoke(null, PROPERTY, "") != "0"
     } catch (e: Throwable) {
-        false
+        true
+    }
+
+    /**
+     * Whether to send the phone to [network]. A network sent earlier that produced no session counts
+     * as failed, and is skipped until the week is up.
+     */
+    @Synchronized
+    fun shouldTry(context: Context, network: Network): Boolean {
+        val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        pendingSsid?.let { earlier ->
+            prefs.edit().putLong(FAILED_PREFIX + earlier, System.currentTimeMillis()).apply()
+            AppLog.i("$TAG: '$earlier' was sent to a phone and no session followed, leaving it alone for a week.")
+            pendingSsid = null
+        }
+        val failedAt = prefs.getLong(FAILED_PREFIX + network.ssid, 0L)
+        if (failedAt != 0L && System.currentTimeMillis() - failedAt < FAILED_FOR_MS) {
+            AppLog.i("$TAG: '${network.ssid}' did not work for a phone before, using the car hotspot.")
+            return false
+        }
+        pendingSsid = network.ssid
+        return true
+    }
+
+    /** A session came up: the network sent last, if any, worked. */
+    @Synchronized
+    fun noteSessionStarted(context: Context) {
+        val ssid = pendingSsid ?: return
+        pendingSsid = null
+        context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(FAILED_PREFIX + ssid).apply()
+        AppLog.i("$TAG: a session came up over '$ssid'.")
     }
 
     @Suppress("DEPRECATION")

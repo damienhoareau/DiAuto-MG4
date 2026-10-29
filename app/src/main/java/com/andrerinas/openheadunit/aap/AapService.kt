@@ -898,6 +898,7 @@ class AapService : Service(), UsbReceiver.Listener {
      */
     private fun onConnected() {
         com.andrerinas.openheadunit.utils.CarWifiClient.noteSessionStarted()
+        com.andrerinas.openheadunit.connection.SharedWifiNetwork.noteSessionStarted(this)
         isSwitchingToAccessory.set(false)
         updateNotification()
         acquireWifiLock()
