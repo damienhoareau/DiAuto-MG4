@@ -2571,6 +2571,14 @@ class AapService : Service(), UsbReceiver.Listener {
      * @param reason what asked, for the log.
      * @param timeoutMs how long to wait for the bind after asking.
      */
+    /** Points the listener at the address the phone is about to be told to dial, and waits for it. */
+    suspend fun bindWirelessServerTo(ip: String) {
+        if (WirelessServerBindPolicy.bindHostForAdvertisedIp(ip) == null) return
+        if (wirelessServer?.isListening == true && !WirelessServerBindPolicy.needsRebind(wirelessServer?.boundHost, ip)) return
+        wirelessBindHost = ip
+        ensureWirelessServerListening("the credentials' address $ip", 5_000L)
+    }
+
     suspend fun ensureWirelessServerListening(reason: String, timeoutMs: Long): Boolean {
         val desired = wirelessBindHost
         val listeningOnDesired = isWirelessServerListening() &&

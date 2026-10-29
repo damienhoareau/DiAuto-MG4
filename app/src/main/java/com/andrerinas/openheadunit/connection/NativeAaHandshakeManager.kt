@@ -1200,8 +1200,15 @@ class NativeAaHandshakeManager(
             // client goes off now. A hotspot that was started while it was on is restarted, which
             // drops the credentials: the wait just below picks up the republished ones.
             // After a user exit the hotspot is off; the phone asking to connect switches it back on.
-            (context as? AapService)?.ensureHotspotForHandshake()
-            com.andrerinas.openheadunit.utils.CarWifiClient.suspendForWirelessSession(context)
+            // Probe: when the car is itself on a Wi-Fi network, the phone is sent there instead of to the
+            // hotspot, and the car's client stays on.
+            val shared = if (SharedWifiNetwork.probeEnabled()) SharedWifiNetwork.current(context) else null
+            if (shared != null) {
+                AppLog.i("NativeAA: SHARED-NETWORK PROBE - the phone is sent to '${shared.ssid}' (${shared.ip}) instead of the car hotspot.")
+            } else {
+                (context as? AapService)?.ensureHotspotForHandshake()
+                com.andrerinas.openheadunit.utils.CarWifiClient.suspendForWirelessSession(context)
+            }
 
             AppLog.i("NativeAA: Waiting for WiFi credentials to be ready (Max ${CREDENTIALS_WAIT_MS / 1000}s)...")
 
@@ -1211,7 +1218,7 @@ class NativeAaHandshakeManager(
             val credentialsDeadline = SystemClock.elapsedRealtime() + CREDENTIALS_WAIT_MS
             var lastRefreshAt = SystemClock.elapsedRealtime()
             var lastProgressLogAt = SystemClock.elapsedRealtime()
-            while (credentials == null && isRunning && isActive &&
+            while (shared == null && credentials == null && isRunning && isActive &&
                 !session.isTerminal() && SystemClock.elapsedRealtime() < credentialsDeadline) {
                 val now = SystemClock.elapsedRealtime()
                 val waitedS = (CREDENTIALS_WAIT_MS - (credentialsDeadline - now)) / 1000
@@ -1228,7 +1235,8 @@ class NativeAaHandshakeManager(
 
             // Read once. The check and the use used to be separate reads of four separate fields,
             // so an invalidate between them threw on the `!!` and reported "Handshake error: null".
-            val snapshot = credentials
+            val snapshot = shared?.let { WifiCredentials(ssid = it.ssid, psk = it.psk, ip = it.ip, bssid = it.bssid) }
+                ?: credentials
             if (snapshot == null) {
                 AppLog.e("NativeAA: Handshake failed - No WiFi credentials available after ${CREDENTIALS_WAIT_MS / 1000}s wait.")
                 abortedLocally = true
@@ -1258,6 +1266,8 @@ class NativeAaHandshakeManager(
             // Short wait rather than none: start() binds the port at service start, so being here
             // with it unbound means a genuine failure, not a race — but a session torn down and
             // rebuilt a moment ago can still be releasing it.
+            // The listener goes where the phone is told to dial: the hotspot's address, or the shared network's.
+            context.bindWirelessServerTo(credIp)
             if (!awaitWirelessServerListening(PORT_WAIT_MS)) {
                 // Ask for a repair before giving up. A server that failed to bind once used to stay
                 // dead for the life of the mode, because the only thing that rebuilt it was a full
