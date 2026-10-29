@@ -2577,6 +2577,11 @@ class AapService : Service(), UsbReceiver.Listener {
         if (WirelessServerBindPolicy.bindHostForAdvertisedIp(ip) == null) return
         if (wirelessServer?.isListening == true && !WirelessServerBindPolicy.needsRebind(wirelessServer?.boundHost, ip)) return
         wirelessBindHost = ip
+        // A listener that failed on the previous address would otherwise sit out the rebuild back-off.
+        withContext(Dispatchers.Main.immediate) {
+            try { wirelessServer?.stopServer() } catch (e: Exception) { AppLog.d("AapService: Error stopping the previous wireless server: ${e.message}") }
+            wirelessServer = null
+        }
         ensureWirelessServerListening("the credentials' address $ip", 5_000L)
     }
 

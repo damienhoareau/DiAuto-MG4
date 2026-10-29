@@ -1312,6 +1312,8 @@ class NativeAaHandshakeManager(
 
         } catch (e: Exception) {
             AppLog.e("NativeAA: Handshake error: ${e.message}", e)
+            // The Bluetooth link broke before the phone could answer: nothing was learned about the network.
+            if (e is java.io.IOException) SharedWifiNetwork.noteNotTried()
         } finally {
             // Only clear the stamps if this handshake still owns them — a superseding handshake
             // has already taken over and set its own.

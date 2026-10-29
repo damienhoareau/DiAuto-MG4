@@ -26,7 +26,7 @@ internal object SharedWifiNetwork {
     data class Network(val ssid: String, val psk: String, val ip: String, val bssid: String)
 
     private const val PREFS = "shared_wifi"
-    private const val FAILED_PREFIX = "failed:"
+    private const val FAILED_PREFIX = "failed2:"
     private const val FAILED_FOR_MS = 7L * 24 * 60 * 60 * 1000
 
     // The network last sent to a phone, until a session shows it worked. Only touched under the lock.
@@ -58,6 +58,12 @@ internal object SharedWifiNetwork {
         }
         pendingSsid = network.ssid
         return true
+    }
+
+    /** The attempt broke on the car's side or on the link before the phone could answer: it says nothing about the network. */
+    @Synchronized
+    fun noteNotTried() {
+        pendingSsid = null
     }
 
     /** A session came up: the network sent last, if any, worked. */
