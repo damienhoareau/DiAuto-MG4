@@ -27,11 +27,13 @@ import com.andrerinas.openheadunit.aap.ProjectionGate
 import com.andrerinas.openheadunit.aap.protocol.messages.VideoFocusEvent
 import com.andrerinas.openheadunit.connection.CommManager
 import com.andrerinas.openheadunit.utils.AppLog
+import com.evsuite.hardware.saic.SaicMediaPlayer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -80,6 +82,7 @@ class AndroidAutoMainService : Service() {
 
     private companion object {
         const val PREFS = "rui_announced"
+        const val TOGGLE_SETTLE_MS = 800L
         const val KEY_ANNOUNCED = "address"
         const val KEY_REMEMBERED = "remembered"
         /** The original reports a reason code with onSessionFailed; DiAuto has no finer cause to give. */
@@ -532,13 +535,37 @@ class AndroidAutoMainService : Service() {
                 2 -> KeyEvent.KEYCODE_MEDIA_PAUSE
                 3, 11 -> KeyEvent.KEYCODE_MEDIA_NEXT
                 4, 12 -> KeyEvent.KEYCODE_MEDIA_PREVIOUS
-                19, 21 -> KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
+                19, 21 -> {
+                    if (holdToggleWhileSourceSettles(key)) return 0
+                    KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
+                }
                 else -> return -1
             }
             AppLog.i("AndroidAutoMainService: media key $key -> keycode $keyCode")
             commManager.sendKey(keyCode, true, null, "remoteui-media")
             commManager.sendKey(keyCode, false, null, "remoteui-media")
             return 0
+        }
+
+        /**
+         * The launcher's source arrows press play/pause on the source being left, as a toggle: with the
+         * phone already paused, that starts it, and the music then takes the source back from the radio the
+         * user just chose. So a toggle that would start the phone is held until the source has settled,
+         * and dropped when it turned out to be a change away from Android Auto. True when it was taken.
+         */
+        private fun holdToggleWhileSourceSettles(key: Int): Boolean {
+            if (commManager.phoneIsPlayingMedia() || !SaicMediaPlayer.isAndroidAutoSource()) return false
+            scope.launch(Dispatchers.IO) {
+                delay(TOGGLE_SETTLE_MS)
+                if (SaicMediaPlayer.isAndroidAutoSource()) {
+                    AppLog.i("AndroidAutoMainService: media key $key -> keycode ${KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE}")
+                    commManager.sendKey(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, true, null, "remoteui-media")
+                    commManager.sendKey(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, false, null, "remoteui-media")
+                } else {
+                    AppLog.i("AndroidAutoMainService: media key $key dropped, the source left Android Auto while the phone was paused")
+                }
+            }
+            return true
         }
 
         override fun disableAAP(disable: Boolean) {
