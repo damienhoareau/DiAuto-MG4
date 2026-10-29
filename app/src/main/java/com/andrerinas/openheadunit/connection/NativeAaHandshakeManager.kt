@@ -226,8 +226,7 @@ class NativeAaHandshakeManager(
      * (DiPlay: control listener on host address before Wi‑Fi credentials go out), or [timeoutMs]
      * passes. A wildcard listener alone is not enough once [credentials] name a host IP.
      */
-    private suspend fun awaitWirelessServerListening(timeoutMs: Long): Boolean {
-        val advertisedIp = credentials?.ip
+    private suspend fun awaitWirelessServerListening(timeoutMs: Long, advertisedIp: String? = credentials?.ip): Boolean {
         AppLog.i(
             "NativeAA: Waiting up to ${timeoutMs}ms for TCP :${context.wirelessPort} ready" +
                 (advertisedIp?.let { " on SoftAP $it" } ?: " (wildcard OK)") +
@@ -1268,7 +1267,7 @@ class NativeAaHandshakeManager(
             // rebuilt a moment ago can still be releasing it.
             // The listener goes where the phone is told to dial: the hotspot's address, or the shared network's.
             context.bindWirelessServerTo(credIp)
-            if (!awaitWirelessServerListening(PORT_WAIT_MS)) {
+            if (!awaitWirelessServerListening(PORT_WAIT_MS, credIp)) {
                 // Ask for a repair before giving up. A server that failed to bind once used to stay
                 // dead for the life of the mode, because the only thing that rebuilt it was a full
                 // mode re-initialisation - so this abort repeated every few seconds, forever, with
