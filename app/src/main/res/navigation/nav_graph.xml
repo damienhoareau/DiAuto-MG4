@@ -26,6 +26,8 @@
 
     <fragment android:id="@+id/diagnosticsFragment" android:name="com.andrerinas.openheadunit.main.DiagnosticsFragment" android:label="Diagnostics" />
 
+    <fragment android:id="@+id/sharedWifiFragment" android:name="com.andrerinas.openheadunit.main.SharedWifiFragment" android:label="@string/da_shared_wifi" />
+
     <fragment android:id="@+id/chargingInfoFragment" android:name="com.andrerinas.openheadunit.main.ChargingInfoFragment" android:label="@string/category_charging_info" />
 
 

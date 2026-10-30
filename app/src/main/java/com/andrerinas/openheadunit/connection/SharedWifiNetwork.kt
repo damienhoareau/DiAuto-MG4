@@ -66,6 +66,25 @@ internal object SharedWifiNetwork {
         return true
     }
 
+    /** The networks left alone, with when each was marked, most recent first. */
+    @Synchronized
+    fun leftAlone(context: Context): List<Pair<String, Long>> {
+        val now = System.currentTimeMillis()
+        return context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).all
+            .mapNotNull { (key, value) ->
+                val at = value as? Long ?: return@mapNotNull null
+                if (!key.startsWith(FAILED_PREFIX) || now - at >= FAILED_FOR_MS) null else key.removePrefix(FAILED_PREFIX) to at
+            }
+            .sortedByDescending { it.second }
+    }
+
+    /** Lets the phone be sent to [ssid] again at the next connection. */
+    @Synchronized
+    fun allowAgain(context: Context, ssid: String) {
+        context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(FAILED_PREFIX + ssid).apply()
+        AppLog.i("$TAG: '$ssid' allowed again.")
+    }
+
     /** The attempt broke on the car's side or on the link before the phone could answer: it says nothing about the network. */
     @Synchronized
     fun noteNotTried() {

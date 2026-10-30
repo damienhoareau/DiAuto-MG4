@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="match_parent" android:fillViewport="true" android:background="@color/da_background">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="32dp">
+        <com.google.android.material.appbar.MaterialToolbar android:id="@+id/toolbar" android:layout_width="match_parent" android:layout_height="64dp" app:title="@string/da_shared_wifi" app:titleTextColor="@color/da_text" app:navigationIcon="@drawable/ic_arrow_back_white" app:navigationIconTint="@color/da_text"/>
+        <TextView android:id="@+id/shared_wifi_empty" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="@string/shared_wifi_none" android:textSize="18sp" android:textColor="@color/da_muted"/>
+        <LinearLayout android:id="@+id/shared_wifi_list" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical"/>
+    </LinearLayout>
+</ScrollView>

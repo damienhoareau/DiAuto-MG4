@@ -975,6 +975,11 @@
     <string name="rename_notice_button">Got it</string>
     <string name="da_connection_setup">Connection setup</string>
     <string name="da_connection_setup_hint">Wi-Fi is automatic. Pair your phone and connect.</string>
+    <string name="da_shared_wifi">Shared Wi-Fi networks</string>
+    <string name="da_shared_wifi_hint">Networks the car stopped trying for Android Auto Wireless.</string>
+    <string name="shared_wifi_none">No network is left alone. The car tries the Wi-Fi it is connected to first.</string>
+    <string name="shared_wifi_marked">Left alone since %s</string>
+    <string name="shared_wifi_allow_again">Try again</string>
     <string name="da_diagnostics">Diagnostics</string>
     <string name="da_diagnostics_hint">Save a connection report, then send it with one tap.</string>
     <string name="diagnostic_report_instructions">Reproduce the connection issue, then save a report. Reports include recent app logs and connection settings, with saved credentials omitted. On Android 10 or newer, reports save to Downloads/DiAuto. Tap Send to upload the report.</string>

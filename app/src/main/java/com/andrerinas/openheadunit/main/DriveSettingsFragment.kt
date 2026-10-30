@@ -13,6 +13,7 @@ class DriveSettingsFragment : Fragment(R.layout.fragment_drive_settings) {
             requireActivity().finish()
         }
         mapOf(
+            R.id.da_shared_wifi to R.id.sharedWifiFragment,
             R.id.da_charging_info to R.id.chargingInfoFragment,
             R.id.da_automation to R.id.autoStartFragment,
             R.id.da_display to R.id.settingsFragment,
