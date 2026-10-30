@@ -810,7 +810,7 @@ class AapService : Service(), UsbReceiver.Listener {
      */
     private fun onConnected() {
         com.andrerinas.openheadunit.utils.CarWifiClient.noteSessionStarted()
-        com.andrerinas.openheadunit.connection.SharedWifiNetwork.noteSessionStarted(this)
+        com.andrerinas.openheadunit.connection.SharedWifiNetwork.noteSessionStarted()
         isSwitchingToAccessory.set(false)
         updateNotification()
         acquireWifiLock()
@@ -1277,6 +1277,8 @@ class AapService : Service(), UsbReceiver.Listener {
             stopWirelessServer()
             return
         }
+
+        com.andrerinas.openheadunit.connection.SharedWifiNetwork.noteSessionEnded(this)
 
         val settings = App.provide(this).settings
 

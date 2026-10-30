@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.wifi.SupplicantState
 import android.net.wifi.WifiConfiguration
 import android.net.wifi.WifiManager
+import android.os.SystemClock
 import com.andrerinas.openheadunit.utils.AppLog
 
 /**
@@ -28,9 +29,14 @@ internal object SharedWifiNetwork {
     private const val PREFS = "shared_wifi"
     private const val FAILED_PREFIX = "failed2:"
     private const val FAILED_FOR_MS = 7L * 24 * 60 * 60 * 1000
+    private const val MIN_LASTING_MS = 20_000L
 
     // The network last sent to a phone, until a session shows it worked. Only touched under the lock.
     private var pendingSsid: String? = null
+
+    // The network a running session came up over, and when.
+    private var liveSsid: String? = null
+    private var liveSince = 0L
 
     fun probeEnabled(): Boolean = try {
         Class.forName("android.os.SystemProperties").getMethod("get", String::class.java, String::class.java)
@@ -66,13 +72,30 @@ internal object SharedWifiNetwork {
         pendingSsid = null
     }
 
-    /** A session came up: the network sent last, if any, worked. */
+    /** A session came up over the network sent last, if any. It only counts as working if it lasts. */
     @Synchronized
-    fun noteSessionStarted(context: Context) {
+    fun noteSessionStarted() {
         val ssid = pendingSsid ?: return
         pendingSsid = null
-        context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(FAILED_PREFIX + ssid).apply()
+        liveSsid = ssid
+        liveSince = SystemClock.elapsedRealtime()
         AppLog.i("$TAG: a session came up over '$ssid'.")
+    }
+
+    /** The session ended: one that did not last is the phone refusing the network, so it is left alone for a week. */
+    @Synchronized
+    fun noteSessionEnded(context: Context) {
+        val ssid = liveSsid ?: return
+        liveSsid = null
+        val lasted = SystemClock.elapsedRealtime() - liveSince
+        val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        if (lasted < MIN_LASTING_MS) {
+            prefs.edit().putLong(FAILED_PREFIX + ssid, System.currentTimeMillis()).apply()
+            AppLog.i("$TAG: the session over '$ssid' ended after ${lasted}ms, leaving it alone for a week.")
+        } else {
+            prefs.edit().remove(FAILED_PREFIX + ssid).apply()
+            AppLog.i("$TAG: the session over '$ssid' lasted ${lasted / 1000}s, the network works.")
+        }
     }
 
     @Suppress("DEPRECATION")
