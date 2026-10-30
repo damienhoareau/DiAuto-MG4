@@ -8,7 +8,6 @@ import android.hardware.usb.UsbManager
 import android.os.Bundle
 import android.os.UserManager
 import android.os.Build
-import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.andrerinas.openheadunit.App
 import com.andrerinas.openheadunit.R
@@ -22,7 +21,6 @@ import com.andrerinas.openheadunit.utils.DeviceIntent
 import com.andrerinas.openheadunit.utils.LocaleHelper
 import com.andrerinas.openheadunit.main.MainActivity
 import com.andrerinas.openheadunit.utils.Settings
-import com.andrerinas.openheadunit.utils.ToastUtils
 
 class UsbAttachedActivity : Activity() {
 
@@ -160,11 +158,7 @@ class UsbAttachedActivity : Activity() {
         Thread {
             val result = usbMode.connectAndSwitch(device, useLibusb)
             runOnUiThread {
-                if (result) {
-                    ToastUtils.showToast(this, getString(R.string.success), Toast.LENGTH_SHORT)
-                } else {
-                    AppLog.w("Switching USB device to accessory mode failed: ${deviceCompat.uniqueName}")
-                }
+                if (!result) AppLog.w("Switching USB device to accessory mode failed: ${deviceCompat.uniqueName}")
                 finish()
             }
         }.start()
