@@ -28,7 +28,6 @@
 
     <fragment android:id="@+id/chargingInfoFragment" android:name="com.andrerinas.openheadunit.main.ChargingInfoFragment" android:label="@string/category_charging_info" />
 
-    <fragment android:id="@+id/connectionSetupFragment" android:name="com.andrerinas.openheadunit.main.ConnectionSetupFragment" android:label="Connection setup" />
 
     <fragment android:id="@+id/driveSettingsFragment" android:name="com.andrerinas.openheadunit.main.DriveSettingsFragment" android:label="@string/settings" />
 
