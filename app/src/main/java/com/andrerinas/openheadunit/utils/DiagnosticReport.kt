@@ -52,6 +52,8 @@ object DiagnosticReport {
             appendLine("DiAuto ${context.packageManager.getPackageInfo(context.packageName, 0).versionName} - diagnostic report")
             appendLine("Android=${Build.VERSION.RELEASE}; API=${Build.VERSION.SDK_INT}")
             appendLine("Head unit: ${Build.MANUFACTURER} ${Build.MODEL}; board=${Build.BOARD}; build=${Build.DISPLAY}")
+            appendLine("Firmware: ${com.evsuite.hardware.FirmwareInfo.getDetectedString()}; generation=${com.evsuite.hardware.FirmwareInfo.getGeneration()}")
+            appendLine("Audio source probes: ${runCatching { com.evsuite.hardware.saic.SaicMediaPlayer.probeSummary(context) }.getOrElse { "failed: ${it.message}" }}")
             appendLine("Wireless mode=${settings.wifiConnectionMode}; hotspot state=${SoftApStateReader.read(context)}")
             appendLine("Hotspot configuration readable=${hotspot != null}")
             appendLine("Logging level=${settings.exporterLogLevel}; source=${settings.logSource}")

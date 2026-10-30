@@ -164,6 +164,13 @@ object SaicCarAudioSource {
         return readLastSource(am) == SRC_ANDROID_AUTO
     }
 
+    /** What the car's audio manager says about the source, for the diagnostic report. */
+    fun describe(context: Context): String {
+        val am = audioManager(context) ?: return "no audio manager"
+        return "currentSource=${readCurrentSourceType(am) ?: "unreadable"} " +
+            "lastSource=${readLastSource(am) ?: "unreadable"} focusHeld=$aaFocusGranted"
+    }
+
     fun readLastSource(audioManager: AudioManager): Int? {
         return try {
             val method = audioManager.javaClass.getMethod("getLastSource")

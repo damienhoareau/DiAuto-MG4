@@ -262,6 +262,22 @@ object SaicMediaPlayer {
         return SaicCarAudioSource.claimAndroidAuto(ctx)
     }
 
+    /**
+     * What each audio-source probe answers, for the diagnostic report: the SAIC media service
+     * (which does not exist on every firmware), the projection player binding, and the car's
+     * audio manager.
+     */
+    fun probeSummary(context: Context): String {
+        connectProjection(context)
+        // The bind is asynchronous; the report is built off the main thread, so a short wait is safe.
+        var waited = 0
+        while (!status.isReady && waited < 1_500) { Thread.sleep(100); waited += 100 }
+        val saic = currentSource()
+        val saicText = if (saic < 0) "no answer" else "$saic (${sourceName(saic)})"
+        return "SAIC media service source=$saicText; projection player bound=${projection.isReady}; " +
+            "car audio: ${SaicCarAudioSource.describe(context)}; isAndroidAutoSource=${isAndroidAutoSource()}"
+    }
+
     /** True when SAIC MediaService or eh32 AudioFocus reports Android Auto as current. */
     fun isAndroidAutoSource(): Boolean {
         val source = currentSource()
