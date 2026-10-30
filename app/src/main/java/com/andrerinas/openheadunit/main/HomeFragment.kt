@@ -73,9 +73,7 @@ class HomeFragment : Fragment() {
                 }
             }
         }
-        if (app.settings.autoStartOnBoot || app.settings.autoStartOnScreenOn) {
-            ContextCompat.startForegroundService(requireContext(), Intent(requireContext(), AapService::class.java))
-        }
+        ContextCompat.startForegroundService(requireContext(), Intent(requireContext(), AapService::class.java))
     }
 
     private fun openProjection() {

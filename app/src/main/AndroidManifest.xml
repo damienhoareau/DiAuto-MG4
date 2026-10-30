@@ -306,14 +306,6 @@
             </intent-filter>
         </receiver>
 
-        <receiver
-            android:name=".app.WifiAutoStartReceiver"
-            android:directBootAware="true"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.net.wifi.STATE_CHANGE" />
-            </intent-filter>
-        </receiver>
 
         <activity
             android:name=".main.AutomationActivity"

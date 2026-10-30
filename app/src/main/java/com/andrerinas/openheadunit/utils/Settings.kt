@@ -718,37 +718,9 @@ class Settings(private val context: Context) {
         get() = prefs.getBoolean("auto-start-self-mode", false)
         set(value) { prefs.edit().putBoolean("auto-start-self-mode", value).apply() }
 
-    var autoStartOnUsb: Boolean
-        get() = prefs.getBoolean("auto-start-on-usb", false)
-        set(value) { prefs.edit().putBoolean("auto-start-on-usb", value).apply() }
-
-    var autoStartOnBoot: Boolean
-        get() = prefs.getBoolean("auto-start-on-boot", true)
-        set(value) { prefs.edit().putBoolean("auto-start-on-boot", value).apply() }
-
-    var autoStartOnScreenOn: Boolean
-        get() = prefs.getBoolean("auto-start-on-screen-on", false)
-        set(value) { prefs.edit().putBoolean("auto-start-on-screen-on", value).apply() }
-
-    var autoStartOnWifi: Boolean
-        get() = prefs.getBoolean("auto-start-on-wifi", false)
-        set(value) { prefs.edit().putBoolean("auto-start-on-wifi", value).apply() }
-
-    var autoStartWifiSsid: String
-        get() = prefs.getString("auto-start-wifi-ssid", "")!!
-        set(value) { prefs.edit().putString("auto-start-wifi-ssid", value).apply() }
-
-    var listenForUsbDevices: Boolean
-        get() = prefs.getBoolean("listen-for-usb-devices", true)
-        set(value) { prefs.edit().putBoolean("listen-for-usb-devices", value).apply() }
-
     var showToastMessages: Boolean
         get() = prefs.getBoolean("show-toast-messages", true)
         set(value) { prefs.edit().putBoolean("show-toast-messages", value).apply() }
-
-    var reopenOnReconnection: Boolean
-        get() = prefs.getBoolean("reopen-on-reconnection", true)
-        set(value) { prefs.edit().putBoolean("reopen-on-reconnection", value).apply() }
 
     var autoConnectPriorityOrder: List<String>
         get() {
@@ -852,11 +824,6 @@ class Settings(private val context: Context) {
     fun reset() {
         prefs.edit().clear().commit()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            syncAutoStartOnBootToDeviceStorage(context, false)
-            syncAutoStartOnScreenOnToDeviceStorage(context, false)
-            syncAutoStartOnUsbToDeviceStorage(context, false)
-            syncAutoStartOnWifiToDeviceStorage(context, false)
-            syncListenForUsbDevicesToDeviceStorage(context, true)
             syncAutoStartBtMacToDeviceStorage(context, "")
         }
     }
@@ -1054,158 +1021,9 @@ class Settings(private val context: Context) {
         )
 
         private const val DEVICE_PREFS_NAME = "settings_device_protected"
-        private const val KEY_AUTO_START_ON_BOOT = "auto-start-on-boot"
-
-        /**
-         * Reads auto-start-on-boot from device-protected storage (API 24+),
-         * falling back to regular prefs on older devices.
-         * Safe to call during locked boot when credential storage is unavailable.
-         */
-        fun isAutoStartOnBootEnabled(context: Context): Boolean {
-            val prefs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                val deviceContext = context.createDeviceProtectedStorageContext()
-                deviceContext.getSharedPreferences(DEVICE_PREFS_NAME, Context.MODE_PRIVATE)
-            } else {
-                context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            }
-            return prefs.getBoolean(KEY_AUTO_START_ON_BOOT, false)
-        }
-
-        /**
-         * Syncs the auto-start-on-boot value to device-protected storage.
-         * Call this whenever the user saves settings.
-         */
-        fun syncAutoStartOnBootToDeviceStorage(context: Context, enabled: Boolean) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                val deviceContext = context.createDeviceProtectedStorageContext()
-                deviceContext.getSharedPreferences(DEVICE_PREFS_NAME, Context.MODE_PRIVATE)
-                    .edit()
-                    .putBoolean(KEY_AUTO_START_ON_BOOT, enabled)
-                    .apply()
-            }
-        }
-
-        private const val KEY_AUTO_START_ON_SCREEN_ON = "auto-start-on-screen-on"
-
-        /**
-         * Reads auto-start-on-screen-on from device-protected storage (API 24+),
-         * falling back to regular prefs on older devices.
-         * Safe to call during locked boot when credential storage is unavailable.
-         */
-        fun isAutoStartOnScreenOnEnabled(context: Context): Boolean {
-            val prefs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                val deviceContext = context.createDeviceProtectedStorageContext()
-                deviceContext.getSharedPreferences(DEVICE_PREFS_NAME, Context.MODE_PRIVATE)
-            } else {
-                context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            }
-            return prefs.getBoolean(KEY_AUTO_START_ON_SCREEN_ON, false)
-        }
-
-        fun syncAutoStartOnScreenOnToDeviceStorage(context: Context, enabled: Boolean) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                val deviceContext = context.createDeviceProtectedStorageContext()
-                deviceContext.getSharedPreferences(DEVICE_PREFS_NAME, Context.MODE_PRIVATE)
-                    .edit()
-                    .putBoolean(KEY_AUTO_START_ON_SCREEN_ON, enabled)
-                    .apply()
-            }
-        }
-
-        private const val KEY_AUTO_START_ON_USB = "auto-start-on-usb"
         const val KEY_SCREEN_ORIENTATION = "screen-orientation"
-        private const val KEY_LISTEN_FOR_USB_DEVICES = "listen-for-usb-devices"
         private const val KEY_AUTO_START_BT_MAC = "auto-start-bt-mac"
         private const val KEY_AUTO_START_BT_MACS = "auto-start-bt-macs"
-
-        /**
-         * Reads auto-start-on-usb from device-protected storage (API 24+),
-         * falling back to regular prefs on older devices.
-         * Safe to call during locked boot when credential storage is unavailable.
-         */
-        fun isAutoStartOnUsbEnabled(context: Context): Boolean {
-            val prefs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                val deviceContext = context.createDeviceProtectedStorageContext()
-                deviceContext.getSharedPreferences(DEVICE_PREFS_NAME, Context.MODE_PRIVATE)
-            } else {
-                context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            }
-            return prefs.getBoolean(KEY_AUTO_START_ON_USB, false)
-        }
-
-        fun syncAutoStartOnUsbToDeviceStorage(context: Context, enabled: Boolean) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                val deviceContext = context.createDeviceProtectedStorageContext()
-                deviceContext.getSharedPreferences(DEVICE_PREFS_NAME, Context.MODE_PRIVATE)
-                    .edit()
-                    .putBoolean(KEY_AUTO_START_ON_USB, enabled)
-                    .apply()
-            }
-        }
-
-        private const val KEY_AUTO_START_ON_WIFI = "auto-start-on-wifi"
-        private const val KEY_AUTO_START_WIFI_SSID = "auto-start-wifi-ssid"
-
-        fun isAutoStartOnWifiEnabled(context: Context): Boolean {
-            val prefs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                val deviceContext = context.createDeviceProtectedStorageContext()
-                deviceContext.getSharedPreferences(DEVICE_PREFS_NAME, Context.MODE_PRIVATE)
-            } else {
-                context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            }
-            return prefs.getBoolean(KEY_AUTO_START_ON_WIFI, false)
-        }
-
-        fun syncAutoStartOnWifiToDeviceStorage(context: Context, enabled: Boolean) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                val deviceContext = context.createDeviceProtectedStorageContext()
-                deviceContext.getSharedPreferences(DEVICE_PREFS_NAME, Context.MODE_PRIVATE)
-                    .edit()
-                    .putBoolean(KEY_AUTO_START_ON_WIFI, enabled)
-                    .apply()
-            }
-        }
-
-        fun getAutoStartWifiSsid(context: Context): String {
-            val prefs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                val deviceContext = context.createDeviceProtectedStorageContext()
-                deviceContext.getSharedPreferences(DEVICE_PREFS_NAME, Context.MODE_PRIVATE)
-            } else {
-                context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            }
-            return prefs.getString(KEY_AUTO_START_WIFI_SSID, "") ?: ""
-        }
-
-        fun syncAutoStartWifiSsidToDeviceStorage(context: Context, ssid: String) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                val deviceContext = context.createDeviceProtectedStorageContext()
-                deviceContext.getSharedPreferences(DEVICE_PREFS_NAME, Context.MODE_PRIVATE)
-                    .edit()
-                    .putString(KEY_AUTO_START_WIFI_SSID, ssid)
-                    .apply()
-            }
-        }
-
-        fun isListenForUsbDevicesEnabled(context: Context): Boolean {
-            val prefs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                val deviceContext = context.createDeviceProtectedStorageContext()
-                deviceContext.getSharedPreferences(DEVICE_PREFS_NAME, Context.MODE_PRIVATE)
-            } else {
-                context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            }
-            return prefs.getBoolean(KEY_LISTEN_FOR_USB_DEVICES, true) // Default is TRUE
-        }
-
-        fun syncListenForUsbDevicesToDeviceStorage(context: Context, enabled: Boolean) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                val deviceContext = context.createDeviceProtectedStorageContext()
-                deviceContext.getSharedPreferences(DEVICE_PREFS_NAME, Context.MODE_PRIVATE)
-                    .edit()
-                    .putBoolean(KEY_LISTEN_FOR_USB_DEVICES, enabled)
-                    .apply()
-            }
-        }
-
 
         fun setUsbAttachedActivityEnabled(context: Context, enabled: Boolean) {
             val component = ComponentName(context, UsbAttachedActivity::class.java)

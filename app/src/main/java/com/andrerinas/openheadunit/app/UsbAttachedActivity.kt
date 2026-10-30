@@ -118,35 +118,18 @@ class UsbAttachedActivity : Activity() {
 
         val deviceCompat = UsbDeviceCompat(device)
 
-        // Launch app UI if USB auto-start is enabled (for any device — a non-AA
-        // device simply won't complete the AOA handshake, no harm done)
-        // Use device-protected storage for the auto-start check so it works
-        // during locked boot (before credential storage is available)
-        val autoStartOnUsb = Settings.isAutoStartOnUsbEnabled(this)
-        if (autoStartOnUsb && !App.provide(this).commManager.isConnected) {
-            AppLog.i("USB auto-start: launching app for ${deviceCompat.uniqueName}")
-            try {
-                startActivity(Intent(this, MainActivity::class.java).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    putExtra(MainActivity.EXTRA_LAUNCH_SOURCE, "USB auto-start")
-                })
-            } catch (e: Exception) {
-                AppLog.w("Could not start UI from USB auto-start: ${e.message}")
-            }
-        }
-
         // Google VID (0x18D1) devices are almost certainly Android Auto phones or AA dongles
         // (e.g. AAWireless). Always attempt the AOA switch for these — skipping them would
         // break dongle users who haven't explicitly configured allowlists.
         val isGoogleDevice = device.vendorId == 0x18D1
-        if (!isGoogleDevice && settings != null && !autoStartOnUsb && !settings.isConnectingDevice(deviceCompat)) {
-            AppLog.i("Skipping device ${deviceCompat.uniqueName} (not allowed and USB auto-start disabled)")
+        if (!isGoogleDevice && settings != null && !settings.isConnectingDevice(deviceCompat)) {
+            AppLog.i("Skipping device ${deviceCompat.uniqueName} (not allowed)")
             finish()
             return
         }
         
-        if (isLocked && !autoStartOnUsb) {
-            AppLog.w("Device is locked and USB auto-start is disabled. Cannot check allowed devices. Finishing.")
+        if (isLocked) {
+            AppLog.w("Device is locked. Cannot check allowed devices. Finishing.")
             finish()
             return
         }

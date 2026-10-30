@@ -30,7 +30,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.IntentCompat
 import com.andrerinas.openheadunit.App
 import com.andrerinas.openheadunit.app.BootCompleteReceiver
-import com.andrerinas.openheadunit.app.WifiAutoStartReceiver
 import com.andrerinas.openheadunit.main.MainActivity
 import com.andrerinas.openheadunit.R
 import com.andrerinas.openheadunit.utils.AppLog
@@ -106,7 +105,6 @@ class AapService : Service(), UsbReceiver.Listener {
     // Mode 3's credential source: the head unit's own hotspot, which the app prepares and starts itself.
     private var softApCredentialsProvider: SoftApCredentialsProvider? = null
     private var nativeAaHandshakeManager: NativeAaHandshakeManager? = null
-    private var wifiAutoStartReceiver: WifiAutoStartReceiver? = null
     // @Volatile: the handshake can now ask for a repair from Dispatchers.IO, so this is no
     // longer read only from Main.
     @Volatile private var wirelessServer: WirelessServer? = null
@@ -589,14 +587,7 @@ class AapService : Service(), UsbReceiver.Listener {
 
                     AppLog.i("WakeDetect: SCREEN_ON (screen was off for ${offSec}s)")
 
-                    val settings = App.provide(this@AapService).settings
-
-                    // "Start on screen on" — triggers on every SCREEN_ON, designed for
-                    // head units that never truly power off (quick boot / always-on).
-                    if (settings.autoStartOnScreenOn) {
-                        AppLog.i("WakeDetect: start-on-screen-on enabled, triggering auto-start")
-                        onScreenOnAutoStart()
-                    } else if (offDuration > HIBERNATE_WAKE_THRESHOLD_MS) {
+                    if (offDuration > HIBERNATE_WAKE_THRESHOLD_MS) {
                         // Hibernate wake detection — only for longer sleeps
                         AppLog.i("WakeDetect: hibernate wake detected (off for ${offSec}s > ${HIBERNATE_WAKE_THRESHOLD_MS / 1000}s threshold)")
                         onHibernateWake("SCREEN_ON after ${offSec}s sleep")
@@ -610,7 +601,7 @@ class AapService : Service(), UsbReceiver.Listener {
                     // On some head units, power connected = ACC on = car started.
                     // Only check USB (don't launch UI) since this could also be a
                     // charger being plugged in on a phone/tablet.
-                    onPossibleWake("POWER_CONNECTED")
+                    // Nothing to do: the service no longer checks USB on wake.
                 }
                 Intent.ACTION_POWER_DISCONNECTED -> {
                     AppLog.i("WakeDetect: POWER_DISCONNECTED")
@@ -663,85 +654,9 @@ class AapService : Service(), UsbReceiver.Listener {
             return
         }
 
-        val settings = App.provide(this).settings
-
         // The service works in the background: waking never brings the app to the screen. Only
         // a connected phone shows something (the projection), and the user opens the app by hand.
         AppLog.i("WakeDetect: staying in the background (trigger=$trigger)")
-
-        if (settings.autoStartOnUsb) {
-            AppLog.i("WakeDetect: checking USB devices (trigger=$trigger)")
-            checkAlreadyConnectedUsb(force = true)
-        }
-    }
-
-    /**
-     * Called on events that MIGHT indicate a wake (e.g. POWER_CONNECTED) but aren't
-     * conclusive alone. Only checks USB — does not launch the UI.
-     */
-    private fun onPossibleWake(trigger: String) {
-        if (commManager.isConnected ||
-            commManager.connectionState.value is CommManager.ConnectionState.Connecting ||
-            isSwitchingToAccessory.get()) return
-
-        val settings = App.provide(this).settings
-        if (settings.autoStartOnUsb) {
-            AppLog.i("WakeDetect: possible wake, checking USB (trigger=$trigger)")
-            checkAlreadyConnectedUsb(force = true)
-        }
-    }
-
-    /**
-     * Called on every SCREEN_ON when "Start on screen on" is enabled.
-     * Designed for head units that never truly power off — screen on = car turned on.
-     *
-     * If the connection is still active (e.g. brief screen toggle), returns to the
-     * projection activity. Otherwise launches the main UI and checks USB.
-     */
-    private fun onScreenOnAutoStart() {
-        // Debounce: don't re-trigger within 5 seconds
-        val now = SystemClock.elapsedRealtime()
-        if (now - lastWakeHandledTimestamp < 5_000) {
-            AppLog.i("WakeDetect: screen-on auto-start already handled recently, skipping")
-            return
-        }
-        lastWakeHandledTimestamp = now
-
-        // Acquire wake lock to resist power saving cleanup on Quick Boot devices
-        acquireBootWakeLock()
-
-        if (commManager.isConnected) {
-            // Connection still alive — return to projection screen
-            if (App.isPiPActive) {
-                AppLog.i("WakeDetect: connection active, but PiP is active. Skipping return to full screen.")
-                return
-            }
-            AppLog.i("WakeDetect: connection active, returning to projection")
-            try {
-                val projectionIntent = AapProjectionActivity.intent(this).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
-                }
-                startActivity(projectionIntent)
-            } catch (e: Exception) {
-                AppLog.e("WakeDetect: failed to launch projection: ${e.message}")
-            }
-            return
-        }
-
-        if (commManager.connectionState.value is CommManager.ConnectionState.Connecting ||
-            isSwitchingToAccessory.get()) {
-            AppLog.i("WakeDetect: already connecting, skipping screen-on auto-start")
-            return
-        }
-
-        // Not connected: stay in the background, do not bring the app to the screen.
-        AppLog.i("WakeDetect: screen on, not connected; staying in the background")
-
-        val settings = App.provide(this).settings
-        if (settings.autoStartOnUsb) {
-            AppLog.i("WakeDetect: checking USB devices on screen on")
-            checkAlreadyConnectedUsb(force = true)
-        }
     }
 
     override fun onBind(intent: Intent): IBinder? = null
@@ -771,9 +686,6 @@ class AapService : Service(), UsbReceiver.Listener {
         setupNightMode()
         observeConnectionState()
         registerReceivers()
-
-        // Handle immediate WiFi auto-start check (e.g. if already connected on boot/wake)
-        WifiAutoStartReceiver.checkAndStart(this)
 
         // Initialize MediaSession early and set it active immediately.
         // This ensures media button routing works even BEFORE an AA connection,
@@ -1403,13 +1315,9 @@ class AapService : Service(), UsbReceiver.Listener {
         // USB attach event will re-trigger the flow cleanly.
         if (lastType == Settings.CONNECTION_TYPE_USB &&
             (settings.autoConnectLastSession || settings.autoConnectSingleUsbDevice)) {
-            if (state.isUserExit && !(settings.autoStartOnUsb && settings.reopenOnReconnection)) {
+            if (state.isUserExit) {
                 AppLog.i("AapService: USB disconnect after user Exit. Skipping auto-reconnect (waiting for dongle re-enumeration).")
                 userExitedAA = true
-                return
-            }
-            if (state.isUserExit && settings.autoStartOnUsb && settings.reopenOnReconnection) {
-                AppLog.i("AapService: USB disconnect after user Exit with reopenOnReconnection enabled. Will reconnect on next USB attach.")
                 return
             }
             if (!noteAutomaticReconnect("USB reconnect")) return
@@ -1490,15 +1398,6 @@ class AapService : Service(), UsbReceiver.Listener {
             ContextCompat.RECEIVER_EXPORTED
         )
         AppLog.i("Registered runtime MEDIA_BUTTON receiver")
-
-        // WiFi Auto-start: Dynamic registration for reliability on Android 8+
-        wifiAutoStartReceiver = WifiAutoStartReceiver()
-        ContextCompat.registerReceiver(
-            this, wifiAutoStartReceiver,
-            IntentFilter(android.net.wifi.WifiManager.NETWORK_STATE_CHANGED_ACTION),
-            ContextCompat.RECEIVER_EXPORTED
-        )
-        AppLog.i("Registered dynamic WiFi Auto-start receiver")
 
         // Wake detection receiver: catches SCREEN_ON, SCREEN_OFF, POWER_CONNECTED,
         // and all known OEM boot/ACC intents. Enables hibernate wake detection on
@@ -1789,7 +1688,6 @@ class AapService : Service(), UsbReceiver.Listener {
         try { unregisterReceiver(mediaButtonReceiver) } catch (_: Exception) {}
         try { unregisterReceiver(wakeDetectReceiver) } catch (_: Exception) {}
         try { App.provide(this).carKeysManager.unregisterReceivers() } catch (e: Exception) { AppLog.w("AapService: Error unregistering carKeysManager: ${e.message}") }
-        try { wifiAutoStartReceiver?.let { unregisterReceiver(it) } } catch (_: Exception) {}
         try {
             if (::uiModeManager.isInitialized) {
                 // 0 = no flags (do not force GO_HOME). IntDef only lists DISABLE_CAR_MODE_GO_HOME.
@@ -1963,7 +1861,6 @@ class AapService : Service(), UsbReceiver.Listener {
         if (UsbDeviceCompat.isInAccessoryMode(device)) {
             // Device already in AOA mode (re-enumerated after UsbAttachedActivity switched it).
             AppLog.i("USB accessory device attached, connecting.")
-            launchMainActivityIfNeeded("USB accessory attach")
             checkAlreadyConnectedUsb(force = true)
         } else {
             // UsbAttachedActivity normally handles normal-mode devices via a manifest intent
@@ -1972,7 +1869,6 @@ class AapService : Service(), UsbReceiver.Listener {
             // check after a delay to give UsbAttachedActivity a chance to handle it first.
             val deviceName = UsbDeviceCompat(device).uniqueName
             AppLog.i("Normal USB device attached: $deviceName. Will check auto-connect in ${USB_ATTACH_FALLBACK_DELAY_MS}ms...")
-            launchMainActivityIfNeeded("USB normal attach ($deviceName)")
             serviceScope.launch {
                 delay(USB_ATTACH_FALLBACK_DELAY_MS)
                 // Wireless Connected must not skip this — USB preempts the SoftAP after v1.6.
@@ -2133,9 +2029,8 @@ class AapService : Service(), UsbReceiver.Listener {
         val settings = App.provide(this).settings
         val lastSession = settings.autoConnectLastSession
         val singleUsb = settings.autoConnectSingleUsbDevice
-        val usbAutoStart = settings.autoStartOnUsb
 
-        if (!force && !lastSession && !singleUsb && !usbAutoStart) return
+        if (!force && !lastSession && !singleUsb) return
         if (isSwitchingToAccessory.get()) return
 
         // USB projection already running — leave it alone.
@@ -2221,15 +2116,6 @@ class AapService : Service(), UsbReceiver.Listener {
                         return
                     }
                 }
-            }
-        }
-
-        // USB auto-start mode: attempt AOA switch for any single non-accessory device
-        if (usbAutoStart) {
-            val nonAccessoryDevices = deviceList.filter { !UsbDeviceCompat.isInAccessoryMode(it) }
-            if (nonAccessoryDevices.size == 1) {
-                performSingleUsbConnect(nonAccessoryDevices[0])
-                return
             }
         }
 
@@ -2870,76 +2756,6 @@ class AapService : Service(), UsbReceiver.Listener {
         notificationManager.notify(1, createNotification())
     }
 
-    /**
-     * Launch MainActivity after boot using a cascading fallback chain designed
-     * to work across stock AOSP head units, Xiaomi MIUI/HyperOS, Samsung One UI,
-     * Huawei EMUI, OPPO ColorOS, and other OEM ROMs.
-     *
-     * Strategy order:
-     * 1. Direct startActivity (Android < 10, or any device without background
-     *    activity restrictions — works on most head units running AOSP)
-     * 2. Overlay window trampoline (Android 10+): creates a zero-size invisible
-     *    overlay giving the app a "visible" context. Bypasses MIUI, EMUI, ColorOS
-     *    background start restrictions. Requires SYSTEM_ALERT_WINDOW.
-     * 3. Full-screen intent notification (Android 10+): high-priority notification
-     *    with fullScreenIntent. Works on stock Android 10-13 and Samsung. On
-     *    Android 14+ needs USE_FULL_SCREEN_INTENT permission.
-     * 4. Tap-to-open notification (last resort): user taps notification to open.
-     */
-    /**
-     * Launches MainActivity when reopenOnReconnection is enabled and no activity is currently
-     * visible. Uses the same overlay trampoline technique as boot auto-start to bypass OEM
-     * background activity start restrictions.
-     */
-    private fun launchMainActivityIfNeeded(source: String) {
-        val settings = App.provide(this).settings
-        if (!settings.autoStartOnUsb || !settings.reopenOnReconnection) return
-
-        AppLog.i("Reopen on reconnection: launching MainActivity ($source)")
-        launchMainActivityOnBoot()
-    }
-
-    private fun launchMainActivityOnBoot() {
-        // Android < 10: no background activity start restrictions
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-            AppLog.i("Boot auto-start: launching directly (API ${Build.VERSION.SDK_INT} < 29)")
-            launchDirectly()
-            return
-        }
-
-        // Android 10+: try overlay trampoline (bypasses all known OEM restrictions)
-        if (AppPermissions.isOverlayGranted(this)) {
-            AppLog.i("Boot auto-start: launching via overlay window trampoline")
-            if (launchViaOverlayTrampoline()) return
-        }
-
-        // Fallback: full-screen intent notification
-        AppLog.i("Boot auto-start: falling back to full-screen intent notification")
-        launchViaFullScreenIntent()
-    }
-
-    private fun launchDirectly() {
-        try {
-            val launchIntent = Intent(this, MainActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                putExtra(MainActivity.EXTRA_LAUNCH_SOURCE, "Boot auto-start")
-            }
-            startActivity(launchIntent)
-            AppLog.i("Boot auto-start: direct startActivity succeeded")
-        } catch (e: Exception) {
-            AppLog.e("Boot auto-start: direct startActivity failed: ${e.message}")
-            launchViaFullScreenIntent()
-        }
-    }
-
-    private fun launchViaOverlayTrampoline(): Boolean {
-        val launchIntent = Intent(this, MainActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            putExtra(MainActivity.EXTRA_LAUNCH_SOURCE, "Boot auto-start")
-        }
-        return launchViaOverlayTrampoline(launchIntent)
-    }
-
     private fun launchViaOverlayTrampoline(launchIntent: Intent): Boolean {
         val wm = getSystemService(WINDOW_SERVICE) as WindowManager
         val overlayType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
@@ -2966,36 +2782,6 @@ class AapService : Service(), UsbReceiver.Listener {
             false
         } finally {
             try { wm.removeView(view) } catch (_: Exception) {}
-        }
-    }
-
-    private fun launchViaFullScreenIntent() {
-        val launchIntent = Intent(this, MainActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            putExtra(MainActivity.EXTRA_LAUNCH_SOURCE, "Boot auto-start")
-        }
-        val piFlags = PendingIntent.FLAG_UPDATE_CURRENT or
-            (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
-        val fullScreenPi = PendingIntent.getActivity(this, 200, launchIntent, piFlags)
-
-        val notification = NotificationCompat.Builder(this, App.bootStartChannel)
-            .setSmallIcon(R.drawable.ic_stat_aa)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setCategory(NotificationCompat.CATEGORY_ALARM)
-            .setContentTitle(getString(R.string.app_name))
-            .setContentText(getString(R.string.notification_service_running))
-            .setFullScreenIntent(fullScreenPi, true)
-            .setContentIntent(fullScreenPi)
-            .setAutoCancel(true)
-            .build()
-
-        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        nm.notify(BOOT_START_NOTIFICATION_ID, notification)
-
-        // Dismiss the boot notification after a short delay
-        serviceScope.launch {
-            delay(5000)
-            nm.cancel(BOOT_START_NOTIFICATION_ID)
         }
     }
 

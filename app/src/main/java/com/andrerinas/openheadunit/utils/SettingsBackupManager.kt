@@ -116,13 +116,6 @@ object SettingsBackupManager {
         "attach_hw_dsp_equalizer" to ValueType.BOOLEAN,
         "use-native-ssl" to ValueType.BOOLEAN,
         "auto-start-self-mode" to ValueType.BOOLEAN,
-        "auto-start-on-usb" to ValueType.BOOLEAN,
-        "auto-start-on-boot" to ValueType.BOOLEAN,
-        "auto-start-on-screen-on" to ValueType.BOOLEAN,
-        "auto-start-on-wifi" to ValueType.BOOLEAN,
-        "auto-start-wifi-ssid" to ValueType.STRING,
-        "listen-for-usb-devices" to ValueType.BOOLEAN,
-        "reopen-on-reconnection" to ValueType.BOOLEAN,
         "auto-connect-priority-order" to ValueType.STRING,
         "auto-start-bt-macs" to ValueType.STRING_SET,
         "auto-start-bt-name" to ValueType.STRING,
@@ -451,14 +444,7 @@ object SettingsBackupManager {
 
     private fun syncImportedSettings(context: Context) {
         val settings = Settings(context)
-        Settings.syncAutoStartOnBootToDeviceStorage(context, settings.autoStartOnBoot)
-        Settings.syncAutoStartOnScreenOnToDeviceStorage(context, settings.autoStartOnScreenOn)
-        Settings.syncAutoStartOnUsbToDeviceStorage(context, settings.autoStartOnUsb)
-        Settings.syncAutoStartOnWifiToDeviceStorage(context, settings.autoStartOnWifi)
-        Settings.syncAutoStartWifiSsidToDeviceStorage(context, settings.autoStartWifiSsid)
-        Settings.syncListenForUsbDevicesToDeviceStorage(context, settings.listenForUsbDevices)
         Settings.syncAutoStartBtMacsToDeviceStorage(context, settings.autoStartBluetoothDeviceMacs)
-        Settings.setUsbAttachedActivityEnabled(context, settings.listenForUsbDevices)
         AppThemeManager.reapply(context, settings)
     }
 }

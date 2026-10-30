@@ -420,66 +420,6 @@
                         android:layout_height="wrap_content" />
                 </LinearLayout>
 
-                <!-- USB-only: auto-start on USB -->
-                <LinearLayout
-                    android:id="@+id/onb_as_usb_row"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginTop="8dp">
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_weight="1"
-                        android:layout_height="wrap_content"
-                        android:text="@string/auto_start_usb_label"
-                        android:textAppearance="?attr/textAppearanceBody1" />
-                    <com.google.android.material.switchmaterial.SwitchMaterial
-                        android:id="@+id/onb_autostart_usb_switch"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
-                </LinearLayout>
-
-                <!-- USB-only: reopen on reconnection -->
-                <LinearLayout
-                    android:id="@+id/onb_reopen_row"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginTop="8dp">
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_weight="1"
-                        android:layout_height="wrap_content"
-                        android:text="@string/reopen_on_reconnection_label"
-                        android:textAppearance="?attr/textAppearanceBody1" />
-                    <com.google.android.material.switchmaterial.SwitchMaterial
-                        android:id="@+id/onb_reopen_switch"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
-                </LinearLayout>
-
-                <!-- WiFi-only: auto-start on WiFi -->
-                <LinearLayout
-                    android:id="@+id/onb_as_wifi_row"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginTop="8dp">
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_weight="1"
-                        android:layout_height="wrap_content"
-                        android:text="@string/auto_start_wifi_label"
-                        android:textAppearance="?attr/textAppearanceBody1" />
-                    <com.google.android.material.switchmaterial.SwitchMaterial
-                        android:id="@+id/onb_autostart_wifi_switch"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
-                </LinearLayout>
-
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

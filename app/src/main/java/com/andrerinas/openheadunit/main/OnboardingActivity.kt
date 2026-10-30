@@ -299,26 +299,6 @@ class OnboardingActivity : BaseActivity() {
             isChecked = settings.autoConnectSingleUsbDevice
             setOnCheckedChangeListener { _, v -> settings.autoConnectSingleUsbDevice = v }
         }
-        // USB-only auto-start toggles (also written to device storage, like AutoStartFragment).
-        findViewById<SwitchMaterial>(R.id.onb_autostart_usb_switch).apply {
-            isChecked = settings.autoStartOnUsb
-            setOnCheckedChangeListener { _, v ->
-                settings.autoStartOnUsb = v
-                Settings.syncAutoStartOnUsbToDeviceStorage(this@OnboardingActivity, v)
-            }
-        }
-        findViewById<SwitchMaterial>(R.id.onb_reopen_switch).apply {
-            isChecked = settings.reopenOnReconnection
-            setOnCheckedChangeListener { _, v -> settings.reopenOnReconnection = v }
-        }
-        // WiFi-only auto-start toggle.
-        findViewById<SwitchMaterial>(R.id.onb_autostart_wifi_switch).apply {
-            isChecked = settings.autoStartOnWifi
-            setOnCheckedChangeListener { _, v ->
-                settings.autoStartOnWifi = v
-                Settings.syncAutoStartOnWifiToDeviceStorage(this@OnboardingActivity, v)
-            }
-        }
         // --- Location: this device's GPS vs the connected phone's GPS ---
         val gpsGroup = findViewById<MaterialButtonToggleGroup>(R.id.onb_gps_group)
         isBinding = true
@@ -454,11 +434,6 @@ class OnboardingActivity : BaseActivity() {
     private fun applyAutomationVisibility() {
         val usbVis = if (settings.showsUsb()) View.VISIBLE else View.GONE
         findViewById<View>(R.id.onb_ac_single_row).visibility = usbVis
-        findViewById<View>(R.id.onb_as_usb_row).visibility = usbVis
-        findViewById<View>(R.id.onb_reopen_row).visibility = usbVis
-        // Auto-start on WiFi is a legacy path that only applies up to Android 12L (API 32).
-        findViewById<View>(R.id.onb_as_wifi_row).visibility =
-            if (settings.showsWifi() && Build.VERSION.SDK_INT <= 32) View.VISIBLE else View.GONE
     }
 
     private fun onNext() {

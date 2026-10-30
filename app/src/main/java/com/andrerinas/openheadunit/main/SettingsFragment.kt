@@ -798,18 +798,9 @@ class SettingsFragment : Fragment() {
             isChecked = pendingKillOnDisconnect!!,
             onCheckedChanged = { isChecked ->
                 if (isChecked) {
-                    val conflicts = getKillOnDisconnectConflicts()
-                    val hasAutoStartOnBoot = settings.autoStartOnBoot
-                    val hasAutoStartOnScreenOn = settings.autoStartOnScreenOn
-                    if (conflicts.isNotEmpty() || hasAutoStartOnBoot || hasAutoStartOnScreenOn) {
-                        pendingKillOnDisconnect = true
-                        updateSettingsList()
-                        showKillOnDisconnectWarning(conflicts, hasAutoStartOnBoot, hasAutoStartOnScreenOn)
-                    } else {
-                        pendingKillOnDisconnect = true
-                        checkChanges()
-                        updateSettingsList()
-                    }
+                    pendingKillOnDisconnect = true
+                    updateSettingsList()
+                    showKillOnDisconnectWarning()
                 } else {
                     pendingKillOnDisconnect = false
                     checkChanges()
@@ -2635,51 +2626,18 @@ class SettingsFragment : Fragment() {
         }
     }
 
-    private fun getKillOnDisconnectConflicts(): List<String> {
-        val conflicts = mutableListOf<String>()
-        // Only reconnection-related settings conflict with close-on-disconnect.
-        // Initial connection settings (auto-connect last session, single USB,
-        // self mode, auto-start on USB) should keep working when the car starts.
-        if (settings.reopenOnReconnection) {
-            conflicts.add(getString(R.string.reopen_on_reconnection_label))
-        }
-        return conflicts
-    }
-
-    private fun showKillOnDisconnectWarning(conflicts: List<String>, hasAutoStartOnBoot: Boolean, hasAutoStartOnScreenOn: Boolean = false) {
-        val message = buildString {
-            if (conflicts.isNotEmpty()) {
-                val conflictList = conflicts.joinToString("\n") { "• $it" }
-                append(getString(R.string.kill_on_disconnect_warning, conflictList))
-            }
-            if (hasAutoStartOnBoot) {
-                if (conflicts.isNotEmpty()) append("\n\n")
-                append(getString(R.string.kill_on_disconnect_boot_warning))
-            }
-            if (hasAutoStartOnScreenOn) {
-                if (conflicts.isNotEmpty() || hasAutoStartOnBoot) append("\n\n")
-                append(getString(R.string.kill_on_disconnect_screen_on_warning))
-            }
-        }
+    private fun showKillOnDisconnectWarning() {
+        val message = getString(R.string.kill_on_disconnect_boot_warning)
 
         var confirmed = false
 
-        val hasDisableableConflicts = conflicts.isNotEmpty()
-        val positiveTextRes = if (hasDisableableConflicts) {
-            R.string.kill_on_disconnect_disable_and_enable
-        } else {
-            R.string.kill_on_disconnect_enable_anyway
-        }
+        val positiveTextRes = R.string.kill_on_disconnect_enable_anyway
 
         val dialog = MaterialAlertDialogBuilder(requireContext(), R.style.DarkAlertDialog)
             .setTitle(R.string.kill_on_disconnect_warning_title)
             .setMessage(message)
             .setPositiveButton(positiveTextRes) { _, _ ->
                 confirmed = true
-                if (hasDisableableConflicts) {
-                    disableKillOnDisconnectConflicts()
-                    Toast.makeText(context, getString(R.string.kill_on_disconnect_conflicts_disabled), Toast.LENGTH_LONG).show()
-                }
                 pendingKillOnDisconnect = true
                 checkChanges()
                 updateSettingsList()
@@ -2720,12 +2678,6 @@ class SettingsFragment : Fragment() {
                 updateSettingsList()
             }
         }
-    }
-
-    private fun disableKillOnDisconnectConflicts() {
-        // Only disable reconnection-related settings.
-        // Initial connection settings are kept so they work when the car starts.
-        settings.reopenOnReconnection = false
     }
 
     private fun getAutoConnectSummary(): String {
