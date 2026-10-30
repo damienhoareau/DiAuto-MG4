@@ -156,7 +156,6 @@ class UsbAttachedActivity : Activity() {
         val usbManager = getSystemService(Context.USB_SERVICE) as UsbManager
         val usbMode = UsbAccessoryMode(usbManager)
         AppLog.i("Switching USB device to accessory mode " + deviceCompat.uniqueName)
-        ToastUtils.showToast(this, getString(R.string.switching_usb_accessory_mode, deviceCompat.uniqueName), Toast.LENGTH_SHORT)
         val useLibusb = settings?.useLibusb ?: false
         Thread {
             val result = usbMode.connectAndSwitch(device, useLibusb)
@@ -164,7 +163,7 @@ class UsbAttachedActivity : Activity() {
                 if (result) {
                     ToastUtils.showToast(this, getString(R.string.success), Toast.LENGTH_SHORT)
                 } else {
-                    ToastUtils.showToast(this, getString(R.string.failed), Toast.LENGTH_SHORT)
+                    AppLog.w("Switching USB device to accessory mode failed: ${deviceCompat.uniqueName}")
                 }
                 finish()
             }
