@@ -115,8 +115,7 @@
             android:exported="true"
             android:launchMode="singleTop"
             android:theme="@style/AppTheme.Translucent">
-            <!-- High priority so DiAuto can claim the phone before OEM AllGo/caradapter. -->
-            <intent-filter android:priority="1000">
+            <intent-filter>
                 <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
             </intent-filter>
             <meta-data
