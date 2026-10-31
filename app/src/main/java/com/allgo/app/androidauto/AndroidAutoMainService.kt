@@ -6,6 +6,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.hardware.usb.UsbDevice
 import android.os.IBinder
 import android.os.RemoteCallbackList
 import android.view.KeyEvent
@@ -82,6 +83,9 @@ class AndroidAutoMainService : Service() {
 
     private companion object {
         const val PREFS = "rui_announced"
+        // What RemoteUI starts this service with when it has found a phone on USB.
+        const val ACTION_DEVICE_CONNECTED = "AAP_DEVICE_CONNECTED"
+        const val EXTRA_USB_DEVICE = "AAPDevice"
         const val TOGGLE_SETTLE_MS = 800L
         const val KEY_ANNOUNCED = "address"
         const val KEY_REMEMBERED = "remembered"
@@ -169,7 +173,24 @@ class AndroidAutoMainService : Service() {
         scope.launch { AaStatusBus.playbackInfo.collect { ruiMedia.onPlayback(it) } }
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == ACTION_DEVICE_CONNECTED) onUsbDeviceFromRemoteUi(intent)
+        return START_STICKY
+    }
+
+    /**
+     * RemoteUI watches the USB port for the car: it ignores the car's internal port, sends Apple devices to
+     * CarPlay, and for any other device opens it, switches it to accessory mode and starts this service
+     * with the device. The projection then connects to what it found in accessory mode.
+     */
+    private fun onUsbDeviceFromRemoteUi(intent: Intent) {
+        val device = intent.getParcelableExtra<UsbDevice>(EXTRA_USB_DEVICE)
+        AppLog.i(
+            "AndroidAutoMainService: RemoteUI found a USB device (${device?.deviceName}, " +
+                "vendor=${device?.vendorId}, product=${device?.productId})"
+        )
+        startAapService(AapService.ACTION_CHECK_USB)
+    }
 
     override fun onBind(intent: Intent?): IBinder {
         AppLog.i("AndroidAutoMainService: bound by ${intent?.component ?: intent?.action}")

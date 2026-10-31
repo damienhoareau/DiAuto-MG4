@@ -1,17 +1,14 @@
 package com.andrerinas.openheadunit.utils
 
 import android.annotation.SuppressLint
-import android.content.ComponentName
 import android.content.Context
 import android.content.SharedPreferences
-import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Build
 import com.andrerinas.openheadunit.aap.MediaKeyRoutingPolicy
 import com.andrerinas.openheadunit.aap.VideoFaultInjector
 import com.andrerinas.openheadunit.decoder.DeviceMemoryProfile
 import com.andrerinas.openheadunit.aap.protocol.proto.Control
-import com.andrerinas.openheadunit.app.UsbAttachedActivity
 import com.andrerinas.openheadunit.connection.UsbDeviceCompat
 
 class Settings(private val context: Context) {
@@ -1024,19 +1021,6 @@ class Settings(private val context: Context) {
         const val KEY_SCREEN_ORIENTATION = "screen-orientation"
         private const val KEY_AUTO_START_BT_MAC = "auto-start-bt-mac"
         private const val KEY_AUTO_START_BT_MACS = "auto-start-bt-macs"
-
-        fun setUsbAttachedActivityEnabled(context: Context, enabled: Boolean) {
-            val component = ComponentName(context, UsbAttachedActivity::class.java)
-            val newState = if (enabled)
-                PackageManager.COMPONENT_ENABLED_STATE_ENABLED
-            else
-                PackageManager.COMPONENT_ENABLED_STATE_DISABLED
-            if (context.packageManager.getComponentEnabledSetting(component) != newState) {
-                context.packageManager.setComponentEnabledSetting(
-                    component, newState, PackageManager.DONT_KILL_APP
-                )
-            }
-        }
 
         /**
          * Reads the Bluetooth auto-start MAC from device-protected storage (API 24+),

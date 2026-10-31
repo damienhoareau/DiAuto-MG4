@@ -1861,14 +1861,12 @@ class AapService : Service(), UsbReceiver.Listener {
         }
         userExitedAA = false
         if (UsbDeviceCompat.isInAccessoryMode(device)) {
-            // Device already in AOA mode (re-enumerated after UsbAttachedActivity switched it).
+            // Device already in AOA mode (re-enumerated after RemoteUI switched it).
             AppLog.i("USB accessory device attached, connecting.")
             checkAlreadyConnectedUsb(force = true)
         } else {
-            // UsbAttachedActivity normally handles normal-mode devices via a manifest intent
-            // filter. However, some headunits (especially Chinese MediaTek units) don't
-            // deliver USB_DEVICE_ATTACHED to activities on cold start. As a fallback,
-            // check after a delay to give UsbAttachedActivity a chance to handle it first.
+            // RemoteUI normally switches a normal-mode device to accessory mode itself. If it has
+            // not by then, check after a delay.
             val deviceName = UsbDeviceCompat(device).uniqueName
             AppLog.i("Normal USB device attached: $deviceName. Will check auto-connect in ${USB_ATTACH_FALLBACK_DELAY_MS}ms...")
             serviceScope.launch {
@@ -1877,7 +1875,7 @@ class AapService : Service(), UsbReceiver.Listener {
                 if (!isSwitchingToAccessory.get() &&
                     (!commManager.isConnected || commManager.isWirelessSession)
                 ) {
-                    AppLog.i("UsbAttachedActivity didn't handle $deviceName. Trying from service...")
+                    AppLog.i("RemoteUI didn't handle $deviceName. Trying from service...")
                     checkAlreadyConnectedUsb(force = true)
                 }
             }
@@ -2022,7 +2020,7 @@ class AapService : Service(), UsbReceiver.Listener {
      * Android Open Accessory (AOA) mode, or attempts to switch a known device into AOA mode.
      *
      * @param force When `true`, bypasses the [autoConnectLastSession] guard. Use `true` when
-     *              called in response to an actual USB attach event or from [UsbAttachedActivity],
+     *              called in response to an actual USB attach event or from RemoteUI,
      *              because the user has explicitly plugged in a device. Use `false` (default)
      *              for the startup scan in [onCreate].
      * @param afterWirelessPreempt Internal: second pass after [preemptWirelessForUsb].
@@ -2144,7 +2142,7 @@ class AapService : Service(), UsbReceiver.Listener {
         }
 
         // Fallback: if force=true and we have a single Google VID device in normal mode,
-        // switch it to accessory mode. This handles cases where UsbAttachedActivity didn't fire.
+        // switch it to accessory mode. This handles cases where RemoteUI didn't.
         if (force) {
             val nonAccessoryDevices = deviceList.filter { !UsbDeviceCompat.isInAccessoryMode(it) }
             val googleDevices = nonAccessoryDevices.filter { it.vendorId == 0x18D1 }
@@ -3363,7 +3361,7 @@ class AapService : Service(), UsbReceiver.Listener {
         private const val USER_EXIT_COOLDOWN_MS = 15_000L
 
         /** Delay before AapService tries to handle a normal-mode USB attach as a fallback
-         *  when UsbAttachedActivity doesn't fire (common on Chinese MediaTek headunits). */
+         *  when RemoteUI doesn't announce the device. */
         private const val USB_ATTACH_FALLBACK_DELAY_MS = 2000L
 
         /** Screen-off duration (ms) above which SCREEN_ON is treated as a hibernate wake.
