@@ -7,7 +7,7 @@ import com.andrerinas.openheadunit.aap.protocol.proto.Sensors
  *
  * The phone only asks for the sensors it is told about, so to learn which of the ones this head unit does not
  * feed it would use, the head unit announces them too and the requests are logged. Nothing is sent for them: a
- * request is answered with success, as every request is, and no data follows.
+ * request is answered with success, as every request is. Data follows only for the ones in [FED].
  *
  * On unless `setprop debug.diauto.sensorprobe 0`.
  */
@@ -26,6 +26,14 @@ object SensorProbe {
         Sensors.SensorType.DOOR,
         Sensors.SensorType.LIGHT,
         Sensors.SensorType.TIRE,
+        Sensors.SensorType.GPS,
+    )
+
+    /** The ones of them this head unit does feed, from what the car publishes. The others get no data. */
+    val FED: Set<Sensors.SensorType> = setOf(
+        Sensors.SensorType.ODOMETER,
+        Sensors.SensorType.FUEL_LEVEL,
+        Sensors.SensorType.HVAC,
         Sensors.SensorType.GPS,
     )
 

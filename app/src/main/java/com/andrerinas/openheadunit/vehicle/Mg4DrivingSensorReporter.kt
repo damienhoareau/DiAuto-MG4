@@ -7,7 +7,12 @@ import com.andrerinas.openheadunit.aap.protocol.messages.AccelerometerEvent
 import com.andrerinas.openheadunit.aap.protocol.messages.CarSpeedEvent
 import com.andrerinas.openheadunit.aap.protocol.messages.GyroscopeEvent
 import com.andrerinas.openheadunit.aap.protocol.messages.CompassEvent
+import com.andrerinas.openheadunit.aap.protocol.messages.FuelLevelEvent
 import com.andrerinas.openheadunit.aap.protocol.messages.GearEvent
+import com.andrerinas.openheadunit.aap.protocol.messages.GpsSatelliteEvent
+import com.andrerinas.openheadunit.aap.protocol.messages.GpsSatelliteInfo
+import com.andrerinas.openheadunit.aap.protocol.messages.HvacEvent
+import com.andrerinas.openheadunit.aap.protocol.messages.OdometerEvent
 import com.andrerinas.openheadunit.aap.protocol.messages.OutsideTemperatureEvent
 import com.andrerinas.openheadunit.aap.protocol.messages.ParkingBrakeEvent
 import com.andrerinas.openheadunit.aap.protocol.proto.Sensors
@@ -35,6 +40,9 @@ object Mg4DrivingSensorReporter {
     /** The firmware's number for park; the other gears are not told apart yet. */
     private const val PARK = 1
 
+    /** The battery percentage at which the fuel-level event says the energy is low. */
+    private const val LOW_BATTERY_PERCENT = 10
+
     private val TYPES = setOf(
         Sensors.SensorType.CAR_SPEED_VALUE,
         Sensors.SensorType.GEAR_VALUE,
@@ -43,7 +51,24 @@ object Mg4DrivingSensorReporter {
         Sensors.SensorType.COMPASS_VALUE,
         Sensors.SensorType.ACCEL_VALUE,
         Sensors.SensorType.GYRO_VALUE,
+        // Announced to see whether the phone uses them (see SensorProbe); fed from what the car publishes.
+        Sensors.SensorType.ODOMETER_VALUE,
+        Sensors.SensorType.FUEL_LEVEL_VALUE,
+        Sensors.SensorType.HVAC_VALUE,
+        Sensors.SensorType.GPS_VALUE,
     )
+
+    private const val SLOW_REPEAT_MS = 60_000L
+    private const val GNSS_MIN_INTERVAL_MS = 1_000L
+
+    /** The fuel level event: the battery percentage, the range in metres when known, and a low-battery flag. */
+    private data class FuelValue(val percent: Int, val rangeMetres: Int?, val low: Boolean)
+
+    /** The climate event: set and cabin temperatures in thousandths of a degree. */
+    private data class HvacValue(val targetE3: Int?, val currentE3: Int?)
+
+    private var gnssCallback: android.location.GnssStatus.Callback? = null
+    @Volatile private var lastGnssMs = 0L
 
     private const val MOTION_MIN_INTERVAL_MS = 100L
     @Volatile private var lastAccelMs = 0L
@@ -89,6 +114,7 @@ object Mg4DrivingSensorReporter {
         transportRef.set(null)
         requested.clear()
         stopMotion()
+        stopGnss()
         tickFuture?.cancel(false)
         tickFuture = null
         synchronized(lastSent) {
@@ -194,9 +220,67 @@ object Mg4DrivingSensorReporter {
         }
     }
 
+    /** Listens to the head unit's GPS receiver while the phone has started the satellite sensor. */
+    @Synchronized
+    private fun startGnss() {
+        if (gnssCallback != null) return
+        val app = App.instance ?: return
+        try {
+            val manager = app.getSystemService(android.content.Context.LOCATION_SERVICE) as android.location.LocationManager
+            val callback = object : android.location.GnssStatus.Callback() {
+                override fun onSatelliteStatusChanged(status: android.location.GnssStatus) = onGnss(status)
+            }
+            val ok = manager.registerGnssStatusCallback(callback, android.os.Handler(android.os.Looper.getMainLooper()))
+            if (ok) gnssCallback = callback
+            AppLog.i("$TAG gnss status listening=$ok")
+        } catch (error: Throwable) {
+            AppLog.w("$TAG gnss status failed: ${error.message}")
+        }
+    }
+
+    @Synchronized
+    private fun stopGnss() {
+        val callback = gnssCallback ?: return
+        gnssCallback = null
+        try {
+            val app = App.instance ?: return
+            (app.getSystemService(android.content.Context.LOCATION_SERVICE) as android.location.LocationManager)
+                .unregisterGnssStatusCallback(callback)
+        } catch (_: Throwable) {
+        }
+    }
+
+    private fun onGnss(status: android.location.GnssStatus) {
+        val now = SystemClock.elapsedRealtime()
+        if (Sensors.SensorType.GPS_VALUE !in requested || now - lastGnssMs < GNSS_MIN_INTERVAL_MS) return
+        val transport = transportRef.get() ?: return
+        lastGnssMs = now
+        // Only the GPS constellation: the phone reads the number as a GPS PRN.
+        val satellites = (0 until status.satelliteCount)
+            .filter { status.getConstellationType(it) == android.location.GnssStatus.CONSTELLATION_GPS }
+            .map {
+                GpsSatelliteInfo(
+                    prn = status.getSvid(it),
+                    snrE3 = (status.getCn0DbHz(it) * 1000).roundToInt(),
+                    usedInFix = status.usedInFix(it),
+                    azimuthE3 = (status.getAzimuthDegrees(it) * 1000).roundToInt(),
+                    elevationE3 = (status.getElevationDegrees(it) * 1000).roundToInt(),
+                )
+            }
+        transport.send(GpsSatelliteEvent(satellites))
+        if (now - motionLogMs >= PUSH_LOG_EVERY_MS) {
+            motionLogMs = now
+            AppLog.i("$TAG gnss tx: ${satellites.count { it.usedInFix }} used / ${satellites.size} GPS satellites in view")
+        }
+    }
+
     fun onSensorStart(type: Int) {
         if (type !in TYPES) return
         requested.add(type)
+        if (type == Sensors.SensorType.GPS_VALUE) {
+            executor.execute { startGnss() }
+            return
+        }
         if (type == Sensors.SensorType.ACCEL_VALUE || type == Sensors.SensorType.GYRO_VALUE) {
             executor.execute { startMotion() }
             return
@@ -238,6 +322,23 @@ object Mg4DrivingSensorReporter {
                 value = ((EVHardware.getOutsideTempCelsius() ?: return) * 1000).roundToInt()
                 repeatMs = TEMPERATURE_REPEAT_MS
             }
+            Sensors.SensorType.ODOMETER_VALUE -> {
+                // Tenths of a kilometre.
+                value = ((EVHardware.getOdometerKm() ?: return) * 10).roundToInt()
+                repeatMs = SLOW_REPEAT_MS
+            }
+            Sensors.SensorType.FUEL_LEVEL_VALUE -> {
+                val percent = (EVHardware.getBatterySocPercent() ?: return).roundToInt().coerceIn(0, 100)
+                value = FuelValue(percent, EVHardware.getRemainingRangeKm()?.let { it * 1000 }, percent <= LOW_BATTERY_PERCENT)
+                repeatMs = SLOW_REPEAT_MS
+            }
+            Sensors.SensorType.HVAC_VALUE -> {
+                val target = EVHardware.getTemperatureSetCelsius()?.let { (it * 1000).roundToInt() }
+                val current = EVHardware.getCabinTemperatureCelsius()?.let { (it * 1000).roundToInt() }
+                if (target == null && current == null) return
+                value = HvacValue(target, current)
+                repeatMs = SLOW_REPEAT_MS
+            }
             else -> return
         }
         val now = SystemClock.elapsedRealtime()
@@ -249,6 +350,9 @@ object Mg4DrivingSensorReporter {
             Sensors.SensorType.CAR_SPEED_VALUE -> transport.send(CarSpeedEvent(value as Int))
             Sensors.SensorType.GEAR_VALUE -> transport.send(GearEvent(value as Boolean))
             Sensors.SensorType.PARKING_BRAKE_VALUE -> transport.send(ParkingBrakeEvent(value as Boolean))
+            Sensors.SensorType.ODOMETER_VALUE -> transport.send(OdometerEvent(value as Int))
+            Sensors.SensorType.FUEL_LEVEL_VALUE -> (value as FuelValue).let { transport.send(FuelLevelEvent(it.percent, it.rangeMetres, it.low)) }
+            Sensors.SensorType.HVAC_VALUE -> (value as HvacValue).let { transport.send(HvacEvent(it.targetE3, it.currentE3)) }
             else -> transport.send(OutsideTemperatureEvent(value as Int))
         }
         if (!sent) return

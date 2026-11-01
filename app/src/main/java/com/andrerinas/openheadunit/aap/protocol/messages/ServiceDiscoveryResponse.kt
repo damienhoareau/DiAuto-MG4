@@ -63,7 +63,7 @@ class ServiceDiscoveryResponse(private val context: Context)
                         AppLog.i(
                             "[ServiceDiscovery] SENSOR PROBE - also announcing " +
                                 com.andrerinas.openheadunit.aap.SensorProbe.PROBED.joinToString(",") { it.name } +
-                                " (no data is sent for them)"
+                                " (data only for " + com.andrerinas.openheadunit.aap.SensorProbe.FED.joinToString(",") { it.name } + ")"
                         )
                     }
 
