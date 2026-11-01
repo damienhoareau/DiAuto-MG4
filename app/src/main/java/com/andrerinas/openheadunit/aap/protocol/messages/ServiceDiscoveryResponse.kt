@@ -32,6 +32,7 @@ class ServiceDiscoveryResponse(private val context: Context)
             HeadUnitScreenConfig.init(context, context.resources.displayMetrics, settings)
 
             val services = mutableListOf<Control.Service>()
+            com.andrerinas.openheadunit.aap.SensorProbe.beginSession()
 
             val sensors = Control.Service.newBuilder().also { service ->
                 service.id = Channel.ID_SEN
@@ -54,6 +55,17 @@ class ServiceDiscoveryResponse(private val context: Context)
                     sources.addSensors(makeSensorType(Sensors.SensorType.ACCEL))
                     sources.addSensors(makeSensorType(Sensors.SensorType.GYRO))
                     AppLog.i("[ServiceDiscovery] Announcing NIGHT sensor support. Strategy: ${settings.nightMode}")
+
+                    // Announced only to see which of them the phone asks for; no data is sent for them. The
+                    // requests show up as "Sensor Start Request" lines and in the diagnostic report.
+                    if (com.andrerinas.openheadunit.aap.SensorProbe.enabled()) {
+                        com.andrerinas.openheadunit.aap.SensorProbe.PROBED.forEach { sources.addSensors(makeSensorType(it)) }
+                        AppLog.i(
+                            "[ServiceDiscovery] SENSOR PROBE - also announcing " +
+                                com.andrerinas.openheadunit.aap.SensorProbe.PROBED.joinToString(",") { it.name } +
+                                " (no data is sent for them)"
+                        )
+                    }
 
                     // Announce EV even before the first SoC poll. If we wait for snapshot(),
                     // AA often finishes Service Discovery first and Maps never enables EV routing.
@@ -388,6 +400,7 @@ class ServiceDiscoveryResponse(private val context: Context)
         }
 
         private fun makeSensorType(type: Sensors.SensorType): Control.Service.SensorSourceService.Sensor {
+            com.andrerinas.openheadunit.aap.SensorProbe.noteAnnounced(type)
             return Control.Service.SensorSourceService.Sensor.newBuilder()
                     .setType(type).build()
         }

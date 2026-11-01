@@ -219,6 +219,10 @@ internal class AapControlSensor(
 
     private fun sensorStartRequest(request: Sensors.SensorRequest, channel: Int): Int {
         AppLog.i("Sensor Start Request sensor: %s, minUpdatePeriod: %d", request.type.name, request.minUpdatePeriod)
+        SensorProbe.noteRequested(request.type)
+        if (request.type in SensorProbe.PROBED) {
+            AppLog.i("SENSOR PROBE - the phone asked for %s, which this head unit does not feed yet.", request.type.name)
+        }
 
         val msg = AapMessage(channel, Sensors.SensorsMsgType.SENSOR_STARTRESPONSE_VALUE, Sensors.SensorResponse.newBuilder()
                 .setStatus(Common.MessageStatus.STATUS_SUCCESS)
