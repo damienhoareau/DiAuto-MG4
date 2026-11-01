@@ -108,6 +108,9 @@ class AapService : Service(), UsbReceiver.Listener {
     // @Volatile: the handshake can now ask for a repair from Dispatchers.IO, so this is no
     // longer read only from Main.
     @Volatile private var wirelessServer: WirelessServer? = null
+
+    /** Listens for a phone that dials us over the Wi-Fi it is on; see [WppTcpServer]. */
+    @Volatile private var wppTcpServer: com.andrerinas.openheadunit.connection.WppTcpServer? = null
     /**
      * SoftAP IPv4 the wireless TCP server should bind to (DiPlay-style), or null for
      * the wildcard used by helper / head-unit-server modes before Native AA credentials exist.
@@ -2365,6 +2368,30 @@ class AapService : Service(), UsbReceiver.Listener {
         if (shouldRegisterNsd) {
             startDiscovery()
         }
+        startWppTcpServer()
+    }
+
+    /**
+     * Starts the WPP-over-TCP listener when it is in use and is not running yet. It listens on every
+     * address: the phone dials the one it was given, which is the car's on the shared Wi-Fi.
+     */
+    private fun startWppTcpServer() {
+        if (!com.andrerinas.openheadunit.aap.WppTcpPolicy.enabledNow(settings.wppOverTcp)) return
+        if (wppTcpServer?.isListening == true) return
+        wppTcpServer?.stop()
+        wppTcpServer = com.andrerinas.openheadunit.connection.WppTcpServer(
+            context = this,
+            commManager = commManager,
+            port = com.andrerinas.openheadunit.connection.CarNetworkQuirks.autoWppTcpPort(),
+            bindHost = null,
+            mainPort = { wirelessPort },
+            credentials = {
+                com.andrerinas.openheadunit.connection.SharedWifiNetwork.current(this)?.let {
+                    com.andrerinas.openheadunit.connection.WppTcpServer.Credentials(it.ssid, it.psk, it.bssid.uppercase())
+                }
+            },
+            prepareMainServer = { ip -> bindWirelessServerTo(ip) },
+        ).also { it.start() }
     }
 
     /**
@@ -2703,6 +2730,8 @@ class AapService : Service(), UsbReceiver.Listener {
         discoveryDormantAfterWifiLoss = false
         wirelessServer?.stopServer()
         wirelessServer = null
+        wppTcpServer?.stop()
+        wppTcpServer = null
         wirelessBindHost = null
         scanningState.value = false
         VpnControl.stopVpn(this)

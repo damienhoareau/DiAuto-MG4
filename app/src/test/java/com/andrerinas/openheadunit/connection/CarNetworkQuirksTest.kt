@@ -207,4 +207,24 @@ class CarNetworkQuirksTest {
         val fw = CarNetworkQuirks.parseFirewall(swi132And133Rules, "x")
         assertEquals(30517, CarNetworkQuirks.pickPort(fw, isSaic = true) { it != 30518 }.first)
     }
+
+    @Test
+    fun `the second port is another allowed port, never the main one`() {
+        val fw = CarNetworkQuirks.parseFirewall(saicScript, "x")
+        assertEquals(30517, CarNetworkQuirks.pickSecondaryPort(fw, isSaic = true, mainPort = 30518) { true })
+        assertEquals(30518, CarNetworkQuirks.pickSecondaryPort(fw, isSaic = true, mainPort = 30517) { true })
+    }
+
+    @Test
+    fun `the second port skips one that is taken`() {
+        val fw = CarNetworkQuirks.parseFirewall(saicScript, "x")
+        assertEquals(8080, CarNetworkQuirks.pickSecondaryPort(fw, isSaic = true, mainPort = 30518) { it != 30517 })
+    }
+
+    @Test
+    fun `without a readable firewall the second port is still different from the main one`() {
+        assertEquals(30517, CarNetworkQuirks.pickSecondaryPort(null, isSaic = true, mainPort = 30518) { true })
+        assertEquals(30518, CarNetworkQuirks.pickSecondaryPort(null, isSaic = true, mainPort = 30517) { true })
+        assertEquals(CarNetworkQuirks.STANDARD_PORT + 1, CarNetworkQuirks.pickSecondaryPort(null, isSaic = false, mainPort = CarNetworkQuirks.STANDARD_PORT) { true })
+    }
 }

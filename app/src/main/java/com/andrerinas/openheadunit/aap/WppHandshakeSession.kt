@@ -118,9 +118,10 @@ sealed class WppAction {
  * thread-safe: one session per handshake coroutine.
  *
  * @param versionExchangeEnabled whether to open with [WppMessageType.VERSION_REQUEST]. False sends
- *   exactly what shipped before it existed.
+ *   exactly what shipped before it existed. A var so the caller can decide it once what the version request is
+ *   to carry is known, before the first event.
  */
-class WppHandshakeSession(private val versionExchangeEnabled: Boolean) {
+class WppHandshakeSession(var versionExchangeEnabled: Boolean) {
 
     companion object {
         /** How long to wait for the phone's version response before carrying on without it.

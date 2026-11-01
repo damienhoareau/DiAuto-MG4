@@ -62,6 +62,31 @@ object CarNetworkQuirks {
         return STANDARD_PORT to "no SAIC firewall detected: standard port"
     }
 
+    /** Port for a second listener next to the one on [mainPort]: the same rules, never the same port. */
+    fun pickSecondaryPort(firewall: Firewall?, isSaic: Boolean, mainPort: Int, isFree: (Int) -> Boolean): Int {
+        if (firewall != null && firewall.rejectsByDefault && firewall.allowedTcp.isNotEmpty()) {
+            val candidates = (PREFERRED.filter { it in firewall.allowedTcp } +
+                firewall.allowedTcp.filter { it !in PREFERRED }).filter { it != mainPort }
+            return candidates.firstOrNull { isFree(it) } ?: candidates.firstOrNull() ?: mainPort
+        }
+        if (isSaic) return PREFERRED.first { it != mainPort }
+        return if (mainPort == STANDARD_PORT) STANDARD_PORT + 1 else STANDARD_PORT
+    }
+
+    @Volatile private var cachedSecondary: Int? = null
+
+    /** Automatically chosen port for the WPP-over-TCP listener (computed once, like [autoWirelessPort]). */
+    fun autoWppTcpPort(): Int {
+        cachedSecondary?.let { return it }
+        synchronized(this) {
+            cachedSecondary?.let { return it }
+            val port = pickSecondaryPort(readFirewall(), isSaicDevice(), autoWirelessPort(), ::canBind)
+            cachedSecondary = port
+            AppLog.i("$TAG: automatic WPP-over-TCP port = $port.")
+            return port
+        }
+    }
+
     @Volatile private var cachedPort: Int? = null
     @Volatile private var cachedWhy: String = ""
     @Volatile private var cachedArpNudge: Boolean? = null

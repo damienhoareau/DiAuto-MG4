@@ -15,6 +15,8 @@ import com.andrerinas.openheadunit.aap.WppEvent
 import com.andrerinas.openheadunit.aap.WppFraming
 import com.andrerinas.openheadunit.aap.WppHandshakeSession
 import com.andrerinas.openheadunit.aap.WppMessageType
+import com.andrerinas.openheadunit.aap.WppProjectionInfo
+import com.andrerinas.openheadunit.aap.WppTcpPolicy
 import com.andrerinas.openheadunit.aap.WppStage
 import com.andrerinas.openheadunit.utils.BluetoothHelper
 import com.andrerinas.openheadunit.aap.protocol.proto.Wireless
@@ -1021,12 +1023,19 @@ class NativeAaHandshakeManager(
             // Whether the credentials went out with no BSSID at all. A join failure means something
             // different when they did — see the Fail action below.
             var bssidOmitted = false
+            // The address the phone is told to dial for WPP over TCP, or null when it is not offered.
+            var tcpOfferIp: String? = null
 
             suspend fun runAction(action: WppAction, source: ProtobufMessage?) {
                 when (action) {
                     WppAction.SendVersionRequest -> {
-                        AppLog.i("NativeAA: [TX] Sending WifiVersionRequest (Type 4) v${WppHandshakeSession.WPP_VERSION_MAJOR}.${WppHandshakeSession.WPP_VERSION_MINOR}")
-                        sendWifiVersionRequest(output)
+                        val tcpIp = tcpOfferIp
+                        if (tcpIp != null) {
+                            AppLog.i("NativeAA: [TX] Sending WifiVersionRequest (Type 4) v${WppProjectionInfo.TCP_MAJOR}.${WppProjectionInfo.TCP_MINOR} with the WPP-over-TCP endpoint $tcpIp:${wppTcpPort()}")
+                        } else {
+                            AppLog.i("NativeAA: [TX] Sending WifiVersionRequest (Type 4) v${WppHandshakeSession.WPP_VERSION_MAJOR}.${WppHandshakeSession.WPP_VERSION_MINOR}")
+                        }
+                        sendWifiVersionRequest(output, tcpIp)
                         spokeToPhone = true
                     }
                     WppAction.SendStartRequest -> {
@@ -1186,6 +1195,17 @@ class NativeAaHandshakeManager(
             // a flaky chip a moment to settle before the one message that matters most.
             delay(300)
 
+            // Which network the phone is sent to has to be known before the version request goes out:
+            // WPP over TCP is only offered for the shared Wi-Fi, where the phone and the car are on the
+            // same network and the car's address on it is known.
+            val shared = if (SharedWifiNetwork.probeEnabled()) {
+                SharedWifiNetwork.current(context)?.takeIf { SharedWifiNetwork.shouldTry(context, it) }
+            } else null
+            if (shared != null && WppTcpPolicy.enabledNow(settings.wppOverTcp)) {
+                tcpOfferIp = shared.ip
+                session.versionExchangeEnabled = true
+            }
+
             // The version exchange opens the conversation, *before* the wait for credentials
             // rather than after it. The phone starts its own ~12 s first-message timer when it
             // opens this channel, and on a cold hotspot the credential wait alone can outlast
@@ -1201,9 +1221,6 @@ class NativeAaHandshakeManager(
             // After a user exit the hotspot is off; the phone asking to connect switches it back on.
             // Probe: when the car is itself on a Wi-Fi network, the phone is sent there instead of to the
             // hotspot, and the car's client stays on.
-            val shared = if (SharedWifiNetwork.probeEnabled()) {
-                SharedWifiNetwork.current(context)?.takeIf { SharedWifiNetwork.shouldTry(context, it) }
-            } else null
             if (shared != null) {
                 AppLog.i("NativeAA: SHARED-NETWORK PROBE - the phone is sent to '${shared.ssid}' (${shared.ip}) instead of the car hotspot.")
             } else {
@@ -1413,13 +1430,22 @@ class NativeAaHandshakeManager(
      *
      * The version numbers are a guess and known to be one; see [WppHandshakeSession].
      */
-    private fun sendWifiVersionRequest(output: OutputStream) {
-        val request = Wireless.WifiVersionRequest.newBuilder()
-            .setMajor(WppHandshakeSession.WPP_VERSION_MAJOR)
-            .setMinor(WppHandshakeSession.WPP_VERSION_MINOR)
-            .build()
-        sendProtobuf(output, request.toByteArray(), WppMessageType.VERSION_REQUEST)
+    private fun sendWifiVersionRequest(output: OutputStream, tcpIp: String? = null) {
+        val payload = if (tcpIp != null) {
+            // Declares that this head unit can be dialed over the Wi-Fi the phone is on; see WppProjectionInfo.
+            WppProjectionInfo.encodeVersionRequest(WppProjectionInfo.TCP_MAJOR, WppProjectionInfo.TCP_MINOR, tcpIp, wppTcpPort())
+        } else {
+            Wireless.WifiVersionRequest.newBuilder()
+                .setMajor(WppHandshakeSession.WPP_VERSION_MAJOR)
+                .setMinor(WppHandshakeSession.WPP_VERSION_MINOR)
+                .build()
+                .toByteArray()
+        }
+        sendProtobuf(output, payload, WppMessageType.VERSION_REQUEST)
     }
+
+    /** The port the WPP-over-TCP listener is on (see [CarNetworkQuirks.autoWppTcpPort]). */
+    private fun wppTcpPort(): Int = CarNetworkQuirks.autoWppTcpPort()
 
     /**
      * Sends the credentials.
