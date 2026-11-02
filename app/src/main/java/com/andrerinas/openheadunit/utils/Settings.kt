@@ -1219,16 +1219,6 @@ class Settings(private val context: Context) {
         get() = prefs.getBoolean("native-wifi-version-exchange", false)
         set(value) = prefs.edit().putBoolean("native-wifi-version-exchange", value).apply()
 
-    /**
-     * Tells the phone, in the version request, where to dial us over the Wi-Fi it is on, and listens
-     * there: a phone that accepts it can reach us without Bluetooth, and goes back to Bluetooth when that
-     * does not work. On by default; `setprop debug.diauto.wpptcp 0` turns it off without a new build.
-     * See [com.andrerinas.openheadunit.connection.WppTcpServer].
-     */
-    var wppOverTcp: Boolean
-        get() = prefs.getBoolean("wpp-over-tcp", true)
-        set(value) = prefs.edit().putBoolean("wpp-over-tcp", value).apply()
-
     // Manual fallback for dual-radio head units whose second radio isn't discoverable via
     // ServiceManager.listServices() at all. Empty = disabled (rely on automatic discovery only).
     var manualSecondaryBluetoothServiceName: String

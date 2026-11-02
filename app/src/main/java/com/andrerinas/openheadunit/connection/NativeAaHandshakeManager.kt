@@ -16,7 +16,6 @@ import com.andrerinas.openheadunit.aap.WppFraming
 import com.andrerinas.openheadunit.aap.WppHandshakeSession
 import com.andrerinas.openheadunit.aap.WppMessageType
 import com.andrerinas.openheadunit.aap.WppProjectionInfo
-import com.andrerinas.openheadunit.aap.WppTcpPolicy
 import com.andrerinas.openheadunit.aap.WppStage
 import com.andrerinas.openheadunit.utils.BluetoothHelper
 import com.andrerinas.openheadunit.aap.protocol.proto.Wireless
@@ -1207,12 +1206,9 @@ class NativeAaHandshakeManager(
             } else null
             // Offered on the hotspot too, as the Urban head unit does: there the address is the hotspot's,
             // when it is already known. On a cold hotspot it is not yet, and the offer is left out.
-            if (WppTcpPolicy.enabledNow(settings.wppOverTcp)) {
-                val offerIp = shared?.ip ?: credentials?.ip?.takeIf { it.isNotEmpty() }
-                tcpOfferIp = offerIp
-                urbanVersion = true
-                session.versionExchangeEnabled = true
-            }
+            tcpOfferIp = shared?.ip ?: credentials?.ip?.takeIf { it.isNotEmpty() }
+            urbanVersion = true
+            session.versionExchangeEnabled = true
 
             // The version exchange opens the conversation, *before* the wait for credentials
             // rather than after it. The phone starts its own ~12 s first-message timer when it

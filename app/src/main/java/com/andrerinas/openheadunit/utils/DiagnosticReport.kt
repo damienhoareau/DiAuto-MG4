@@ -55,7 +55,7 @@ object DiagnosticReport {
             appendLine("Firmware: ${com.evsuite.hardware.FirmwareInfo.getDetectedString()}; generation=${com.evsuite.hardware.FirmwareInfo.getGeneration()}")
             appendLine("Audio source probes: ${runCatching { com.evsuite.hardware.saic.SaicMediaPlayer.probeSummary(context) }.getOrElse { "failed: ${it.message}" }}")
             appendLine("Sensors: ${com.andrerinas.openheadunit.aap.SensorProbe.summary()}")
-            appendLine("WPP over TCP: ${if (com.andrerinas.openheadunit.aap.WppTcpPolicy.enabledNow(settings.wppOverTcp)) "on" else "off"}; ${com.andrerinas.openheadunit.connection.WppTcpServer.lastEvent}")
+            appendLine("WPP over TCP: ${com.andrerinas.openheadunit.connection.WppTcpServer.lastEvent}")
             appendLine("Wireless mode=${settings.wifiConnectionMode}; hotspot state=${SoftApStateReader.read(context)}")
             appendLine("Hotspot configuration readable=${hotspot != null}")
             appendLine("Logging level=${settings.exporterLogLevel}; source=${settings.logSource}")

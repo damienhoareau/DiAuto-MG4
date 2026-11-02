@@ -2376,7 +2376,6 @@ class AapService : Service(), UsbReceiver.Listener {
      * address: the phone dials the one it was given, which is the car's on the shared Wi-Fi.
      */
     private fun startWppTcpServer() {
-        if (!com.andrerinas.openheadunit.aap.WppTcpPolicy.enabledNow(settings.wppOverTcp)) return
         if (wppTcpServer?.isListening == true) return
         wppTcpServer?.stop()
         wppTcpServer = com.andrerinas.openheadunit.connection.WppTcpServer(
