@@ -4378,6 +4378,9 @@ object EVHardware {
     // areaId 0x1 = door AV-gauche, 0x4 = AV-droite ; value 1 = opene, 0 = closede.
     private const val DOOR_OPEN_PROP = 0x2640c623
     private val DOOR_FRONT_AREAS = intArrayOf(0x1, 0x4)
+    private val DOOR_EXTRA_AREAS = intArrayOf(0x10, 0x40, 0x10000000, 0x20000000)
+    private val sDoorSilent = HashSet<Int>()
+    private var sDoorExtraPass = 0
     private val sDoorReadLast = HashMap<Int, Int>()
     @Volatile private var sDoorSubProperty = false   // path A: property.registerListener attached
     @Volatile private var sDoorSubDoorlock = false   // path B: doorlock.registerCallback attached
@@ -4554,6 +4557,19 @@ object EVHardware {
                 for (area in DOOR_FRONT_AREAS) {
                     val v = readDoorOpen(area) ?: continue
                     onDoorAreaValue(area, v)
+                }
+                // The other doors, the hood and the tailgate are only logged (the sensor feed reads them
+                // too), to learn which of these areas this firmware answers on; every fourth pass.
+                if (++sDoorExtraPass % 4 == 0) {
+                    for (area in DOOR_EXTRA_AREAS) {
+                        val v = readDoorOpen(area)
+                        if (v == null) {
+                            if (sDoorSilent.add(area)) AppLogger.i(DOORWATCH_TAG, "area=0x${area.toString(16)} does not answer")
+                        } else {
+                            sDoorSilent.remove(area)
+                            onDoorAreaValue(area, v)
+                        }
+                    }
                 }
                 h.postDelayed(this, 500L)
             }
