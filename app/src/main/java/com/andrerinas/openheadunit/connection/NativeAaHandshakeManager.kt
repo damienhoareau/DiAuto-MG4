@@ -1327,6 +1327,16 @@ class NativeAaHandshakeManager(
                 tick(250)
             }
 
+            // The Urban head unit keeps this channel open for as long as the projection runs and
+            // closes it only when a start fails. Closing it at once was harmless on the hotspot, but
+            // on the shared network the phone read the close as the head unit going away and
+            // restarted WPP over TCP from a stale configuration, which revoked the session. So when
+            // WPP over TCP was offered, the channel stays until the projection session ends.
+            if (session.stage == WppStage.DONE && tcpOfferIp != null) {
+                AppLog.i("NativeAA: WPP over TCP was offered — keeping the Bluetooth channel open while the session runs.")
+                while (isRunning && isActive && commManager.isConnected) delay(500)
+            }
+
         } catch (e: Exception) {
             AppLog.e("NativeAA: Handshake error: ${e.message}", e)
             // The Bluetooth link broke before the phone could answer: nothing was learned about the network.
