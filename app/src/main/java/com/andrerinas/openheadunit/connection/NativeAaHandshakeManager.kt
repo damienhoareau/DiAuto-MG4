@@ -1201,9 +1201,14 @@ class NativeAaHandshakeManager(
             val shared = if (SharedWifiNetwork.probeEnabled()) {
                 SharedWifiNetwork.current(context)?.takeIf { SharedWifiNetwork.shouldTry(context, it) }
             } else null
-            if (shared != null && WppTcpPolicy.enabledNow(settings.wppOverTcp)) {
-                tcpOfferIp = shared.ip
-                session.versionExchangeEnabled = true
+            // Offered on the hotspot too, as the Urban head unit does: there the address is the hotspot's,
+            // when it is already known. On a cold hotspot it is not yet, and the offer is left out.
+            if (WppTcpPolicy.enabledNow(settings.wppOverTcp)) {
+                val offerIp = shared?.ip ?: credentials?.ip?.takeIf { it.isNotEmpty() }
+                if (offerIp != null) {
+                    tcpOfferIp = offerIp
+                    session.versionExchangeEnabled = true
+                }
             }
 
             // The version exchange opens the conversation, *before* the wait for credentials
