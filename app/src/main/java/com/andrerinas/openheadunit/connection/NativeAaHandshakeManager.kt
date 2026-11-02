@@ -1025,17 +1025,21 @@ class NativeAaHandshakeManager(
             var bssidOmitted = false
             // The address the phone is told to dial for WPP over TCP, or null when it is not offered.
             var tcpOfferIp: String? = null
+            // Whether the version request goes out as the Urban head unit sends it (4.2, always), with or
+            // without the endpoint in it.
+            var urbanVersion = false
 
             suspend fun runAction(action: WppAction, source: ProtobufMessage?) {
                 when (action) {
                     WppAction.SendVersionRequest -> {
                         val tcpIp = tcpOfferIp
-                        if (tcpIp != null) {
-                            AppLog.i("NativeAA: [TX] Sending WifiVersionRequest (Type 4) v${WppProjectionInfo.TCP_MAJOR}.${WppProjectionInfo.TCP_MINOR} with the WPP-over-TCP endpoint $tcpIp:${wppTcpPort()}")
+                        if (urbanVersion) {
+                            AppLog.i("NativeAA: [TX] Sending WifiVersionRequest (Type 4) v${WppProjectionInfo.TCP_MAJOR}.${WppProjectionInfo.TCP_MINOR} " +
+                                if (tcpIp != null) "with the WPP-over-TCP endpoint $tcpIp:${wppTcpPort()}" else "without an endpoint (address not known yet)")
                         } else {
                             AppLog.i("NativeAA: [TX] Sending WifiVersionRequest (Type 4) v${WppHandshakeSession.WPP_VERSION_MAJOR}.${WppHandshakeSession.WPP_VERSION_MINOR}")
                         }
-                        sendWifiVersionRequest(output, tcpIp)
+                        sendWifiVersionRequest(output, tcpIp, urbanVersion)
                         spokeToPhone = true
                     }
                     WppAction.SendStartRequest -> {
@@ -1205,10 +1209,9 @@ class NativeAaHandshakeManager(
             // when it is already known. On a cold hotspot it is not yet, and the offer is left out.
             if (WppTcpPolicy.enabledNow(settings.wppOverTcp)) {
                 val offerIp = shared?.ip ?: credentials?.ip?.takeIf { it.isNotEmpty() }
-                if (offerIp != null) {
-                    tcpOfferIp = offerIp
-                    session.versionExchangeEnabled = true
-                }
+                tcpOfferIp = offerIp
+                urbanVersion = true
+                session.versionExchangeEnabled = true
             }
 
             // The version exchange opens the conversation, *before* the wait for credentials
@@ -1337,7 +1340,7 @@ class NativeAaHandshakeManager(
             // on the shared network the phone read the close as the head unit going away and
             // restarted WPP over TCP from a stale configuration, which revoked the session. So when
             // WPP over TCP was offered, the channel stays until the projection session ends.
-            if (session.stage == WppStage.DONE && tcpOfferIp != null) {
+            if (session.stage == WppStage.DONE && urbanVersion) {
                 AppLog.i("NativeAA: WPP over TCP was offered — keeping the Bluetooth channel open while the session runs.")
                 while (isRunning && isActive && commManager.isConnected) delay(500)
             }
@@ -1445,8 +1448,8 @@ class NativeAaHandshakeManager(
      *
      * The version numbers are a guess and known to be one; see [WppHandshakeSession].
      */
-    private fun sendWifiVersionRequest(output: OutputStream, tcpIp: String? = null) {
-        val payload = if (tcpIp != null) {
+    private fun sendWifiVersionRequest(output: OutputStream, tcpIp: String? = null, urbanVersion: Boolean = false) {
+        val payload = if (urbanVersion) {
             // Declares that this head unit can be dialed over the Wi-Fi the phone is on; see WppProjectionInfo.
             WppProjectionInfo.encodeVersionRequest(WppProjectionInfo.TCP_MAJOR, WppProjectionInfo.TCP_MINOR, tcpIp, wppTcpPort())
         } else {
