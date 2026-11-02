@@ -31,6 +31,8 @@ object SensorProbe {
 
     /** The ones of them this head unit does feed, from what the car publishes. The others get no data. */
     val FED: Set<Sensors.SensorType> = setOf(
+        Sensors.SensorType.RPM,
+        Sensors.SensorType.DOOR,
         Sensors.SensorType.ODOMETER,
         Sensors.SensorType.FUEL_LEVEL,
         Sensors.SensorType.HVAC,

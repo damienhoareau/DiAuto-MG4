@@ -7,12 +7,14 @@ import com.andrerinas.openheadunit.aap.protocol.messages.AccelerometerEvent
 import com.andrerinas.openheadunit.aap.protocol.messages.CarSpeedEvent
 import com.andrerinas.openheadunit.aap.protocol.messages.GyroscopeEvent
 import com.andrerinas.openheadunit.aap.protocol.messages.CompassEvent
+import com.andrerinas.openheadunit.aap.protocol.messages.DoorEvent
 import com.andrerinas.openheadunit.aap.protocol.messages.FuelLevelEvent
 import com.andrerinas.openheadunit.aap.protocol.messages.GearEvent
 import com.andrerinas.openheadunit.aap.protocol.messages.GpsSatelliteEvent
 import com.andrerinas.openheadunit.aap.protocol.messages.GpsSatelliteInfo
 import com.andrerinas.openheadunit.aap.protocol.messages.HvacEvent
 import com.andrerinas.openheadunit.aap.protocol.messages.OdometerEvent
+import com.andrerinas.openheadunit.aap.protocol.messages.RpmEvent
 import com.andrerinas.openheadunit.aap.protocol.messages.OutsideTemperatureEvent
 import com.andrerinas.openheadunit.aap.protocol.messages.ParkingBrakeEvent
 import com.andrerinas.openheadunit.aap.protocol.proto.Sensors
@@ -56,7 +58,19 @@ object Mg4DrivingSensorReporter {
         Sensors.SensorType.FUEL_LEVEL_VALUE,
         Sensors.SensorType.HVAC_VALUE,
         Sensors.SensorType.GPS_VALUE,
+        Sensors.SensorType.RPM_VALUE,
+        Sensors.SensorType.DOOR_VALUE,
     )
+
+    private const val RPM_REPEAT_MS = 5_000L
+
+    // AOSP door areas: the two front doors are confirmed on this firmware, the others are tried.
+    private val DOOR_AREAS = intArrayOf(0x1, 0x4, 0x10, 0x40)
+    private const val HOOD_AREA = 0x10000000
+    private const val BOOT_AREA = 0x20000000
+
+    /** The door event: the hood, the tailgate and the four doors, where an area that does not answer reads as shut. */
+    private data class DoorValue(val hood: Boolean, val boot: Boolean, val doors: List<Boolean>)
 
     private const val SLOW_REPEAT_MS = 60_000L
     private const val GNSS_MIN_INTERVAL_MS = 1_000L
@@ -339,6 +353,20 @@ object Mg4DrivingSensorReporter {
                 value = HvacValue(target, current)
                 repeatMs = SLOW_REPEAT_MS
             }
+            Sensors.SensorType.RPM_VALUE -> {
+                value = ((EVHardware.getEngineRpm() ?: return) * 1000).roundToInt()
+                repeatMs = RPM_REPEAT_MS
+            }
+            Sensors.SensorType.DOOR_VALUE -> {
+                // Without the front left door answering there is nothing to say; the other areas may stay silent.
+                val front = EVHardware.doorOpenOrNull(DOOR_AREAS[0]) ?: return
+                value = DoorValue(
+                    hood = EVHardware.doorOpenOrNull(HOOD_AREA) ?: false,
+                    boot = EVHardware.doorOpenOrNull(BOOT_AREA) ?: false,
+                    doors = listOf(front) + DOOR_AREAS.drop(1).map { EVHardware.doorOpenOrNull(it) ?: false },
+                )
+                repeatMs = SLOW_REPEAT_MS
+            }
             else -> return
         }
         val now = SystemClock.elapsedRealtime()
@@ -353,6 +381,8 @@ object Mg4DrivingSensorReporter {
             Sensors.SensorType.ODOMETER_VALUE -> transport.send(OdometerEvent(value as Int))
             Sensors.SensorType.FUEL_LEVEL_VALUE -> (value as FuelValue).let { transport.send(FuelLevelEvent(it.percent, it.rangeMetres, it.low)) }
             Sensors.SensorType.HVAC_VALUE -> (value as HvacValue).let { transport.send(HvacEvent(it.targetE3, it.currentE3)) }
+            Sensors.SensorType.RPM_VALUE -> transport.send(RpmEvent(value as Int))
+            Sensors.SensorType.DOOR_VALUE -> (value as DoorValue).let { transport.send(DoorEvent(it.hood, it.boot, it.doors)) }
             else -> transport.send(OutsideTemperatureEvent(value as Int))
         }
         if (!sent) return

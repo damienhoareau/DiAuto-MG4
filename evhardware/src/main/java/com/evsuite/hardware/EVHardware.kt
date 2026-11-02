@@ -4450,6 +4450,22 @@ object EVHardware {
         return if (answered) open else null
     }
 
+    /**
+     * One door, hood or tailgate as the car reports it: true when open, null where the area does not answer.
+     * [area] is the AOSP door area (0x1 / 0x4 front left / right, 0x10 / 0x40 rear, 0x10000000 hood,
+     * 0x20000000 tailgate); only the two front ones are confirmed on this firmware.
+     */
+    fun doorOpenOrNull(area: Int): Boolean? {
+        if (!hasDoorVolumeFeature()) return null
+        return readDoorOpen(area)?.let { it == 1 }
+    }
+
+    /** Engine (here: motor) speed in rpm, null when the car does not publish it. */
+    fun getEngineRpm(): Float? =
+        getFloatPropertyCPM(PROP_ENGINE_RPM, AREA_GLOBAL)?.takeIf { it.isFinite() && it >= 0f }
+
+    private const val PROP_ENGINE_RPM = 0x11600305
+
     /** Diagnostic button probe: logs the volume + door states at click time. */
     fun runDoorVolumeDiag() {
         AppLogger.i(VOL_TAG, "── DIAG (bouton Diagnostic) ──")

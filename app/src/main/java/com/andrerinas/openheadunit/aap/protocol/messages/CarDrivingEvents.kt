@@ -104,6 +104,22 @@ class HvacEvent(targetE3: Int?, currentE3: Int?) : SensorEvent(
     },
 )
 
+/** Engine speed in thousandths of a revolution per minute; the unit is not confirmed against the phone. */
+class RpmEvent(rpmE3: Int) : SensorEvent(
+    Sensors.SensorType.RPM_VALUE,
+    batch { it.addRpm(Sensors.SensorBatch.RpmData.newBuilder().setRpm(rpmE3)) },
+)
+
+/** Which doors are open: the hood, the tailgate, then each door in turn (front left, front right, rear left, rear right). */
+class DoorEvent(hoodOpen: Boolean, bootOpen: Boolean, doorsOpen: List<Boolean>) : SensorEvent(
+    Sensors.SensorType.DOOR_VALUE,
+    batch {
+        it.addDoorData(
+            Sensors.SensorBatch.DoorData.newBuilder().setHoodOpen(hoodOpen).setBootOpen(bootOpen).addAllDoorOpen(doorsOpen)
+        )
+    },
+)
+
 /** One GPS satellite as the head unit's receiver sees it. Angles in thousandths of a degree, signal in thousandths of dB-Hz. */
 class GpsSatelliteInfo(val prn: Int, val snrE3: Int, val usedInFix: Boolean, val azimuthE3: Int, val elevationE3: Int)
 
