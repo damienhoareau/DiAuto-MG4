@@ -4469,6 +4469,22 @@ object EVHardware {
 
     private const val PROP_ENGINE_RPM = 0x11600305
 
+    /** The turn indicators: 0 off, 1 left, 2 right (read on the car, the stalk moved by hand). Null when unreadable. */
+    fun getTurnIndicator(): Int? =
+        getIntPropertyCPM(PROP_TURN_INDICATOR, AREA_GLOBAL).takeIf { it in 0..2 }
+
+    /** Whether the parking lights are on (the property reads 3 then, 0 when off). Null when unreadable. */
+    fun getParkingLightsOn(): Boolean? =
+        getIntPropertyCPM(PROP_PARKING_LIGHTS, AREA_GLOBAL).takeIf { it >= 0 }?.let { it != 0 }
+
+    /** Steering wheel angle in degrees, positive to the left (about +513 to -518 lock to lock). Null when unreadable. */
+    fun getSteeringAngleDegrees(): Float? =
+        getFloatPropertyCPM(PROP_STEERING_ANGLE, AREA_GLOBAL)?.takeIf { it.isFinite() && it in -1000f..1000f }
+
+    private const val PROP_TURN_INDICATOR = 0x21409326
+    private const val PROP_PARKING_LIGHTS = 0x21409323
+    private const val PROP_STEERING_ANGLE = 0x21601563
+
     /** Diagnostic button probe: logs the volume + door states at click time. */
     fun runDoorVolumeDiag() {
         AppLogger.i(VOL_TAG, "── DIAG (bouton Diagnostic) ──")

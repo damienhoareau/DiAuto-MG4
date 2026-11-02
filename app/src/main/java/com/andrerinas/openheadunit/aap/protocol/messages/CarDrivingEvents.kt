@@ -120,6 +120,39 @@ class DoorEvent(hoodOpen: Boolean, bootOpen: Boolean, doorsOpen: List<Boolean>) 
     },
 )
 
+/**
+ * Lights: the headlight state (0 off, 1 on) and the turn indicators (0 off, 1 left, 2 right). The car only
+ * says whether the lights are on, not which, and does not publish the hazard lights.
+ */
+class LightEvent(headlight: Int, turnIndicator: Int) : SensorEvent(
+    Sensors.SensorType.LIGHT_VALUE,
+    batch {
+        it.addLightData(
+            Sensors.SensorBatch.LightData.newBuilder()
+                .setHeadlight(Sensors.SensorBatch.LightData.HeadlightState.forNumber(headlight)
+                    ?: Sensors.SensorBatch.LightData.HeadlightState.HEADLIGHT_0)
+                .setTurnIndicator(Sensors.SensorBatch.LightData.TurnIndicatorState.forNumber(turnIndicator)
+                    ?: Sensors.SensorBatch.LightData.TurnIndicatorState.INDICATOR_0)
+                .setHazardLightOn(false)
+        )
+    },
+)
+
+/**
+ * Steering angle and wheel speed. Both in thousandths (degrees, and metres per second as for the car speed); the
+ * unit is not confirmed against the phone.
+ */
+class DeadReckoningEvent(steeringAngleE3: Int, wheelSpeedE3: Int?) : SensorEvent(
+    Sensors.SensorType.DEAD_RECONING_VALUE,
+    batch {
+        it.addDeadReckoning(
+            Sensors.SensorBatch.DeadReckoningData.newBuilder().setSteeringAngel(steeringAngleE3).also { data ->
+                if (wheelSpeedE3 != null) data.setWheelSpeed(wheelSpeedE3)
+            }
+        )
+    },
+)
+
 /** One GPS satellite as the head unit's receiver sees it. Angles in thousandths of a degree, signal in thousandths of dB-Hz. */
 class GpsSatelliteInfo(val prn: Int, val snrE3: Int, val usedInFix: Boolean, val azimuthE3: Int, val elevationE3: Int)
 

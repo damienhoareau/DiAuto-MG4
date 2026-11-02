@@ -9,10 +9,12 @@ import com.andrerinas.openheadunit.aap.protocol.messages.GyroscopeEvent
 import com.andrerinas.openheadunit.aap.protocol.messages.CompassEvent
 import com.andrerinas.openheadunit.aap.protocol.messages.DoorEvent
 import com.andrerinas.openheadunit.aap.protocol.messages.FuelLevelEvent
+import com.andrerinas.openheadunit.aap.protocol.messages.DeadReckoningEvent
 import com.andrerinas.openheadunit.aap.protocol.messages.GearEvent
 import com.andrerinas.openheadunit.aap.protocol.messages.GpsSatelliteEvent
 import com.andrerinas.openheadunit.aap.protocol.messages.GpsSatelliteInfo
 import com.andrerinas.openheadunit.aap.protocol.messages.HvacEvent
+import com.andrerinas.openheadunit.aap.protocol.messages.LightEvent
 import com.andrerinas.openheadunit.aap.protocol.messages.OdometerEvent
 import com.andrerinas.openheadunit.aap.protocol.messages.RpmEvent
 import com.andrerinas.openheadunit.aap.protocol.messages.OutsideTemperatureEvent
@@ -60,7 +62,18 @@ object Mg4DrivingSensorReporter {
         Sensors.SensorType.GPS_VALUE,
         Sensors.SensorType.RPM_VALUE,
         Sensors.SensorType.DOOR_VALUE,
+        Sensors.SensorType.LIGHT_VALUE,
+        Sensors.SensorType.DEAD_RECONING_VALUE,
     )
+
+    private const val LIGHT_REPEAT_MS = 10_000L
+    private const val STEERING_REPEAT_MS = 1_000L
+
+    /** The light event: whether the lights are on, and the turn indicators (0 off, 1 left, 2 right). */
+    private data class LightValue(val headlight: Int, val turn: Int)
+
+    /** The dead reckoning event: steering angle and speed, in thousandths. */
+    private data class DeadReckoningValue(val steeringE3: Int, val speedE3: Int?)
 
     private const val RPM_REPEAT_MS = 5_000L
 
@@ -367,6 +380,20 @@ object Mg4DrivingSensorReporter {
                 )
                 repeatMs = SLOW_REPEAT_MS
             }
+            Sensors.SensorType.LIGHT_VALUE -> {
+                val turn = EVHardware.getTurnIndicator() ?: return
+                value = LightValue(if (EVHardware.getParkingLightsOn() == true) 1 else 0, turn)
+                repeatMs = LIGHT_REPEAT_MS
+            }
+            Sensors.SensorType.DEAD_RECONING_VALUE -> {
+                val angle = EVHardware.getSteeringAngleDegrees() ?: return
+                // Whole degrees, and the car speed stands in for the wheel speed.
+                value = DeadReckoningValue(
+                    steeringE3 = (angle.roundToInt() * 1000),
+                    speedE3 = EVHardware.getVehicleSpeedKmh()?.let { (abs(it) / 3.6 * 1_000).roundToInt() },
+                )
+                repeatMs = STEERING_REPEAT_MS
+            }
             else -> return
         }
         val now = SystemClock.elapsedRealtime()
@@ -383,6 +410,8 @@ object Mg4DrivingSensorReporter {
             Sensors.SensorType.HVAC_VALUE -> (value as HvacValue).let { transport.send(HvacEvent(it.targetE3, it.currentE3)) }
             Sensors.SensorType.RPM_VALUE -> transport.send(RpmEvent(value as Int))
             Sensors.SensorType.DOOR_VALUE -> (value as DoorValue).let { transport.send(DoorEvent(it.hood, it.boot, it.doors)) }
+            Sensors.SensorType.LIGHT_VALUE -> (value as LightValue).let { transport.send(LightEvent(it.headlight, it.turn)) }
+            Sensors.SensorType.DEAD_RECONING_VALUE -> (value as DeadReckoningValue).let { transport.send(DeadReckoningEvent(it.steeringE3, it.speedE3)) }
             else -> transport.send(OutsideTemperatureEvent(value as Int))
         }
         if (!sent) return

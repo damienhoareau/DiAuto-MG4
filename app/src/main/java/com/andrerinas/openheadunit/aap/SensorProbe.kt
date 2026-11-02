@@ -33,6 +33,8 @@ object SensorProbe {
     val FED: Set<Sensors.SensorType> = setOf(
         Sensors.SensorType.RPM,
         Sensors.SensorType.DOOR,
+        Sensors.SensorType.LIGHT,
+        Sensors.SensorType.DEAD_RECONING,
         Sensors.SensorType.ODOMETER,
         Sensors.SensorType.FUEL_LEVEL,
         Sensors.SensorType.HVAC,
