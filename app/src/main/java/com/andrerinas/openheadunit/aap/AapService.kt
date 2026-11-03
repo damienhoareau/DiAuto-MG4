@@ -1184,7 +1184,11 @@ class AapService : Service(), UsbReceiver.Listener {
                     nativeAaHandshakeManager?.stop()
                     serviceScope.launch {
                         delay(1500) // Give hardware time to settle before re-initializing the hotspot
-                        if (!preemptingWirelessForUsb && !isSwitchingToAccessory.get()) {
+                        if (wppTcpServer?.isExchanging == true) {
+                            // The phone came back during the wait and is already being served; a reset now
+                            // would cancel its exchange and make it start over.
+                            AppLog.i("AapService: a phone is in its WPP exchange — not resetting Native AA now.")
+                        } else if (!preemptingWirelessForUsb && !isSwitchingToAccessory.get()) {
                             initWifiMode(force = true)
                         }
                     }
@@ -1804,7 +1808,8 @@ class AapService : Service(), UsbReceiver.Listener {
                 val settings = App.provide(this).settings
                 val mac = intent?.getStringExtra(EXTRA_MAC)
                 val sessionUp = commManager.isConnected ||
-                    commManager.connectionState.value is CommManager.ConnectionState.Connecting
+                    commManager.connectionState.value is CommManager.ConnectionState.Connecting ||
+                    wppTcpServer?.isExchanging == true
                 if (sessionUp) {
                     AppLog.d("AapService: Bluetooth auto-start ignored — session already up.")
                 } else {
@@ -3298,6 +3303,10 @@ class AapService : Service(), UsbReceiver.Listener {
     }
 
     private fun armNativeAaForPoke() {
+        if (wppTcpServer?.isExchanging == true) {
+            AppLog.i("AapService: a phone is in its WPP exchange — leaving Native AA as it is before the poke.")
+            return
+        }
         val settings = App.provide(this).settings
         if (activeWifiMode != 3 || settings.wifiConnectionMode != 3) {
             AppLog.i("AapService: Initializing Native AA mode before poke...")

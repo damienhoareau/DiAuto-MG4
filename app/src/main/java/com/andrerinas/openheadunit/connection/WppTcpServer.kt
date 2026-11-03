@@ -72,6 +72,9 @@ class WppTcpServer(
     @Volatile var isListening = false
         private set
 
+    /** Whether a phone is in the middle of its WPP exchange. Restarting this server then cuts it off. */
+    val isExchanging: Boolean get() = busy.get()
+
     fun start() {
         if (acceptJob != null) return
         acceptJob = scope.launch { acceptLoop() }
