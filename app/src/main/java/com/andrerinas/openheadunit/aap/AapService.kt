@@ -19,6 +19,7 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
+import android.bluetooth.BluetoothDevice
 import android.os.Build
 import android.os.IBinder
 import android.os.Parcel
@@ -552,6 +553,43 @@ class AapService : Service(), UsbReceiver.Listener {
      * receiver fire for the same wake event.
      */
     private var lastWakeHandledTimestamp = 0L
+
+    /**
+     * The phone's Bluetooth link dropping ends a wireless session. Over WPP on TCP the session does not
+     * need Bluetooth any more, so without this it would run on after the phone's Bluetooth was turned off.
+     * The loss has to last [BT_LOSS_GRACE_MS]: profiles and the link itself reconnect in a blink.
+     */
+    private var btLossJob: Job? = null
+    private val phoneBluetoothReceiver = object : BroadcastReceiver() {
+        @SuppressLint("MissingPermission")
+        override fun onReceive(context: Context, intent: Intent) {
+            val device = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
+            } else {
+                @Suppress("DEPRECATION") intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+            } ?: return
+            val address = try { device.address } catch (_: SecurityException) { return }
+            if (address !in Settings.getAutoStartBtMacs(context)) return
+            when (intent.action) {
+                BluetoothDevice.ACTION_ACL_CONNECTED -> {
+                    btLossJob?.cancel()
+                    btLossJob = null
+                }
+                BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
+                    if (!commManager.isConnected || !commManager.isWirelessSession) return
+                    AppLog.i("AapService: the phone's Bluetooth link dropped ($address) — ending the wireless session unless it comes back within ${BT_LOSS_GRACE_MS / 1000}s.")
+                    btLossJob?.cancel()
+                    btLossJob = serviceScope.launch {
+                        delay(BT_LOSS_GRACE_MS)
+                        if (commManager.isConnected && commManager.isWirelessSession) {
+                            AppLog.i("AapService: the phone's Bluetooth link is still down — ending the wireless session.")
+                            commManager.disconnect(sendByeBye = false, isUserExit = false)
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     /**
      * Runtime-registered receiver for system wake/boot/power/screen events.
@@ -1345,6 +1383,11 @@ class AapService : Service(), UsbReceiver.Listener {
             UsbReceiver.createFilter(),
             ContextCompat.RECEIVER_NOT_EXPORTED
         )
+        ContextCompat.registerReceiver(
+            this, phoneBluetoothReceiver,
+            IntentFilter(BluetoothDevice.ACTION_ACL_CONNECTED).apply { addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED) },
+            ContextCompat.RECEIVER_EXPORTED
+        )
         // Runtime-registered MEDIA_BUTTON receiver.
         // Unlike manifest-registered receivers, runtime receivers bypass the
         // Android 8+ implicit broadcast restriction. This is the primary mechanism
@@ -1650,6 +1693,7 @@ class AapService : Service(), UsbReceiver.Listener {
         try { unregisterReceiver(usbReceiver) } catch (_: Exception) {}
         try { unregisterReceiver(mediaButtonReceiver) } catch (_: Exception) {}
         try { unregisterReceiver(wakeDetectReceiver) } catch (_: Exception) {}
+        try { unregisterReceiver(phoneBluetoothReceiver) } catch (_: Exception) {}
         try { App.provide(this).carKeysManager.unregisterReceivers() } catch (e: Exception) { AppLog.w("AapService: Error unregistering carKeysManager: ${e.message}") }
         try {
             if (::uiModeManager.isInitialized) {
@@ -3370,5 +3414,6 @@ class AapService : Service(), UsbReceiver.Listener {
         private const val HIBERNATE_WAKE_THRESHOLD_MS = 60_000L
 
         const val EXTRA_MAC = "extra_mac"
+        private const val BT_LOSS_GRACE_MS = 8_000L
     }
 }
