@@ -67,6 +67,7 @@ class WppTcpServer(
     private var acceptJob: Job? = null
     @Volatile private var serverSocket: ServerSocket? = null
     private val busy = AtomicBoolean(false)
+    private val held = java.util.concurrent.atomic.AtomicInteger(0)
 
     @Volatile var isListening = false
         private set
@@ -117,9 +118,7 @@ class WppTcpServer(
     private suspend fun serve(raw: Socket) {
         val peer = raw.inetAddress?.hostAddress ?: "?"
         if (commManager.isBusy) {
-            AppLog.i("WppTcp: $peer connected while a session is live or being set up; closing it.")
-            record("refused $peer: a session is already live")
-            try { raw.close() } catch (_: Exception) {}
+            holdIdle(raw, peer)
             return
         }
         if (!busy.compareAndSet(false, true)) {
@@ -148,6 +147,32 @@ class WppTcpServer(
             try { ssl?.close() } catch (_: Exception) {}
             try { raw.close() } catch (_: Exception) {}
             busy.set(false)
+        }
+    }
+
+    /**
+     * A phone dialing while a session is live is Gearhead restarting its Wi-Fi projection setup (it does so
+     * when it sees the car's Bluetooth profiles change). Closing the connection at once makes it restart again
+     * straight away, some thirty times a second, and a session the phone is churning its network requests under
+     * did not survive it. The Urban head unit takes every connection through to a "projection already started"
+     * answer instead. Here the connection is just held open and silent, so the phone waits out its own first
+     * message timeout and the retries slow to one every few seconds. A few at once at most.
+     */
+    private fun holdIdle(raw: Socket, peer: String) {
+        if (held.incrementAndGet() > MAX_HELD) {
+            held.decrementAndGet()
+            try { raw.close() } catch (_: Exception) {}
+            return
+        }
+        try {
+            AppLog.d("WppTcp: $peer connected while a session is live; holding it idle.")
+            raw.soTimeout = HOLD_MS
+            // Returns on the phone closing, on the timeout, or on any bytes it sends (ignored).
+            while (raw.getInputStream().read() >= 0) { /* ignore */ }
+        } catch (_: Exception) {
+        } finally {
+            held.decrementAndGet()
+            try { raw.close() } catch (_: Exception) {}
         }
     }
 
@@ -347,6 +372,8 @@ class WppTcpServer(
 
     companion object {
         private const val HANDSHAKE_TIMEOUT_MS = 15_000
+        private const val HOLD_MS = 20_000
+        private const val MAX_HELD = 4
 
         /** How long a connection may last without a projection session reaching us. */
         private const val OVERALL_TIMEOUT_MS = 60_000L
