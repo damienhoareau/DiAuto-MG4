@@ -771,7 +771,7 @@ class NativeAaHandshakeManager(
 
                     // Pre-flight: Ensure WiFi credentials (SSID/IP) are ready before connecting RFCOMM to phone.
                     // If RFCOMM connects before WiFi credentials exist, the phone times out after 10s waiting for WifiStartRequest.
-                    if (credentials == null) {
+                    if (credentials == null && (context as? AapService)?.sharedWifiAvailable() != true) {
                         AppLog.i("NativeAA: WiFi credentials not ready before poke. Requesting WiFi refresh...")
                         (context as? AapService)?.triggerHotspotRefresh()
                         var waitedMs = 0
@@ -835,7 +835,7 @@ class NativeAaHandshakeManager(
             pokeJob?.cancel()
             pokeJob = scope.launch(Dispatchers.IO + CoroutineName("NativeAa-ManualWakeup")) {
                 // Pre-flight: Ensure WiFi credentials (SSID/IP) are ready before connecting RFCOMM to phone.
-                if (credentials == null) {
+                if (credentials == null && (context as? AapService)?.sharedWifiAvailable() != true) {
                     AppLog.i("NativeAA: WiFi credentials not ready before manual poke. Requesting WiFi refresh...")
                     (context as? AapService)?.triggerHotspotRefresh()
                     var waitedMs = 0

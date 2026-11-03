@@ -1568,8 +1568,14 @@ class AapService : Service(), UsbReceiver.Listener {
                 if (!blockedByExternalBt) {
                     // Like the OEM stack: take the head unit's own hotspot (start it, 5 GHz / WPA2),
                     // read its credentials, and hand them to the phone over Bluetooth.
-                    AppLog.i("AapService: Native AA on the head unit hotspot — preparing the access point and resolving its credentials.")
-                    softApCredentialsProvider?.start()
+                    if (sharedWifiAvailable()) {
+                        // The phone will be sent to the network the car is already on, which needs no
+                        // access point. If that fails, the handshake starts the hotspot as the fallback.
+                        AppLog.i("AapService: Native AA on the shared Wi-Fi — the head unit hotspot is left off.")
+                    } else {
+                        AppLog.i("AapService: Native AA on the head unit hotspot — preparing the access point and resolving its credentials.")
+                        softApCredentialsProvider?.start()
+                    }
 
                     // Start the official Bluetooth handshake servers
                     nativeAaHandshakeManager?.start()
@@ -2606,8 +2612,15 @@ class AapService : Service(), UsbReceiver.Listener {
         provider.start()
     }
 
+    /** Whether the car is on a Wi-Fi network the phone can be sent to instead of the hotspot. */
+    fun sharedWifiAvailable(): Boolean =
+        com.andrerinas.openheadunit.connection.SharedWifiNetwork.probeEnabled() &&
+            com.andrerinas.openheadunit.connection.SharedWifiNetwork.current(this)
+                ?.let { com.andrerinas.openheadunit.connection.SharedWifiNetwork.shouldTry(this, it) } == true
+
     fun triggerHotspotRefresh() {
         if (App.provide(this).settings.wifiConnectionMode != 3) return
+        if (sharedWifiAvailable()) return
         AppLog.i("AapService: Access point refresh requested.")
         softApCredentialsProvider?.refresh()
     }
