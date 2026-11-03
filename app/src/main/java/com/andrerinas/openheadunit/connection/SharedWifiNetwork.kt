@@ -66,6 +66,17 @@ internal object SharedWifiNetwork {
         return true
     }
 
+    /**
+     * Whether [network] is not left alone. Unlike [shouldTry] it records nothing, so it can be asked as
+     * often as needed without counting as sending the phone there.
+     */
+    @Synchronized
+    fun isAllowed(context: Context, network: Network): Boolean {
+        val failedAt = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getLong(FAILED_PREFIX + network.ssid, 0L)
+        return failedAt == 0L || System.currentTimeMillis() - failedAt >= FAILED_FOR_MS
+    }
+
     /** The networks left alone, with when each was marked, most recent first. */
     @Synchronized
     fun leftAlone(context: Context): List<Pair<String, Long>> {

@@ -2616,7 +2616,7 @@ class AapService : Service(), UsbReceiver.Listener {
     fun sharedWifiAvailable(): Boolean =
         com.andrerinas.openheadunit.connection.SharedWifiNetwork.probeEnabled() &&
             com.andrerinas.openheadunit.connection.SharedWifiNetwork.current(this)
-                ?.let { com.andrerinas.openheadunit.connection.SharedWifiNetwork.shouldTry(this, it) } == true
+                ?.let { com.andrerinas.openheadunit.connection.SharedWifiNetwork.isAllowed(this, it) } == true
 
     fun triggerHotspotRefresh() {
         if (App.provide(this).settings.wifiConnectionMode != 3) return
