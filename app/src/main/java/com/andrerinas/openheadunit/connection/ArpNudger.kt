@@ -40,7 +40,7 @@ object ArpNudger {
 
     /** Starts (or extends) the ARP wake-up for the hotspot [hostIp] for [durationMs]. */
     @Synchronized
-    fun start(scope: CoroutineScope, hostIp: String, durationMs: Long = 60_000L) {
+    fun start(scope: CoroutineScope, hostIp: String, durationMs: Long = 60_000L, intervalMs: Long = INTERVAL_MS) {
         if (job?.isActive == true && runningFor == hostIp) {
             // already running for this hotspot: restart for a full duration
             stop()
@@ -80,7 +80,7 @@ object ArpNudger {
                         } catch (e: Exception) {
                             if (errors++ < 3) AppLog.w("$TAG: cannot send UDP: ${e.javaClass.simpleName}: ${e.message}")
                         }
-                        delay(INTERVAL_MS)
+                        delay(intervalMs)
                     }
                 }
             } catch (e: Exception) {

@@ -2397,6 +2397,14 @@ class AapService : Service(), UsbReceiver.Listener {
             },
             prepareMainServer = { ip -> bindWirelessServerTo(ip) },
         ).also { it.start() }
+        // A phone that dials us over the shared Wi-Fi needs the car's hardware address first, and the car
+        // never answers ARP (see ArpNudger). Without this it gets "No route to host" whenever its cache of
+        // the car has expired. Stopped when a session comes up.
+        if (com.andrerinas.openheadunit.connection.CarNetworkQuirks.needsArpNudge()) {
+            com.andrerinas.openheadunit.connection.SharedWifiNetwork.current(this)?.let {
+                com.andrerinas.openheadunit.connection.ArpNudger.start(serviceScope, it.ip, durationMs = 15 * 60_000L, intervalMs = 1_000L)
+            }
+        }
     }
 
     /**
