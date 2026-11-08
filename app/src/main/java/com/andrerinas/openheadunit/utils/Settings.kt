@@ -1215,6 +1215,13 @@ class Settings(private val context: Context) {
     // Gearhead, but "survivable on one" is not a default. Left as an opt-in until a reporter whose
     // unit broke on Android Auto 17.4 confirms it helps, since fixing that is the only reason to
     // send it at all.
+    // When to start Android Auto on a wireless connection, sent to the phone as the start request's
+    // start_reason (see WppStartReasonPolicy): 0 = always (a user request, as before), 1 = leave it to
+    // the phone's own "Start Android Auto automatically" setting.
+    var wirelessLaunchMode: Int
+        get() = prefs.getInt("wireless-launch-mode", com.andrerinas.openheadunit.aap.WppStartReasonPolicy.LAUNCH_ALWAYS)
+        set(value) = prefs.edit().putInt("wireless-launch-mode", value).apply()
+
     var nativeWifiVersionExchange: Boolean
         get() = prefs.getBoolean("native-wifi-version-exchange", false)
         set(value) = prefs.edit().putBoolean("native-wifi-version-exchange", value).apply()

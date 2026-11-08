@@ -321,6 +321,31 @@ public final class Wireless {
      * @return The status.
      */
     int getStatus();
+
+    /**
+     * <pre>
+     * Why the head unit asks for projection, read from Android Auto (Gearhead) by open-android-auto:
+     * 1 = USER_REQUEST, 2 = AUTO_LAUNCH, 3 = AUTOMATIC_RESTART (0 or absent reads as USER_REQUEST).
+     * AUTO_LAUNCH lets the phone apply its own "Start Android Auto automatically" setting when that
+     * is left to the vehicle. Kept as int32 so an unknown value still parses. See WppStartReason.
+     * </pre>
+     *
+     * <code>optional int32 start_reason = 4;</code>
+     * @return Whether the startReason field is set.
+     */
+    boolean hasStartReason();
+    /**
+     * <pre>
+     * Why the head unit asks for projection, read from Android Auto (Gearhead) by open-android-auto:
+     * 1 = USER_REQUEST, 2 = AUTO_LAUNCH, 3 = AUTOMATIC_RESTART (0 or absent reads as USER_REQUEST).
+     * AUTO_LAUNCH lets the phone apply its own "Start Android Auto automatically" setting when that
+     * is left to the vehicle. Kept as int32 so an unknown value still parses. See WppStartReason.
+     * </pre>
+     *
+     * <code>optional int32 start_reason = 4;</code>
+     * @return The startReason.
+     */
+    int getStartReason();
   }
   /**
    * <pre>
@@ -450,6 +475,39 @@ public final class Wireless {
       return status_;
     }
 
+    public static final int START_REASON_FIELD_NUMBER = 4;
+    private int startReason_ = 0;
+    /**
+     * <pre>
+     * Why the head unit asks for projection, read from Android Auto (Gearhead) by open-android-auto:
+     * 1 = USER_REQUEST, 2 = AUTO_LAUNCH, 3 = AUTOMATIC_RESTART (0 or absent reads as USER_REQUEST).
+     * AUTO_LAUNCH lets the phone apply its own "Start Android Auto automatically" setting when that
+     * is left to the vehicle. Kept as int32 so an unknown value still parses. See WppStartReason.
+     * </pre>
+     *
+     * <code>optional int32 start_reason = 4;</code>
+     * @return Whether the startReason field is set.
+     */
+    @java.lang.Override
+    public boolean hasStartReason() {
+      return ((bitField0_ & 0x00000008) != 0);
+    }
+    /**
+     * <pre>
+     * Why the head unit asks for projection, read from Android Auto (Gearhead) by open-android-auto:
+     * 1 = USER_REQUEST, 2 = AUTO_LAUNCH, 3 = AUTOMATIC_RESTART (0 or absent reads as USER_REQUEST).
+     * AUTO_LAUNCH lets the phone apply its own "Start Android Auto automatically" setting when that
+     * is left to the vehicle. Kept as int32 so an unknown value still parses. See WppStartReason.
+     * </pre>
+     *
+     * <code>optional int32 start_reason = 4;</code>
+     * @return The startReason.
+     */
+    @java.lang.Override
+    public int getStartReason() {
+      return startReason_;
+    }
+
     private byte memoizedIsInitialized = -1;
     @java.lang.Override
     public final boolean isInitialized() {
@@ -481,6 +539,9 @@ public final class Wireless {
       if (((bitField0_ & 0x00000004) != 0)) {
         output.writeInt32(3, status_);
       }
+      if (((bitField0_ & 0x00000008) != 0)) {
+        output.writeInt32(4, startReason_);
+      }
       getUnknownFields().writeTo(output);
     }
 
@@ -500,6 +561,10 @@ public final class Wireless {
       if (((bitField0_ & 0x00000004) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt32Size(3, status_);
+      }
+      if (((bitField0_ & 0x00000008) != 0)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt32Size(4, startReason_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
@@ -531,6 +596,11 @@ public final class Wireless {
         if (getStatus()
             != other.getStatus()) return false;
       }
+      if (hasStartReason() != other.hasStartReason()) return false;
+      if (hasStartReason()) {
+        if (getStartReason()
+            != other.getStartReason()) return false;
+      }
       if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
@@ -553,6 +623,10 @@ public final class Wireless {
       if (hasStatus()) {
         hash = (37 * hash) + STATUS_FIELD_NUMBER;
         hash = (53 * hash) + getStatus();
+      }
+      if (hasStartReason()) {
+        hash = (37 * hash) + START_REASON_FIELD_NUMBER;
+        hash = (53 * hash) + getStartReason();
       }
       hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
@@ -692,6 +766,7 @@ public final class Wireless {
         ipAddress_ = "";
         port_ = 0;
         status_ = 0;
+        startReason_ = 0;
         return this;
       }
 
@@ -737,6 +812,10 @@ public final class Wireless {
         if (((from_bitField0_ & 0x00000004) != 0)) {
           result.status_ = status_;
           to_bitField0_ |= 0x00000004;
+        }
+        if (((from_bitField0_ & 0x00000008) != 0)) {
+          result.startReason_ = startReason_;
+          to_bitField0_ |= 0x00000008;
         }
         result.bitField0_ |= to_bitField0_;
       }
@@ -796,6 +875,9 @@ public final class Wireless {
         if (other.hasStatus()) {
           setStatus(other.getStatus());
         }
+        if (other.hasStartReason()) {
+          setStartReason(other.getStartReason());
+        }
         this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
@@ -843,6 +925,11 @@ public final class Wireless {
                 bitField0_ |= 0x00000004;
                 break;
               } // case 24
+              case 32: {
+                startReason_ = input.readInt32();
+                bitField0_ |= 0x00000008;
+                break;
+              } // case 32
               default: {
                 if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                   done = true; // was an endgroup tag
@@ -1016,6 +1103,74 @@ public final class Wireless {
       public Builder clearStatus() {
         bitField0_ = (bitField0_ & ~0x00000004);
         status_ = 0;
+        onChanged();
+        return this;
+      }
+
+      private int startReason_ ;
+      /**
+       * <pre>
+       * Why the head unit asks for projection, read from Android Auto (Gearhead) by open-android-auto:
+       * 1 = USER_REQUEST, 2 = AUTO_LAUNCH, 3 = AUTOMATIC_RESTART (0 or absent reads as USER_REQUEST).
+       * AUTO_LAUNCH lets the phone apply its own "Start Android Auto automatically" setting when that
+       * is left to the vehicle. Kept as int32 so an unknown value still parses. See WppStartReason.
+       * </pre>
+       *
+       * <code>optional int32 start_reason = 4;</code>
+       * @return Whether the startReason field is set.
+       */
+      @java.lang.Override
+      public boolean hasStartReason() {
+        return ((bitField0_ & 0x00000008) != 0);
+      }
+      /**
+       * <pre>
+       * Why the head unit asks for projection, read from Android Auto (Gearhead) by open-android-auto:
+       * 1 = USER_REQUEST, 2 = AUTO_LAUNCH, 3 = AUTOMATIC_RESTART (0 or absent reads as USER_REQUEST).
+       * AUTO_LAUNCH lets the phone apply its own "Start Android Auto automatically" setting when that
+       * is left to the vehicle. Kept as int32 so an unknown value still parses. See WppStartReason.
+       * </pre>
+       *
+       * <code>optional int32 start_reason = 4;</code>
+       * @return The startReason.
+       */
+      @java.lang.Override
+      public int getStartReason() {
+        return startReason_;
+      }
+      /**
+       * <pre>
+       * Why the head unit asks for projection, read from Android Auto (Gearhead) by open-android-auto:
+       * 1 = USER_REQUEST, 2 = AUTO_LAUNCH, 3 = AUTOMATIC_RESTART (0 or absent reads as USER_REQUEST).
+       * AUTO_LAUNCH lets the phone apply its own "Start Android Auto automatically" setting when that
+       * is left to the vehicle. Kept as int32 so an unknown value still parses. See WppStartReason.
+       * </pre>
+       *
+       * <code>optional int32 start_reason = 4;</code>
+       * @param value The startReason to set.
+       * @return This builder for chaining.
+       */
+      public Builder setStartReason(int value) {
+
+        startReason_ = value;
+        bitField0_ |= 0x00000008;
+        onChanged();
+        return this;
+      }
+      /**
+       * <pre>
+       * Why the head unit asks for projection, read from Android Auto (Gearhead) by open-android-auto:
+       * 1 = USER_REQUEST, 2 = AUTO_LAUNCH, 3 = AUTOMATIC_RESTART (0 or absent reads as USER_REQUEST).
+       * AUTO_LAUNCH lets the phone apply its own "Start Android Auto automatically" setting when that
+       * is left to the vehicle. Kept as int32 so an unknown value still parses. See WppStartReason.
+       * </pre>
+       *
+       * <code>optional int32 start_reason = 4;</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearStartReason() {
+        bitField0_ = (bitField0_ & ~0x00000008);
+        startReason_ = 0;
         onChanged();
         return this;
       }
@@ -1571,10 +1726,16 @@ public final class Wireless {
    * <pre>
    * Type 3, head unit -&gt; phone. The credentials themselves.
    *
-   * bssid, security_mode and access_point_type were required. Optional now because a hotspot
-   * cannot always resolve a real BSSID, and aa-proxy-rs omits the field outright when it has none.
-   * Wire-compatible: proto2 encodes optional and required identically for a field that is set, so
-   * this only drops a build()-time assertion.
+   * bssid, security_mode and access_point_type are `required` in the schema every other
+   * implementation uses — aa-proxy-rs and WirelessAndroidAutoDongle ship byte-identical copies of it.
+   * Relaxed to optional here so a truncated or future message still parses rather than throwing, and
+   * that is the only reason. Wire-compatible either way: proto2 encodes optional and required
+   * identically for a field that is set.
+   *
+   * It does not license leaving one out. Send all five, always — an empty bssid where there is no
+   * real one, as aa-proxy-rs does on the one path where it has none. A field the reference schema
+   * calls required is one a strict parser on the phone may refuse the whole message over, and that
+   * failure would look nothing like the credentials being wrong.
    * </pre>
    *
    * Protobuf type {@code com.andrerinas.openheadunit.aap.protocol.proto.WifiInfoResponse}
@@ -2033,10 +2194,16 @@ public final class Wireless {
      * <pre>
      * Type 3, head unit -&gt; phone. The credentials themselves.
      *
-     * bssid, security_mode and access_point_type were required. Optional now because a hotspot
-     * cannot always resolve a real BSSID, and aa-proxy-rs omits the field outright when it has none.
-     * Wire-compatible: proto2 encodes optional and required identically for a field that is set, so
-     * this only drops a build()-time assertion.
+     * bssid, security_mode and access_point_type are `required` in the schema every other
+     * implementation uses — aa-proxy-rs and WirelessAndroidAutoDongle ship byte-identical copies of it.
+     * Relaxed to optional here so a truncated or future message still parses rather than throwing, and
+     * that is the only reason. Wire-compatible either way: proto2 encodes optional and required
+     * identically for a field that is set.
+     *
+     * It does not license leaving one out. Send all five, always — an empty bssid where there is no
+     * real one, as aa-proxy-rs does on the one path where it has none. A field the reference schema
+     * calls required is one a strict parser on the phone may refuse the whole message over, and that
+     * failure would look nothing like the credentials being wrong.
      * </pre>
      *
      * Protobuf type {@code com.andrerinas.openheadunit.aap.protocol.proto.WifiInfoResponse}
@@ -2703,8 +2870,9 @@ public final class Wireless {
   /**
    * <pre>
    * Type 4, head unit -&gt; phone. Opens the modern handshake by declaring our protocol version. Real
-   * head units send this first, aa-proxy-rs's dongle does not, hence the setting. Only major/minor
-   * are defined — the rest is revision dependent and we never have to read one.
+   * head units send this first, aa-proxy-rs's dongle does not, hence the setting — which is off by
+   * default, the version below being a guess. Only major/minor are defined; the rest is revision
+   * dependent and we never have to read one.
    * </pre>
    *
    * Protobuf type {@code com.andrerinas.openheadunit.aap.protocol.proto.WifiVersionRequest}
@@ -2961,8 +3129,9 @@ public final class Wireless {
     /**
      * <pre>
      * Type 4, head unit -&gt; phone. Opens the modern handshake by declaring our protocol version. Real
-     * head units send this first, aa-proxy-rs's dongle does not, hence the setting. Only major/minor
-     * are defined — the rest is revision dependent and we never have to read one.
+     * head units send this first, aa-proxy-rs's dongle does not, hence the setting — which is off by
+     * default, the version below being a guess. Only major/minor are defined; the rest is revision
+     * dependent and we never have to read one.
      * </pre>
      *
      * Protobuf type {@code com.andrerinas.openheadunit.aap.protocol.proto.WifiVersionRequest}
@@ -7193,31 +7362,32 @@ public final class Wireless {
   static {
     java.lang.String[] descriptorData = {
       "\n\016wireless.proto\022.com.andrerinas.openhea" +
-      "dunit.aap.protocol.proto\"D\n\020WifiStartReq" +
+      "dunit.aap.protocol.proto\"Z\n\020WifiStartReq" +
       "uest\022\022\n\nip_address\030\001 \002(\t\022\014\n\004port\030\002 \002(\005\022\016" +
-      "\n\006status\030\003 \001(\005\"\021\n\017WifiInfoRequest\"\355\001\n\020Wi" +
-      "fiInfoResponse\022\014\n\004ssid\030\001 \002(\t\022\013\n\003key\030\002 \002(" +
-      "\t\022\r\n\005bssid\030\003 \001(\t\022S\n\rsecurity_mode\030\004 \001(\0162" +
-      "<.com.andrerinas.openheadunit.aap.protoc" +
-      "ol.proto.SecurityMode\022Z\n\021access_point_ty" +
-      "pe\030\005 \001(\0162?.com.andrerinas.openheadunit.a" +
-      "ap.protocol.proto.AccessPointType\"2\n\022Wif" +
-      "iVersionRequest\022\r\n\005major\030\001 \001(\005\022\r\n\005minor\030" +
-      "\002 \001(\005\"~\n\023WifiVersionResponse\022\r\n\005major\030\001 " +
-      "\001(\005\022\r\n\005minor\030\002 \001(\005\022\025\n\rdevice_serial\030\003 \001(" +
-      "\t\022\016\n\006status\030\004 \001(\005\022\"\n\032selected_wifi_chann" +
-      "el_type\030\005 \001(\005\"#\n\021WifiConnectStatus\022\016\n\006st" +
-      "atus\030\001 \001(\005\"7\n\021WifiStartResponse\022\022\n\nip_ad" +
-      "dress\030\001 \001(\t\022\016\n\006status\030\003 \001(\005\"$\n\017WifiPingR" +
-      "equest\022\021\n\ttimestamp\030\001 \001(\003\"%\n\020WifiPingRes" +
-      "ponse\022\021\n\ttimestamp\030\001 \001(\003\"-\n\rWifiSetupInf" +
-      "o\022\r\n\005major\030\001 \001(\005\022\r\n\005minor\030\002 \001(\005**\n\017Acces" +
-      "sPointType\022\n\n\006STATIC\020\000\022\013\n\007DYNAMIC\020\001*\312\001\n\014" +
-      "SecurityMode\022\031\n\025UNKNOWN_SECURITY_MODE\020\000\022" +
-      "\010\n\004OPEN\020\001\022\n\n\006WEP_64\020\002\022\013\n\007WEP_128\020\003\022\020\n\014WP" +
-      "A_PERSONAL\020\004\022\021\n\rWPA2_PERSONAL\020\010\022\025\n\021WPA_W" +
-      "PA2_PERSONAL\020\014\022\022\n\016WPA_ENTERPRISE\020\024\022\023\n\017WP" +
-      "A2_ENTERPRISE\020\030\022\027\n\023WPA_WPA2_ENTERPRISE\020\034"
+      "\n\006status\030\003 \001(\005\022\024\n\014start_reason\030\004 \001(\005\"\021\n\017" +
+      "WifiInfoRequest\"\355\001\n\020WifiInfoResponse\022\014\n\004" +
+      "ssid\030\001 \002(\t\022\013\n\003key\030\002 \002(\t\022\r\n\005bssid\030\003 \001(\t\022S" +
+      "\n\rsecurity_mode\030\004 \001(\0162<.com.andrerinas.o" +
+      "penheadunit.aap.protocol.proto.SecurityM" +
+      "ode\022Z\n\021access_point_type\030\005 \001(\0162?.com.and" +
+      "rerinas.openheadunit.aap.protocol.proto." +
+      "AccessPointType\"2\n\022WifiVersionRequest\022\r\n" +
+      "\005major\030\001 \001(\005\022\r\n\005minor\030\002 \001(\005\"~\n\023WifiVersi" +
+      "onResponse\022\r\n\005major\030\001 \001(\005\022\r\n\005minor\030\002 \001(\005" +
+      "\022\025\n\rdevice_serial\030\003 \001(\t\022\016\n\006status\030\004 \001(\005\022" +
+      "\"\n\032selected_wifi_channel_type\030\005 \001(\005\"#\n\021W" +
+      "ifiConnectStatus\022\016\n\006status\030\001 \001(\005\"7\n\021Wifi" +
+      "StartResponse\022\022\n\nip_address\030\001 \001(\t\022\016\n\006sta" +
+      "tus\030\003 \001(\005\"$\n\017WifiPingRequest\022\021\n\ttimestam" +
+      "p\030\001 \001(\003\"%\n\020WifiPingResponse\022\021\n\ttimestamp" +
+      "\030\001 \001(\003\"-\n\rWifiSetupInfo\022\r\n\005major\030\001 \001(\005\022\r" +
+      "\n\005minor\030\002 \001(\005**\n\017AccessPointType\022\n\n\006STAT" +
+      "IC\020\000\022\013\n\007DYNAMIC\020\001*\312\001\n\014SecurityMode\022\031\n\025UN" +
+      "KNOWN_SECURITY_MODE\020\000\022\010\n\004OPEN\020\001\022\n\n\006WEP_6" +
+      "4\020\002\022\013\n\007WEP_128\020\003\022\020\n\014WPA_PERSONAL\020\004\022\021\n\rWP" +
+      "A2_PERSONAL\020\010\022\025\n\021WPA_WPA2_PERSONAL\020\014\022\022\n\016" +
+      "WPA_ENTERPRISE\020\024\022\023\n\017WPA2_ENTERPRISE\020\030\022\027\n" +
+      "\023WPA_WPA2_ENTERPRISE\020\034"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -7228,7 +7398,7 @@ public final class Wireless {
     internal_static_com_andrerinas_openheadunit_aap_protocol_proto_WifiStartRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_andrerinas_openheadunit_aap_protocol_proto_WifiStartRequest_descriptor,
-        new java.lang.String[] { "IpAddress", "Port", "Status", });
+        new java.lang.String[] { "IpAddress", "Port", "Status", "StartReason", });
     internal_static_com_andrerinas_openheadunit_aap_protocol_proto_WifiInfoRequest_descriptor =
       getDescriptor().getMessageTypes().get(1);
     internal_static_com_andrerinas_openheadunit_aap_protocol_proto_WifiInfoRequest_fieldAccessorTable = new

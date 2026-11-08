@@ -33,6 +33,11 @@ message WifiStartRequest {
     required string ip_address = 1;
     required int32 port = 2;
     optional int32 status = 3;
+    // Why the head unit asks for projection, read from Android Auto (Gearhead) by open-android-auto:
+    // 1 = USER_REQUEST, 2 = AUTO_LAUNCH, 3 = AUTOMATIC_RESTART (0 or absent reads as USER_REQUEST).
+    // AUTO_LAUNCH lets the phone apply its own "Start Android Auto automatically" setting when that
+    // is left to the vehicle. Kept as int32 so an unknown value still parses. See WppStartReason.
+    optional int32 start_reason = 4;
 }
 
 // Type 2, phone -> head unit. Empty: the phone asking for the network credentials. Modelled so

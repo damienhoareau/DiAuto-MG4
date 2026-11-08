@@ -143,6 +143,7 @@ object SettingsBackupManager {
         // The Native AA handshake opt-in: a reporter who found they need it wants it to survive a
         // reinstall, which is exactly when they are asked to export their settings.
         "native-wifi-version-exchange" to ValueType.BOOLEAN,
+        "wireless-launch-mode" to ValueType.INT,
         "use-libusb" to ValueType.BOOLEAN,
         // Custom loading screen display options. The picked image/video is copied into the app's
         // private storage, so the media path/type cannot be restored on another install and are not

@@ -963,4 +963,7 @@
     <string name="crash_report_sending">Sending report…</string>
     <string name="crash_report_sent">Report sent. Thank you.</string>
     <string name="crash_report_send_failed">Could not send the report. Check internet and try again.</string>
+    <string name="wireless_launch_mode">启动无线 Android Auto</string>
+    <string name="wireless_launch_always">始终</string>
+    <string name="wireless_launch_phone_preference">按手机设置</string>
 </resources>

@@ -17,6 +17,8 @@ import com.andrerinas.openheadunit.aap.WppFraming
 import com.andrerinas.openheadunit.aap.WppHandshakeSession
 import com.andrerinas.openheadunit.aap.WppMessageType
 import com.andrerinas.openheadunit.aap.WppProjectionInfo
+import com.andrerinas.openheadunit.aap.WppStartReason
+import com.andrerinas.openheadunit.aap.WppStartReasonTracker
 import com.andrerinas.openheadunit.aap.WppStage
 import com.andrerinas.openheadunit.utils.BluetoothHelper
 import com.andrerinas.openheadunit.aap.protocol.proto.Wireless
@@ -1043,8 +1045,9 @@ class NativeAaHandshakeManager(
                         spokeToPhone = true
                     }
                     WppAction.SendStartRequest -> {
-                        AppLog.i("NativeAA: [TX] Sending WifiStartRequest (Type 1)")
-                        sendWifiStartRequest(output, credIp, context.wirelessPort)
+                        val reason = WppStartReasonTracker.current(settings.wirelessLaunchMode)
+                        AppLog.i("NativeAA: [TX] Sending WifiStartRequest (Type 1), start_reason=$reason")
+                        sendWifiStartRequest(output, credIp, context.wirelessPort, reason)
                         spokeToPhone = true
                     }
                     WppAction.SendInfoResponse -> {
@@ -1463,11 +1466,12 @@ class NativeAaHandshakeManager(
         }
     }
 
-    private fun sendWifiStartRequest(output: OutputStream, ip: String, port: Int) {
+    private fun sendWifiStartRequest(output: OutputStream, ip: String, port: Int, reason: WppStartReason) {
         val request = Wireless.WifiStartRequest.newBuilder()
             .setIpAddress(ip)
             .setPort(port)
             .setStatus(0)
+            .setStartReason(reason.wire)
             .build()
         sendProtobuf(output, request.toByteArray(), WppMessageType.START_REQUEST)
     }

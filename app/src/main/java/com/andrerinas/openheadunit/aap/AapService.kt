@@ -850,6 +850,7 @@ class AapService : Service(), UsbReceiver.Listener {
      * that [VideoDecoder.setSurface] is always called before the first video frame arrives.
      */
     private fun onConnected() {
+        WppStartReasonTracker.reset()
         com.andrerinas.openheadunit.utils.CarWifiClient.noteSessionStarted()
         com.andrerinas.openheadunit.connection.SharedWifiNetwork.noteSessionStarted()
         isSwitchingToAccessory.set(false)
@@ -1177,9 +1178,12 @@ class AapService : Service(), UsbReceiver.Listener {
                     nativeAaHandshakeManager?.stop()
                 } else if (state.isUserExit) {
                     AppLog.i("AapService: Native AA user exit. Stopping handshake manager.")
+                    WppStartReasonTracker.reset()
                     nativeAaHandshakeManager?.stop()
                 } else {
-                    // Unexpected disconnect — reset and re-initialize for auto-reconnect.
+                    // Unexpected disconnect — reset and re-initialize for auto-reconnect. The phone
+                    // coming back is told it is an automatic restart (start_reason).
+                    WppStartReasonTracker.noteSessionLost()
                     AppLog.i("AapService: Native AA Mode disconnected. Resetting manager and group in 1.5s...")
                     nativeAaHandshakeManager?.stop()
                     serviceScope.launch {
@@ -1787,6 +1791,9 @@ class AapService : Service(), UsbReceiver.Listener {
             ACTION_NATIVE_AA_POKE        -> {
                 val mac = intent?.getStringExtra(EXTRA_MAC)
                 if (mac != null) {
+                    // Only the home screen's Connect sets this; the car launcher's start request does
+                    // not tell a tap from its own automatic start, so it is not counted as one.
+                    if (intent?.getBooleanExtra(EXTRA_USER_REQUEST, false) == true) WppStartReasonTracker.noteUserRequest()
                     AppLog.i("AapService: Received manual Native-AA poke request for $mac")
                     scheduleNativeAaPoke(mac, reason = "manual poke")
                 }
@@ -2397,6 +2404,7 @@ class AapService : Service(), UsbReceiver.Listener {
                 }
             },
             prepareMainServer = { ip -> bindWirelessServerTo(ip) },
+            startReason = { WppStartReasonTracker.current(App.provide(this).settings.wirelessLaunchMode) },
         ).also { it.start() }
         // A phone that dials us over the shared Wi-Fi needs the car's hardware address first, and the car
         // never answers ARP (see ArpNudger). Without this it gets "No route to host" whenever its cache of
@@ -3423,6 +3431,8 @@ class AapService : Service(), UsbReceiver.Listener {
         private const val HIBERNATE_WAKE_THRESHOLD_MS = 60_000L
 
         const val EXTRA_MAC = "extra_mac"
+        /** On [ACTION_NATIVE_AA_POKE]: the user asked for this connection (see WppStartReason). */
+        const val EXTRA_USER_REQUEST = "extra_user_request"
         private const val BT_LOSS_GRACE_MS = 8_000L
     }
 }

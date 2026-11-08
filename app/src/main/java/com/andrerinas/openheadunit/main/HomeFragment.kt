@@ -153,6 +153,7 @@ class HomeFragment : Fragment() {
         ContextCompat.startForegroundService(requireContext(), Intent(requireContext(), AapService::class.java).apply {
             action = AapService.ACTION_NATIVE_AA_POKE
             putExtra(AapService.EXTRA_MAC, device.address)
+            putExtra(AapService.EXTRA_USER_REQUEST, true)
         })
     }
 

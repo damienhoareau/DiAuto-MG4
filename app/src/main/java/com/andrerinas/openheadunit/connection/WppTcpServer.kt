@@ -8,6 +8,7 @@ import com.andrerinas.openheadunit.aap.WppFraming
 import com.andrerinas.openheadunit.aap.WppHandshakeSession
 import com.andrerinas.openheadunit.aap.WppMessageType
 import com.andrerinas.openheadunit.aap.WppProjectionInfo
+import com.andrerinas.openheadunit.aap.WppStartReason
 import com.andrerinas.openheadunit.aap.protocol.proto.Wireless
 import com.andrerinas.openheadunit.ssl.ConscryptInitializer
 import com.andrerinas.openheadunit.ssl.NoCheckTrustManager
@@ -59,6 +60,8 @@ class WppTcpServer(
     private val credentials: () -> Credentials?,
     /** Gets the projection listener ready on the address the phone dialed, before it is sent there. */
     private val prepareMainServer: suspend (String) -> Unit,
+    /** Field 4 of the start request; see [WppStartReason]. */
+    private val startReason: () -> WppStartReason = { WppStartReason.USER_REQUEST },
 ) {
     /** The network credentials to give a phone that still asks for them. */
     data class Credentials(val ssid: String, val psk: String, val bssid: String)
@@ -217,13 +220,15 @@ class WppTcpServer(
                     )
                 }
                 WppAction.SendStartRequest -> {
+                    val reason = startReason()
                     val request = Wireless.WifiStartRequest.newBuilder()
                         .setIpAddress(localIp)
                         .setPort(mainPort())
                         .setStatus(0)
+                        .setStartReason(reason.wire)
                         .build()
                     send(WppMessageType.START_REQUEST, request.toByteArray())
-                    record("start request sent ($localIp:${mainPort()})")
+                    record("start request sent ($localIp:${mainPort()}, start_reason=$reason)")
                 }
                 WppAction.SendInfoResponse -> {
                     val creds = credentials()

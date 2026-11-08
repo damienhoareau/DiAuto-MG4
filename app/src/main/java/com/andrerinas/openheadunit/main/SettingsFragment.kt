@@ -27,6 +27,7 @@ import com.andrerinas.openheadunit.R
 import com.andrerinas.openheadunit.aap.AapService
 import com.andrerinas.openheadunit.aap.MediaKeyRoutingPolicy
 import com.andrerinas.openheadunit.aap.VideoFaultInjector
+import com.andrerinas.openheadunit.aap.WppStartReasonPolicy
 import com.andrerinas.openheadunit.decoder.DeviceMemoryProfile
 import com.andrerinas.openheadunit.main.settings.SettingItem
 import com.andrerinas.openheadunit.main.settings.SettingsAdapter
@@ -788,6 +789,32 @@ class SettingsFragment : Fragment() {
                 try {
                     findNavController().navigate(R.id.action_settingsFragment_to_autoConnectFragment)
                 } catch (e: Exception) { }
+            }
+        ))
+
+        // Sent to the phone as the start request's start_reason; read when the next handshake starts,
+        // so it applies at once.
+        val launchModeLabels = arrayOf(
+            getString(R.string.wireless_launch_always),
+            getString(R.string.wireless_launch_phone_preference),
+        )
+        val launchMode = settings.wirelessLaunchMode
+            .coerceIn(WppStartReasonPolicy.LAUNCH_ALWAYS, WppStartReasonPolicy.LAUNCH_PHONE_PREFERENCE)
+        items.add(SettingItem.SettingEntry(
+            stableId = "wirelessLaunchMode",
+            nameResId = R.string.wireless_launch_mode,
+            value = launchModeLabels[launchMode],
+            searchKeywords = launchModeLabels.joinToString(" "),
+            onClick = { _ ->
+                MaterialAlertDialogBuilder(requireContext(), R.style.DarkAlertDialog)
+                    .setTitle(R.string.wireless_launch_mode)
+                    .setSingleChoiceItems(launchModeLabels, launchMode) { dialog, which ->
+                        settings.wirelessLaunchMode = which
+                        settings.commit()
+                        dialog.dismiss()
+                        updateSettingsList()
+                    }
+                    .show()
             }
         ))
 
