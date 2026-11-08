@@ -5,6 +5,7 @@ import android.net.wifi.SupplicantState
 import android.net.wifi.WifiConfiguration
 import android.net.wifi.WifiManager
 import android.os.SystemClock
+import com.andrerinas.openheadunit.aap.SharedWifiJoinPolicy
 import com.andrerinas.openheadunit.utils.AppLog
 
 /**
@@ -126,6 +127,23 @@ internal object SharedWifiNetwork {
             prefs.edit().remove(FAILED_PREFIX + ssid).apply()
             AppLog.i("$TAG: the session over '$ssid' lasted ${lasted / 1000}s, the network works.")
         }
+    }
+
+    /**
+     * What the car's Wi-Fi client is doing right now, read without logging so it can be polled.
+     * See [SharedWifiJoinPolicy].
+     */
+    @Suppress("DEPRECATION")
+    fun clientPhase(context: Context): SharedWifiJoinPolicy.Phase {
+        val wm = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+            ?: return SharedWifiJoinPolicy.Phase.OFF
+        val info = try { wm.connectionInfo } catch (_: Exception) { null }
+        return SharedWifiJoinPolicy.phaseOf(
+            wifiEnabled = wm.isWifiEnabled,
+            wifiEnabling = wm.wifiState == WifiManager.WIFI_STATE_ENABLING,
+            supplicantState = info?.supplicantState?.name,
+            hasIp = info != null && info.ipAddress != 0,
+        )
     }
 
     @Suppress("DEPRECATION")

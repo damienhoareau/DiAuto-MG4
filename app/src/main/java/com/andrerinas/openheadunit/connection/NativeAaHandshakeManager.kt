@@ -10,6 +10,7 @@ import com.andrerinas.openheadunit.aap.AapService
 import com.andrerinas.openheadunit.aap.BluetoothWakePolicy
 import com.andrerinas.openheadunit.aap.NativeCredentialsPolicy
 import com.andrerinas.openheadunit.aap.NativeHandoffPolicy
+import com.andrerinas.openheadunit.aap.SharedWifiJoinPolicy
 import com.andrerinas.openheadunit.aap.WppAction
 import com.andrerinas.openheadunit.aap.WppEvent
 import com.andrerinas.openheadunit.aap.WppFraming
@@ -1201,6 +1202,40 @@ class NativeAaHandshakeManager(
             // Which network the phone is sent to has to be known before the version request goes out:
             // WPP over TCP is only offered for the shared Wi-Fi, where the phone and the car are on the
             // same network and the car's address on it is known.
+            //
+            // At ignition the phone's Bluetooth is usually back before the car's Wi-Fi client has
+            // joined its network. Deciding at that instant always picks the hotspot — and the hotspot
+            // branch below switches the client off, so the shared network is lost for the whole
+            // trip. Give a client that is visibly on its way a few seconds (SharedWifiJoinPolicy).
+            if (SharedWifiNetwork.probeEnabled()) {
+                val waitStart = SystemClock.elapsedRealtime()
+                var phase = SharedWifiNetwork.clientPhase(context)
+                if (SharedWifiJoinPolicy.shouldKeepWaiting(phase, 0)) {
+                    AppLog.i("NativeAA: the car's Wi-Fi client is $phase; waiting up to " +
+                        "${SharedWifiJoinPolicy.maxWaitMs(phase)}ms for the shared network before choosing the hotspot.")
+                }
+                while (isActive && isRunning) {
+                    val waited = SystemClock.elapsedRealtime() - waitStart
+                    if (!SharedWifiJoinPolicy.shouldKeepWaiting(phase, waited)) break
+                    if (commManager.isConnected ||
+                        commManager.connectionState.value is CommManager.ConnectionState.Connecting) break
+                    delay(SharedWifiJoinPolicy.POLL_MS)
+                    phase = SharedWifiNetwork.clientPhase(context)
+                }
+                val waited = SystemClock.elapsedRealtime() - waitStart
+                if (waited >= SharedWifiJoinPolicy.POLL_MS) {
+                    AppLog.i("NativeAA: shared-network wait over after ${waited}ms, the car's Wi-Fi client is $phase.")
+                }
+                // The phone may have reached us over Wi-Fi (WPP over TCP) while we waited: do not go on
+                // to switch the car's client off under that session.
+                if (commManager.isConnected ||
+                    commManager.connectionState.value is CommManager.ConnectionState.Connecting) {
+                    AppLog.i("NativeAA: a session came up over Wi-Fi during the shared-network wait. Dropping the Bluetooth handshake.")
+                    abortedLocally = true
+                    try { socket.close() } catch (_: Exception) {}
+                    return@withContext
+                }
+            }
             val shared = if (SharedWifiNetwork.probeEnabled()) {
                 SharedWifiNetwork.current(context)?.takeIf { SharedWifiNetwork.shouldTry(context, it) }
             } else null
