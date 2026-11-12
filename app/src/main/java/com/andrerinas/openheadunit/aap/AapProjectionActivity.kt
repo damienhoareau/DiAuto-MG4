@@ -940,10 +940,21 @@ class AapProjectionActivity : SurfaceActivity(), IProjectionView.Callbacks, Vide
         }
     }
 
+    private var sentBehind = false
+
     override fun onResume() {
         super.onResume()
         isForeground = true
         AppLog.i("AapProjectionActivity: onResume")
+        // A session the phone started by itself keeps its screen, but not the front: once it is up, the activity
+        // steps back to what was there.
+        if (AaStatusBus.keepBehind() && !sentBehind) {
+            sentBehind = true
+            watchdogHandler.postDelayed({
+                AppLog.i("AapProjectionActivity: sending the projection to the back")
+                moveTaskToBack(true)
+            }, 3000)
+        }
         // Show the one-time rename notice even here, on top of an active projection.
         RenameNotice.maybeShow(this, App.provide(this).settings)
         applyStickyOrientation()

@@ -62,6 +62,7 @@ class App : Application() {
             // AutoStartReceiver
             // can read them during locked boot (before user unlock)
             Settings.syncAutoStartBtMacsToDeviceStorage(this, settings.autoStartBluetoothDeviceMacs)
+            Settings.syncAutoStartBtDevicesChosenToDeviceStorage(this, settings.autoStartBluetoothDevicesChosen)
 
             // Apply app theme (runs the live manager when dynamic, or when a saved place
             // can force the app theme even over a static base).

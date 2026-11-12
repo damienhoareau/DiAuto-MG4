@@ -24,7 +24,7 @@ internal object SharedWifiNetwork {
     private const val TAG = "SharedWifi"
     private const val PROPERTY = "debug.diauto.sharednet"
 
-    data class Network(val ssid: String, val psk: String, val ip: String, val bssid: String)
+    data class Network(val ssid: String, val psk: String, val ip: String, val bssid: String, val frequencyMhz: Int = 0)
 
     private const val PREFS = "shared_wifi"
     private const val FAILED_PREFIX = "failed2:"
@@ -37,6 +37,14 @@ internal object SharedWifiNetwork {
     // The network a running session came up over, and when.
     private var liveSsid: String? = null
     private var liveSince = 0L
+
+    const val SOURCE_AUTO = 0
+    const val SOURCE_HOTSPOT = 1
+    const val SOURCE_SHARED = 2
+
+    /** The user's choice of network, see [com.andrerinas.openheadunit.utils.Settings.wifiNetworkSource]. */
+    fun source(context: Context): Int =
+        com.andrerinas.openheadunit.App.provide(context).settings.wifiNetworkSource
 
     fun probeEnabled(): Boolean = try {
         Class.forName("android.os.SystemProperties").getMethod("get", String::class.java, String::class.java)
@@ -51,6 +59,10 @@ internal object SharedWifiNetwork {
      */
     @Synchronized
     fun shouldTry(context: Context, network: Network): Boolean {
+        when (source(context)) {
+            SOURCE_HOTSPOT -> return false
+            SOURCE_SHARED -> { pendingSsid = network.ssid; return true }
+        }
         val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         pendingSsid?.let { earlier ->
             prefs.edit().putLong(FAILED_PREFIX + earlier, System.currentTimeMillis()).apply()
@@ -72,6 +84,10 @@ internal object SharedWifiNetwork {
      */
     @Synchronized
     fun isAllowed(context: Context, network: Network): Boolean {
+        when (source(context)) {
+            SOURCE_HOTSPOT -> return false
+            SOURCE_SHARED -> return true
+        }
         val failedAt = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getLong(FAILED_PREFIX + network.ssid, 0L)
         return failedAt == 0L || System.currentTimeMillis() - failedAt >= FAILED_FOR_MS
@@ -153,7 +169,7 @@ internal object SharedWifiNetwork {
             return null
         }
         AppLog.i("$TAG: the car is on '$ssid' ($ip, BSSID $bssid, passphrase length ${psk.length}).")
-        return Network(ssid, psk, ip, bssid)
+        return Network(ssid, psk, ip, bssid, info.frequency)
     }
 
     /** The saved passphrase, through the system-only call; null when it is open or cannot be read. */

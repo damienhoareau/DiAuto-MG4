@@ -70,6 +70,62 @@ object WppProjectionInfo {
         return out.toByteArray()
     }
 
+    /** The setup info is only taken from this version on (Android Auto 17.9: 4.5). */
+    const val SETUP_MAJOR = 4
+    const val SETUP_MINOR = 5
+
+    /**
+     * The payload of a Type 11 `WifiSetupInfo`, from the same reading of Android Auto 17.9:
+     *
+     * ```
+     * WifiSetupInfo { int32 major = 1; int32 minor = 2; bytes token = 3;
+     *                 WifiProjectionProtocolInfo tcp = 4; AccessPointInfo ap = 5; }
+     * AccessPointInfo { string ssid = 1; string key = 2; string bssid = 3; SecurityMode security = 4; }
+     * ```
+     *
+     * Over Bluetooth only. The phone keeps the network and the endpoint together, per head unit, and on a later
+     * visit to that network dials the endpoint without Bluetooth; see [encodeVersionRequest].
+     */
+    fun encodeSetupInfo(
+        token: ByteArray, ip: String, port: Int, ssid: String, key: String, bssid: String, securityMode: Int,
+        channelsMhz: List<Int> = emptyList(),
+    ): ByteArray {
+        val tcp = ByteArrayOutputStream()
+        val address = ip.toByteArray(Charsets.UTF_8)
+        writeTag(tcp, FIELD_TCP_IP, WIRE_LENGTH_DELIMITED)
+        writeVarint(tcp, address.size)
+        tcp.write(address)
+        writeVarintField(tcp, FIELD_TCP_PORT, port)
+
+        val ap = ByteArrayOutputStream()
+        writeStringField(ap, 1, ssid)
+        writeStringField(ap, 2, key)
+        writeStringField(ap, 3, bssid)
+        writeVarintField(ap, 4, securityMode)
+        for (channel in channelsMhz) writeVarintField(ap, 6, channel)
+
+        val out = ByteArrayOutputStream()
+        writeVarintField(out, FIELD_MAJOR, SETUP_MAJOR)
+        writeVarintField(out, FIELD_MINOR, SETUP_MINOR)
+        writeTag(out, 3, WIRE_LENGTH_DELIMITED)
+        writeVarint(out, token.size)
+        out.write(token)
+        writeTag(out, 4, WIRE_LENGTH_DELIMITED)
+        writeVarint(out, tcp.size())
+        out.write(tcp.toByteArray())
+        writeTag(out, 5, WIRE_LENGTH_DELIMITED)
+        writeVarint(out, ap.size())
+        out.write(ap.toByteArray())
+        return out.toByteArray()
+    }
+
+    private fun writeStringField(out: ByteArrayOutputStream, field: Int, value: String) {
+        val bytes = value.toByteArray(Charsets.UTF_8)
+        writeTag(out, field, WIRE_LENGTH_DELIMITED)
+        writeVarint(out, bytes.size)
+        out.write(bytes)
+    }
+
     private fun writeVarintField(out: ByteArrayOutputStream, field: Int, value: Int) {
         writeTag(out, field, WIRE_VARINT)
         writeVarint(out, value)

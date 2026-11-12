@@ -19,7 +19,7 @@ object WppMessageType {
     /** Keepalive, either direction. A request is answered by echoing its payload back as a response. */
     const val PING_REQUEST = 8
     const val PING_RESPONSE = 9
-    /** Not sent; defined so a capture can be read. */
+    /** Head unit -> phone: the network and WPP-over-TCP endpoint for the phone to keep (see WppProjectionInfo). */
     const val SETUP_INFO = 11
 }
 

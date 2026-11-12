@@ -14,6 +14,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 object AaStatusBus {
     const val UNKNOWN = -1
 
+    /** When the user last asked, from the car, to start a session (elapsedRealtime); 0 when never. */
+    @Volatile var manualStartAt = 0L
+
+    /** Until when (elapsedRealtime) the session that the phone started by itself is kept off the screen. */
+    @Volatile var behindUntil = 0L
+
+    fun keepBehind(): Boolean = android.os.SystemClock.elapsedRealtime() < behindUntil
+
     /** 0 = stopped, 1 = playing, 2 = paused. */
     val playback = MutableStateFlow(UNKNOWN)
 

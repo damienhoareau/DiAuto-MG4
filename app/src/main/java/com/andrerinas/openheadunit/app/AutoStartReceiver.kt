@@ -29,7 +29,8 @@ class AutoStartReceiver : BroadcastReceiver() {
         // Use device-protected storage so the BT MACs are readable during locked boot
         val targetMacs = Settings.getAutoStartBtMacs(context)
 
-        if (targetMacs.isEmpty()) return
+        // Nothing chosen and nothing to answer for: a phone is only announced to once the user has set the list.
+        if (targetMacs.isEmpty() && !Settings.getAutoStartBtDevicesChosen(context)) return
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT)
@@ -70,7 +71,22 @@ class AutoStartReceiver : BroadcastReceiver() {
             }
             AppLog.i("BT Device connected: ${name ?: "unnamed"} ($address)")
 
-            if (targetMacs.contains(address)) {
+            if (!targetMacs.contains(address)) {
+                // A phone the user left out of the list: the head unit still answers its Android Auto channel (so
+                // the phone offers the connection), but starts nothing. Only for phones, not headsets and the like.
+                val isPhone = try {
+                    device.bluetoothClass?.majorDeviceClass == android.bluetooth.BluetoothClass.Device.Major.PHONE
+                } catch (_: SecurityException) { false }
+                AppLog.i("AutoStartReceiver: $address is not in the auto-start list (phone=$isPhone).")
+                if (isPhone) {
+                    try {
+                        ContextCompat.startForegroundService(
+                            context, Intent(context, AapService::class.java).setAction(AapService.ACTION_BT_ANNOUNCE))
+                    } catch (e: Exception) {
+                        AppLog.e("Failed to start AapService to announce: ${e.message}")
+                    }
+                }
+            } else {
                 AppLog.i("MATCH! Starting AapService via Bluetooth Auto-start for $address (background, no UI)...")
 
                 // Service only: Native AA handshake / SoftAP bring-up run without pulling
@@ -128,6 +144,7 @@ class AutoStartReceiver : BroadcastReceiver() {
     }
 
     private companion object {
+
         // WifiAutoStartReceiver uses 99; kept apart so one does not replace the other.
         const val BT_AUTO_START_NOTIFICATION_ID = 98
     }
