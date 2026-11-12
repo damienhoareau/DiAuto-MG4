@@ -28,6 +28,7 @@ import android.system.ErrnoException
 import android.system.OsConstants
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
+import java.util.concurrent.ConcurrentHashMap
 import java.io.DataInputStream
 import java.io.IOException
 import java.io.OutputStream
@@ -55,6 +56,15 @@ class NativeAaHandshakeManager(
         /** How long to wait for this head unit's own WiFi network to come up before giving up on
          *  a handshake. Hotspot bring-up is the slow case. */
         private const val CREDENTIALS_WAIT_MS = 60_000L
+
+        /** How long a phone the user left out of the auto-start list is kept on the line without a session. */
+        private const val HOLD_MS = 60_000L
+
+        /** How long after the user's manual start a phone left out of the auto-start list is still served. */
+        private const val MANUAL_REQUEST_WINDOW_MS = 120_000L
+
+        /** Pause before a listening socket that died is opened again. */
+        private const val LISTENER_REOPEN_MS = 3_000L
 
         /** How long to wait for the AAP TCP port to be bound before giving up on a handshake.
          *  After a user disconnect SoftAP/listener rebuild often exceeds 3s on MG4. */
@@ -136,6 +146,15 @@ class NativeAaHandshakeManager(
     private val commManager = com.andrerinas.openheadunit.App.provide(context).commManager
     private var aaServerSocket: BluetoothServerSocket? = null
     private var hfpServerSocket: BluetoothServerSocket? = null
+
+    /** When the user last asked, from the car, to start a session (the manual poke); 0 when never. */
+    @Volatile private var manualRequestAt = 0L
+
+    /** The socket of a phone being held without a session (see [holdWithoutSession]); closed when the user asks. */
+    @Volatile private var heldSocket: BluetoothSocket? = null
+
+    /** Counts start() calls: a listener loop left over from before a stop() and start() must not outlive it. */
+    @Volatile private var listenerGeneration = 0
     // Extra RFCOMM listeners opened on secondary Bluetooth radios (dual-Bluetooth head units).
     // Split by UUID so a successful handoff can close just the AA listeners (see
     // closeAaListeners()) without taking down the HFP ones too.
@@ -331,6 +350,7 @@ class NativeAaHandshakeManager(
 
         isRunning = true
         aaListenersClosedForSession = false
+        val generation = ++listenerGeneration
         // Local Bluetooth radio name; logged on every accept so a dual-radio head unit's logs
         // show which radio the phone actually reached (compare with the HU name in the phone's
         // log). Uses adapter.name, not adapter.address: getAddress() returns the fixed masked
@@ -339,52 +359,62 @@ class NativeAaHandshakeManager(
         localRadioName = try { adapter.name ?: "?" } catch (e: Exception) { "?" }
         AppLog.i("NativeAA: Starting Bluetooth Handshake Servers (primary radio [$localRadioName])...")
 
-        // Start AA RFCOMM Server
+        // Start AA RFCOMM Server. The sockets die when the Bluetooth stack restarts (the adapter turned off and
+        // on, as when the car's Bluetooth is restarted), so a failure while still running opens them again.
         scope.launch(Dispatchers.IO + CoroutineName("NativeAa-RfcommServer")) {
-            try {
-                aaServerSocket = adapter.listenUsingRfcommWithServiceRecord("AA BT Listener", AA_UUID)
-                AppLog.i("NativeAA: ACTIVELY LISTENING on Android Auto UUID ($AA_UUID) on radio [$localRadioName]... Waiting for phone to connect back!")
-                while (isRunning && isActive) {
-                    val socket = aaServerSocket?.accept()
-                    if (socket != null) {
-                        AppLog.i("NativeAA: Connection accepted from ${socket.remoteDevice.name} (${socket.remoteDevice.address}) on local radio [$localRadioName]")
-                        if (refuseWhileBackedOff(socket)) continue
-                        // [FIX] Launch handshake in a separate coroutine so the server can accept the next connection!
-                        scope.launch(Dispatchers.IO + CoroutineName("NativeAa-Handshake-${socket.remoteDevice.address}")) {
-                            handleHandshake(socket, localRadioName)
+            while (isRunning && isActive && generation == listenerGeneration) {
+                try {
+                    aaServerSocket = adapter.listenUsingRfcommWithServiceRecord("AA BT Listener", AA_UUID)
+                    AppLog.i("NativeAA: ACTIVELY LISTENING on Android Auto UUID ($AA_UUID) on radio [$localRadioName]... Waiting for phone to connect back!")
+                    while (isRunning && isActive) {
+                        val socket = aaServerSocket?.accept()
+                        if (socket != null) {
+                            AppLog.i("NativeAA: Connection accepted from ${socket.remoteDevice.name} (${socket.remoteDevice.address}) on local radio [$localRadioName]")
+                            if (refuseWhileBackedOff(socket)) continue
+                            // [FIX] Launch handshake in a separate coroutine so the server can accept the next connection!
+                            scope.launch(Dispatchers.IO + CoroutineName("NativeAa-Handshake-${socket.remoteDevice.address}")) {
+                                handleHandshake(socket, localRadioName)
+                            }
                         }
                     }
+                } catch (e: Exception) {
+                    if (aaListenersClosedForSession) {
+                        AppLog.d("NativeAA: AA Server socket closed after successful handoff.")
+                        return@launch
+                    } else if (isRunning) {
+                        AppLog.w("NativeAA: AA Server socket error: ${e.message} — listening again in ${LISTENER_REOPEN_MS / 1000}s.")
+                    } else {
+                        AppLog.d("NativeAA: AA Server socket closed cleanly.")
+                        return@launch
+                    }
                 }
-            } catch (e: Exception) {
-                if (aaListenersClosedForSession) {
-                    AppLog.d("NativeAA: AA Server socket closed after successful handoff.")
-                } else if (isRunning) {
-                    AppLog.e("NativeAA: AA Server socket error: ${e.message}", e)
-                } else {
-                    AppLog.d("NativeAA: AA Server socket closed cleanly.")
-                }
+                delay(LISTENER_REOPEN_MS)
             }
         }
 
         // Start HFP RFCOMM Server (Required by some phones to detect HU)
         scope.launch(Dispatchers.IO + CoroutineName("NativeAa-HfpServer")) {
-            try {
-                hfpServerSocket = adapter.listenUsingRfcommWithServiceRecord("Hands-Free Unit", HFP_UUID)
-                while (isRunning && isActive) {
-                    val socket = hfpServerSocket?.accept()
-                    if (socket != null) {
-                        logHfpAccept(socket, localRadioName)
-                        scope.launch(Dispatchers.IO + CoroutineName("NativeAa-HfpResponder-${socket.remoteDevice.address}")) {
-                            handleHfp(socket)
+            while (isRunning && isActive && generation == listenerGeneration) {
+                try {
+                    hfpServerSocket = adapter.listenUsingRfcommWithServiceRecord("Hands-Free Unit", HFP_UUID)
+                    while (isRunning && isActive) {
+                        val socket = hfpServerSocket?.accept()
+                        if (socket != null) {
+                            logHfpAccept(socket, localRadioName)
+                            scope.launch(Dispatchers.IO + CoroutineName("NativeAa-HfpResponder-${socket.remoteDevice.address}")) {
+                                handleHfp(socket)
+                            }
                         }
                     }
+                } catch (e: Exception) {
+                    if (isRunning) {
+                        AppLog.w("NativeAA: HFP Server socket error: ${e.message} — listening again in ${LISTENER_REOPEN_MS / 1000}s.")
+                    } else {
+                        AppLog.d("NativeAA: HFP Server socket closed cleanly.")
+                        return@launch
+                    }
                 }
-            } catch (e: Exception) {
-                if (isRunning) {
-                    AppLog.e("NativeAA: HFP Server socket error: ${e.message}", e)
-                } else {
-                    AppLog.d("NativeAA: HFP Server socket closed cleanly.")
-                }
+                delay(LISTENER_REOPEN_MS)
             }
         }
 
@@ -828,6 +858,11 @@ class NativeAaHandshakeManager(
         try {
             val device = adapter.getRemoteDevice(address)
             AppLog.i("NativeAA: Manual poke requested for ${device.name} ($address)")
+            // A phone being held without a session is let go: its next connection is served in full.
+            try { heldSocket?.close() } catch (_: Exception) {}
+            manualRequestAt = SystemClock.elapsedRealtime()
+            com.andrerinas.openheadunit.aap.AaStatusBus.manualStartAt = manualRequestAt
+            com.andrerinas.openheadunit.aap.AaStatusBus.behindUntil = 0L
             // The user asking to try again is the way out of a handshake backoff — it is the only
             // gesture the UI offers, and it means they want another attempt whatever we concluded.
             resetHandshakeBackoff()
@@ -982,7 +1017,16 @@ class NativeAaHandshakeManager(
             }
 
             val macs = settings.autoStartBluetoothDeviceMacs
-            if (!macs.contains(device.address)) {
+            if (isLeftOut(device.address, macs)) {
+                // Not a phone the user wants started by itself: it is told the head unit is here and given the
+                // network and the endpoint to keep, and nothing more, so that it can offer the connection and
+                // reach the head unit over Wi-Fi when the user asks, as it does for any car that is not started
+                // from the phone.
+                abortedLocally = true
+                holdWithoutSession(socket, device.address)
+                return@withContext
+            }
+            if (!settings.autoStartBluetoothDevicesChosen && !macs.contains(device.address)) {
                 AppLog.i("NativeAA: Saving ${device.address} (${device.name}) to the list of auto-start devices.")
                 val newMacs = macs + device.address
                 settings.autoStartBluetoothDeviceMacs = newMacs
@@ -1425,6 +1469,59 @@ class NativeAaHandshakeManager(
             }
         } catch (e: Exception) {
             AppLog.d("NativeAA: Type ${msg.type} payload did not parse for logging: ${e.message}")
+        }
+    }
+
+    /**
+     * Whether [address] is a phone the user took out of the auto-start list, and has not just asked from the car
+     * to start a session with. Never true before the user has chosen the list themselves.
+     */
+    private fun isLeftOut(address: String, macs: Set<String>): Boolean =
+        settings.autoStartBluetoothDevicesChosen && !macs.contains(address) &&
+            (manualRequestAt == 0L || SystemClock.elapsedRealtime() - manualRequestAt > MANUAL_REQUEST_WINDOW_MS)
+
+    /**
+     * Keeps a phone on the line for [HOLD_MS] with only the version request sent and, once it has answered, the
+     * setup info (network and WPP-over-TCP endpoint) for it to keep. Ends early when the phone closes, or when
+     * the user starts a session from the car.
+     */
+    private suspend fun holdWithoutSession(socket: BluetoothSocket, address: String) {
+        AppLog.i("NativeAA: $address is not in the auto-start list — announcing the head unit and holding, no session.")
+        heldSocket = socket
+        val input = DataInputStream(socket.inputStream)
+        val output = socket.outputStream
+        val shared = if (SharedWifiNetwork.probeEnabled()) {
+            SharedWifiNetwork.current(context)?.takeIf { SharedWifiNetwork.isAllowed(context, it) }
+        } else null
+        val reader = scope.launch(Dispatchers.IO + CoroutineName("NativeAa-Hold-$address")) {
+            try {
+                var setupSent = false
+                while (isActive) {
+                    val msg = readProtobuf(input)
+                    AppLog.i("NativeAA: [RX] Held phone sent Type ${msg.type} (Payload size: ${msg.payload.size})")
+                    if (msg.type == WppMessageType.PING_REQUEST) sendProtobuf(output, msg.payload, WppMessageType.PING_RESPONSE)
+                    if (msg.type == WppMessageType.VERSION_RESPONSE && !setupSent && shared != null) {
+                        setupSent = true
+                        val token = ByteArray(16).also { java.security.SecureRandom().nextBytes(it) }
+                        AppLog.i("NativeAA: [TX] Sending WifiSetupInfo (Type 11) for '${shared.ssid}' with the endpoint ${shared.ip}:${wppTcpPort()}")
+                        sendProtobuf(
+                            output,
+                            WppProjectionInfo.encodeSetupInfo(token, shared.ip, wppTcpPort(), shared.ssid, shared.psk, shared.bssid, 8, listOf(shared.frequencyMhz)),
+                            WppMessageType.SETUP_INFO,
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                AppLog.d("NativeAA: Held phone's channel ended: ${e.message}")
+            }
+        }
+        try {
+            sendWifiVersionRequest(output, shared?.ip ?: credentials?.ip?.takeIf { it.isNotEmpty() }, urbanVersion = true)
+            withTimeoutOrNull(HOLD_MS) { reader.join() }
+        } finally {
+            if (heldSocket === socket) heldSocket = null
+            reader.cancel()
+            try { socket.close() } catch (_: Exception) {}
         }
     }
 

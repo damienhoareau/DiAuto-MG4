@@ -132,6 +132,12 @@ class WppTcpServer(
         var ssl: SSLSocket? = null
         try {
             AppLog.i("WppTcp: $peer connected to $port. Starting the TLS handshake as client.")
+            val now = android.os.SystemClock.elapsedRealtime()
+            val userAsked = com.andrerinas.openheadunit.aap.AaStatusBus.manualStartAt.let { it != 0L && now - it < 120_000L }
+            if (!userAsked && !com.andrerinas.openheadunit.App.provide(context).settings.openOnPhoneStart) {
+                AppLog.i("WppTcp: the phone started this session by itself — keeping it off the screen.")
+                com.andrerinas.openheadunit.aap.AaStatusBus.behindUntil = now + 90_000L
+            }
             record("$peer connected, TLS handshake")
             raw.tcpNoDelay = true
             ssl = (sslContext().socketFactory.createSocket(raw, peer, raw.port, true) as SSLSocket).apply {

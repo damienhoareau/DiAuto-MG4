@@ -977,6 +977,12 @@
     <string name="da_connection_setup_hint">Wi-Fi is automatic. Pair your phone and connect.</string>
     <string name="da_shared_wifi">Shared Wi-Fi networks</string>
     <string name="da_shared_wifi_hint">Networks the car stopped trying for Android Auto Wireless.</string>
+    <string name="open_on_phone_start">Show Android Auto when the phone starts it</string>
+    <string name="wifi_source_title">Network for the phone</string>
+    <string name="wifi_source_hint">Automatic: the Wi-Fi the car is on, else the car hotspot. Hotspot: always the car hotspot. Shared Wi-Fi: only the Wi-Fi the car is on, the hotspot is never started.</string>
+    <string name="wifi_source_auto">Automatic</string>
+    <string name="wifi_source_hotspot">Hotspot</string>
+    <string name="wifi_source_shared">Shared Wi-Fi</string>
     <string name="shared_wifi_none">No network is left alone. The car tries the Wi-Fi it is connected to first.</string>
     <string name="shared_wifi_marked">Left alone since %s</string>
     <string name="shared_wifi_allow_again">Try again</string>

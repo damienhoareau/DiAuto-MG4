@@ -476,6 +476,14 @@ class Settings(private val context: Context) {
         get() = batteryNetCapacityKwh
         set(value) { batteryNetCapacityKwh = value }
 
+    /**
+     * Which Wi-Fi the phone is sent to for native wireless Android Auto: 0 = the shared network when the car is on one,
+     * else the car's hotspot; 1 = the car's hotspot only; 2 = the shared network only (the hotspot is never started).
+     */
+    var wifiNetworkSource: Int
+        get() = prefs.getInt("wifi-network-source", 0).coerceIn(0, 2)
+        set(value) { prefs.edit().putInt("wifi-network-source", value).apply() }
+
     var headUnitModel: String
         get() = prefs.getString("head-unit-model", "SWI69")!!
         set(value) { prefs.edit().putString("head-unit-model", value).apply() }
@@ -755,6 +763,15 @@ class Settings(private val context: Context) {
             prefs.edit().putStringSet("auto-start-bt-macs", value).apply()
         }
 
+    /**
+     * Whether the user has chosen the auto-start devices themselves (saved the list in the Auto Start screen).
+     * Until then a phone that connects is added to the list; after it, the list is left as chosen, so a phone
+     * the user unchecked is not put back by its next connection.
+     */
+    var autoStartBluetoothDevicesChosen: Boolean
+        get() = prefs.getBoolean("auto-start-bt-chosen", false)
+        set(value) { prefs.edit().putBoolean("auto-start-bt-chosen", value).apply() }
+
     var autoStartBluetoothDeviceName: String
         get() = prefs.getString("auto-start-bt-name", "")!!
         set(value) { prefs.edit().putString("auto-start-bt-name", value).apply() }
@@ -1021,6 +1038,7 @@ class Settings(private val context: Context) {
         const val KEY_SCREEN_ORIENTATION = "screen-orientation"
         private const val KEY_AUTO_START_BT_MAC = "auto-start-bt-mac"
         private const val KEY_AUTO_START_BT_MACS = "auto-start-bt-macs"
+        private const val KEY_AUTO_START_BT_CHOSEN = "auto-start-bt-chosen"
 
         /**
          * Reads the Bluetooth auto-start MAC from device-protected storage (API 24+),
@@ -1063,6 +1081,22 @@ class Settings(private val context: Context) {
                 macs = if (legacyMac.isNotEmpty()) setOf(legacyMac) else emptySet()
             }
             return macs
+        }
+
+        /** Whether the user has chosen the auto-start list themselves; readable during locked boot like the list. */
+        fun getAutoStartBtDevicesChosen(context: Context): Boolean {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return false
+            return context.createDeviceProtectedStorageContext()
+                .getSharedPreferences(DEVICE_PREFS_NAME, Context.MODE_PRIVATE)
+                .getBoolean(KEY_AUTO_START_BT_CHOSEN, false)
+        }
+
+        fun syncAutoStartBtDevicesChosenToDeviceStorage(context: Context, chosen: Boolean) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                context.createDeviceProtectedStorageContext()
+                    .getSharedPreferences(DEVICE_PREFS_NAME, Context.MODE_PRIVATE)
+                    .edit().putBoolean(KEY_AUTO_START_BT_CHOSEN, chosen).apply()
+            }
         }
 
         fun syncAutoStartBtMacsToDeviceStorage(context: Context, macs: Set<String>) {
@@ -1182,6 +1216,11 @@ class Settings(private val context: Context) {
     var enableRotary: Boolean
         get() = prefs.getBoolean("enable-rotary", false)
         set(value) { prefs.edit().putBoolean("enable-rotary", value).apply() }
+
+    /** Whether a session the phone starts by itself is brought to the front; one the user asks for always is. */
+    var openOnPhoneStart: Boolean
+        get() = prefs.getBoolean("open-on-phone-start", true)
+        set(value) { prefs.edit().putBoolean("open-on-phone-start", value).apply() }
 
     var killOnDisconnect: Boolean
         get() = prefs.getBoolean("kill-on-disconnect", false)

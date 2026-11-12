@@ -1571,6 +1571,8 @@ class AapService : Service(), UsbReceiver.Listener {
                         // The phone will be sent to the network the car is already on, which needs no
                         // access point. If that fails, the handshake starts the hotspot as the fallback.
                         AppLog.i("AapService: Native AA on the shared Wi-Fi — the head unit hotspot is left off.")
+                    } else if (sharedOnly()) {
+                        AppLog.i("AapService: Native AA set to the shared Wi-Fi only, and the car is not on one — the head unit hotspot is left off.")
                     } else {
                         AppLog.i("AapService: Native AA on the head unit hotspot — preparing the access point and resolving its credentials.")
                         softApCredentialsProvider?.start()
@@ -1790,6 +1792,12 @@ class AapService : Service(), UsbReceiver.Listener {
                     AppLog.i("AapService: Received manual Native-AA poke request for $mac")
                     scheduleNativeAaPoke(mac, reason = "manual poke")
                 }
+            }
+            ACTION_BT_ANNOUNCE            -> {
+                // A phone that is not in the auto-start list has connected over Bluetooth: have the head unit
+                // answer its Android Auto channel, so it offers the connection, without starting a session.
+                AppLog.i("AapService: Bluetooth announce — the head unit answers a phone that is not auto-started.")
+                nativeAaHandshakeManager?.start()
             }
             ACTION_BT_AUTO_START          -> {
                 // AutoStartReceiver fires this on ACL_CONNECTED from a trusted device. If the
@@ -2603,7 +2611,7 @@ class AapService : Service(), UsbReceiver.Listener {
     fun refreshHotspotCredentialsAfterJoinFailure() {
         // A delayed report from an old handshake must not alter a live session or a transport
         // the user has since selected. This only re-reads the car AP; it never restarts its radio.
-        if (commManager.isBusy || App.provide(this).settings.wifiConnectionMode != 3) return
+        if (commManager.isBusy || App.provide(this).settings.wifiConnectionMode != 3 || sharedOnly()) return
         AppLog.i("AapService: Phone could not join the hotspot — discarding credentials and resolving the access point again.")
         softApCredentialsProvider?.refresh()
     }
@@ -2614,12 +2622,16 @@ class AapService : Service(), UsbReceiver.Listener {
      * back on. Does nothing when the provider is already running.
      */
     fun ensureHotspotForHandshake() {
-        if (App.provide(this).settings.wifiConnectionMode != 3) return
+        if (App.provide(this).settings.wifiConnectionMode != 3 || sharedOnly()) return
         val provider = softApCredentialsProvider ?: return
         if (provider.isActive()) return
         AppLog.i("AapService: The phone opened the handshake with the hotspot off — starting it.")
         provider.start()
     }
+
+    /** The user chose never to use the car's hotspot: the phone is only sent to the network the car is on. */
+    fun sharedOnly(): Boolean =
+        App.provide(this).settings.wifiNetworkSource == com.andrerinas.openheadunit.connection.SharedWifiNetwork.SOURCE_SHARED
 
     /** Whether the car is on a Wi-Fi network the phone can be sent to instead of the hotspot. */
     fun sharedWifiAvailable(): Boolean =
@@ -2629,7 +2641,7 @@ class AapService : Service(), UsbReceiver.Listener {
 
     fun triggerHotspotRefresh() {
         if (App.provide(this).settings.wifiConnectionMode != 3) return
-        if (sharedWifiAvailable()) return
+        if (sharedWifiAvailable() || sharedOnly()) return
         AppLog.i("AapService: Access point refresh requested.")
         softApCredentialsProvider?.refresh()
     }
@@ -3367,6 +3379,7 @@ class AapService : Service(), UsbReceiver.Listener {
         const val ACTION_START_SELF_MODE           = "com.andrerinas.openheadunit.ACTION_START_SELF_MODE"
         const val ACTION_START_WIRELESS            = "com.andrerinas.openheadunit.ACTION_START_WIRELESS"
         const val ACTION_BT_AUTO_START              = "com.andrerinas.openheadunit.ACTION_BT_AUTO_START"
+        const val ACTION_BT_ANNOUNCE                = "com.andrerinas.openheadunit.ACTION_BT_ANNOUNCE"
         const val ACTION_START_WIRELESS_SCAN       = "com.andrerinas.openheadunit.ACTION_START_WIRELESS_SCAN"
         const val ACTION_STOP_WIRELESS             = "com.andrerinas.openheadunit.ACTION_STOP_WIRELESS"
         const val ACTION_NATIVE_AA_POKE            = "com.andrerinas.openheadunit.ACTION_NATIVE_AA_POKE"

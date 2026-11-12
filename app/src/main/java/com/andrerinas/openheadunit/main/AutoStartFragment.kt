@@ -4,6 +4,7 @@ import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.view.WindowManager
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -24,6 +25,7 @@ import com.andrerinas.openheadunit.aap.AapService
 import com.andrerinas.openheadunit.utils.AppLog
 import com.andrerinas.openheadunit.utils.AppPermissions
 import com.andrerinas.openheadunit.utils.Settings
+import com.andrerinas.openheadunit.utils.SystemUI
 import com.andrerinas.openheadunit.utils.BluetoothHelper
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
@@ -137,6 +139,8 @@ class AutoStartFragment : Fragment() {
 
     private fun saveSettings() {
         settings.autoStartBluetoothDeviceMacs = pendingAutoStartBtMacs
+        settings.autoStartBluetoothDevicesChosen = true
+        Settings.syncAutoStartBtDevicesChosenToDeviceStorage(requireContext(), true)
         Settings.syncAutoStartBtMacsToDeviceStorage(requireContext(), pendingAutoStartBtMacs)
         if (pendingAutoStartBtMacs.isNotEmpty()) {
             val firstMac = pendingAutoStartBtMacs.first()
@@ -310,7 +314,16 @@ class AutoStartFragment : Fragment() {
                 updateSettingsList()
             }
             .setNegativeButton(R.string.cancel, null)
-            .show()
+            .create()
+            .also { dialog ->
+                // A dialog is a window of its own: when it takes focus the car's side bar comes back over the
+                // left of the screen. Shown without focus, with the same bar settings as the screen, it never does.
+                val window = dialog.window ?: return@also dialog.show()
+                window.setFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE, WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
+                dialog.show()
+                SystemUI.apply(window, window.decorView, settings.fullscreenMode)
+                window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
+            }
     }
 
     private fun getBluetoothSummaryText(): String {

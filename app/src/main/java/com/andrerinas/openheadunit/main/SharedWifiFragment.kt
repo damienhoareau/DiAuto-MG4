@@ -19,6 +19,21 @@ class SharedWifiFragment : Fragment(R.layout.fragment_shared_wifi) {
 
     override fun onViewCreated(view: View, state: Bundle?) {
         view.findViewById<MaterialToolbar>(R.id.toolbar).setNavigationOnClickListener { findNavController().popBackStack() }
+        val settings = com.andrerinas.openheadunit.App.provide(requireContext()).settings
+        val sources = mapOf(
+            R.id.wifi_source_auto to SharedWifiNetwork.SOURCE_AUTO,
+            R.id.wifi_source_hotspot to SharedWifiNetwork.SOURCE_HOTSPOT,
+            R.id.wifi_source_shared to SharedWifiNetwork.SOURCE_SHARED,
+        )
+        val group = view.findViewById<com.google.android.material.button.MaterialButtonToggleGroup>(R.id.wifi_source)
+        group.check(sources.entries.first { it.value == settings.wifiNetworkSource }.key)
+        group.addOnButtonCheckedListener { _, id, checked ->
+            if (checked) sources[id]?.let { settings.wifiNetworkSource = it }
+        }
+        view.findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.open_on_phone_start).apply {
+            isChecked = settings.openOnPhoneStart
+            setOnCheckedChangeListener { _, checked -> settings.openOnPhoneStart = checked }
+        }
         showNetworks(view)
     }
 

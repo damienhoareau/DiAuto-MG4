@@ -389,6 +389,10 @@ class AndroidAutoMainService : Service() {
     }
 
     private fun showProjection(reason: String) {
+        if (AaStatusBus.keepBehind()) {
+            AppLog.i("AndroidAutoMainService: not bringing the projection forward ($reason) — the phone started it by itself")
+            return
+        }
         AppLog.i("AndroidAutoMainService: bringing the projection forward ($reason)")
         try {
             startActivity(AapProjectionActivity.intent(this))

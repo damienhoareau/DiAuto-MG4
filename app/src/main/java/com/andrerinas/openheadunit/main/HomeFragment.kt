@@ -142,7 +142,7 @@ class HomeFragment : Fragment() {
         app.settings.wifiConnectionMode = 3
         // Remember this phone so the next Bluetooth ACL_CONNECTED auto-starts without a tap.
         val macs = app.settings.autoStartBluetoothDeviceMacs
-        if (!macs.contains(device.address)) {
+        if (!app.settings.autoStartBluetoothDevicesChosen && !macs.contains(device.address)) {
             val updated = macs + device.address
             app.settings.autoStartBluetoothDeviceMacs = updated
             app.settings.autoStartBluetoothDeviceName = device.name ?: "Unknown Device"
