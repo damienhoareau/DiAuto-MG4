@@ -15,6 +15,7 @@ import com.andrerinas.openheadunit.aap.WppEvent
 import com.andrerinas.openheadunit.aap.WppFraming
 import com.andrerinas.openheadunit.aap.WppHandshakeSession
 import com.andrerinas.openheadunit.aap.WppMessageType
+import com.andrerinas.openheadunit.aap.WppPhoneIdentity
 import com.andrerinas.openheadunit.aap.WppProjectionInfo
 import com.andrerinas.openheadunit.aap.WppStage
 import com.andrerinas.openheadunit.utils.BluetoothHelper
@@ -1444,12 +1445,23 @@ class NativeAaHandshakeManager(
     }
 
     /** Says what a received message actually contained, where that is worth having in a log. */
+    /** Logs who the phone says it is, from its version response (see [WppPhoneIdentity]). */
+    private fun logPhoneIdentity(msg: ProtobufMessage) {
+        val identity = WppPhoneIdentity.parse(msg.payload) ?: return
+        if (identity.isEmpty()) {
+            AppLog.i("NativeAA: [RX] The phone's version response carries no identity.")
+        } else {
+            AppLog.i("NativeAA: [RX] Phone identity: ${identity.describe()}")
+        }
+    }
+
     private fun logReceivedDetail(msg: ProtobufMessage) {
         try {
             when (msg.type) {
                 WppMessageType.VERSION_RESPONSE -> {
                     val v = Wireless.WifiVersionResponse.parseFrom(msg.payload)
                     AppLog.i("NativeAA: [RX] WifiVersionResponse v${v.major}.${v.minor} status=${if (v.hasStatus()) v.status else "-"}")
+                    logPhoneIdentity(msg)
                 }
                 WppMessageType.CONNECT_STATUS -> {
                     val s = Wireless.WifiConnectStatus.parseFrom(msg.payload)
@@ -1502,6 +1514,7 @@ class NativeAaHandshakeManager(
                 while (isActive) {
                     val msg = readProtobuf(input)
                     AppLog.i("NativeAA: [RX] Held phone sent Type ${msg.type} (Payload size: ${msg.payload.size})")
+                    if (msg.type == WppMessageType.VERSION_RESPONSE) logPhoneIdentity(msg)
                     if (msg.type == WppMessageType.PING_REQUEST) sendProtobuf(output, msg.payload, WppMessageType.PING_RESPONSE)
                     if (msg.type == WppMessageType.VERSION_RESPONSE && !setupSent && shared != null) {
                         setupSent = true
