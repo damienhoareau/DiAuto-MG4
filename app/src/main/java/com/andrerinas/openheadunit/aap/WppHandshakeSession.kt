@@ -2,7 +2,11 @@ package com.andrerinas.openheadunit.aap
 
 /** Message types of the WiFi Projection Protocol. See `wireless.proto` for the payload shapes. */
 object WppMessageType {
-    /** Head unit -> phone: where to open the projection session. */
+    /**
+     * Head unit -> phone: where to open the projection session. Also phone -> head unit, with an
+     * empty body, when the phone starts projection itself (Android Auto 18.0, see
+     * [WppHandshakeSession.phoneStarted]); the head unit then answers with [START_RESPONSE].
+     */
     const val START_REQUEST = 1
     /** Phone -> head unit: asking for the network credentials. */
     const val INFO_REQUEST = 2
@@ -14,13 +18,28 @@ object WppMessageType {
     const val VERSION_RESPONSE = 5
     /** Phone -> head unit: whether it managed to join our network. */
     const val CONNECT_STATUS = 6
-    /** Phone -> head unit: acknowledges [START_REQUEST]. */
+    /**
+     * Phone -> head unit: acknowledges [START_REQUEST]. Head unit -> phone when the phone sent the
+     * start request: the projection endpoint and a [WppStatus].
+     */
     const val START_RESPONSE = 7
     /** Keepalive, either direction. A request is answered by echoing its payload back as a response. */
     const val PING_REQUEST = 8
     const val PING_RESPONSE = 9
     /** Head unit -> phone: the network and WPP-over-TCP endpoint for the phone to keep (see WppProjectionInfo). */
     const val SETUP_INFO = 11
+}
+
+/**
+ * Status codes of the Wi-Fi projection protocol that this head unit sends, as read from Android Auto
+ * (prototux/AARE, docs/research/gearhead-notes.md §3.2).
+ */
+object WppStatus {
+    const val SUCCESS = 0
+    /** "Ask again": the phone repeats its start request every 2 s, for up to 50 s. */
+    const val NOT_YET_STARTED = -6
+    /** "Give up": the phone stops asking. */
+    const val WIFI_DISABLED = -5
 }
 
 /** Where a [WppHandshakeSession] is in the exchange. */
@@ -31,6 +50,13 @@ enum class WppStage {
     AWAIT_VERSION,
     /** Waiting for this head unit's own WiFi credentials to become available. */
     AWAIT_CREDENTIALS,
+    /**
+     * Phone-started only: the phone's start request came in before the credentials, and is held
+     * unanswered for a moment in case they land; answered "not yet" if they do not.
+     */
+    PHONE_START_PENDING,
+    /** Phone-started only: credentials ready, waiting for the phone to repeat its start request. */
+    AWAIT_PHONE_START,
     /** [WppMessageType.START_REQUEST] is out; waiting for the phone to ask for credentials. */
     AWAIT_INFO_REQUEST,
     /** Credentials delivered; the phone is associating, doing WPS and getting a DHCP lease. */
@@ -70,6 +96,11 @@ sealed class WppEvent {
 sealed class WppAction {
     object SendVersionRequest : WppAction()
     object SendStartRequest : WppAction()
+    /**
+     * Answer the phone's own start request. With [WppStatus.SUCCESS] it carries the projection
+     * endpoint; any other status goes alone.
+     */
+    data class SendStartResponse(val status: Int) : WppAction()
     /** Send the credentials. In [WppStage.SETTLING] this is a re-send of the same ones. */
     object SendInfoResponse : WppAction()
     /**
@@ -117,11 +148,32 @@ sealed class WppAction {
  * Pure so the ordering rules can be tested; they cannot be, on a real Bluetooth socket. Not
  * thread-safe: one session per handshake coroutine.
  *
+ * ## Started by the phone
+ *
+ * Android Auto 18.0 can start projection from the phone (prototux/AARE,
+ * docs/research/gearhead-notes.md §3.2): when the head unit sends no start request within 5 s of the
+ * version exchange, a phone whose user asked for wireless projection sends one itself, empty, and
+ * the head unit answers it:
+ *
+ * ```
+ *   HU -> 4 WifiVersionRequest        (already sent while the phone was held, see phoneStarted)
+ *   HU <- 5 WifiVersionResponse
+ *   HU <- 1 WifiStartRequest          empty
+ *   HU -> 7 WifiStartResponse         endpoint + SUCCESS, or NOT_YET_STARTED: the phone asks again in 2 s
+ *   HU <- 2 WifiInfoRequest           and from here on as above
+ * ```
+ *
+ * On a plain Bluetooth reconnection the phone sends nothing, which is the point: the session only
+ * starts when the user asks for it on the phone.
+ *
  * @param versionExchangeEnabled whether to open with [WppMessageType.VERSION_REQUEST]. False sends
  *   exactly what shipped before it existed. A var so the caller can decide it once what the version request is
  *   to carry is known, before the first event.
+ * @param phoneStarted the phone sent the start request itself, after a version exchange that already
+ *   happened: no version request is sent, and the phone's start requests are answered instead of
+ *   sending ours. Feed the phone's start request after [WppEvent.SocketReady].
  */
-class WppHandshakeSession(var versionExchangeEnabled: Boolean) {
+class WppHandshakeSession(var versionExchangeEnabled: Boolean, var phoneStarted: Boolean = false) {
 
     companion object {
         /** How long to wait for the phone's version response before carrying on without it.
@@ -139,6 +191,12 @@ class WppHandshakeSession(var versionExchangeEnabled: Boolean) {
          *  decoded — which is why the setting that sends it is off by default. */
         const val WPP_VERSION_MAJOR = 1
         const val WPP_VERSION_MINOR = 1
+
+        /** How long a phone's start request is held for credentials about to land before "not yet". */
+        const val PHONE_START_ANSWER_MS = 1_500L
+
+        /** How long to wait for the phone to repeat its start request (it does every 2 s). */
+        const val PHONE_START_REPEAT_TIMEOUT_MS = 10_000L
     }
 
     var stage: WppStage = WppStage.NEW
@@ -166,6 +224,8 @@ class WppHandshakeSession(var versionExchangeEnabled: Boolean) {
     fun currentStageTimeoutMs(): Long? = when (stage) {
         WppStage.AWAIT_VERSION -> VERSION_RESPONSE_TIMEOUT_MS
         WppStage.AWAIT_INFO_REQUEST -> INFO_REQUEST_TIMEOUT_MS
+        WppStage.PHONE_START_PENDING -> PHONE_START_ANSWER_MS
+        WppStage.AWAIT_PHONE_START -> PHONE_START_REPEAT_TIMEOUT_MS
         WppStage.SETTLING -> settleBudgetMs
         // AWAIT_CREDENTIALS is bounded by the caller's own credential wait, which ends in
         // CredentialsReady or CredentialsUnavailable; NEW, DONE and FAILED never expire.
@@ -194,6 +254,8 @@ class WppHandshakeSession(var versionExchangeEnabled: Boolean) {
             WppStage.NEW -> onNew(event)
             WppStage.AWAIT_VERSION -> onAwaitVersion(event)
             WppStage.AWAIT_CREDENTIALS -> onAwaitCredentials(event)
+            WppStage.PHONE_START_PENDING -> onPhoneStartPending(event)
+            WppStage.AWAIT_PHONE_START -> onAwaitPhoneStart(event)
             WppStage.AWAIT_INFO_REQUEST -> onAwaitInfoRequest(event)
             WppStage.SETTLING -> onSettling(event)
             WppStage.DONE, WppStage.FAILED -> emptyList()
@@ -202,7 +264,8 @@ class WppHandshakeSession(var versionExchangeEnabled: Boolean) {
 
     private fun onNew(event: WppEvent): List<WppAction> = when (event) {
         is WppEvent.SocketReady ->
-            if (versionExchangeEnabled) {
+            // A phone that started by itself has had its version exchange already.
+            if (versionExchangeEnabled && !phoneStarted) {
                 stage = WppStage.AWAIT_VERSION
                 listOf(WppAction.SendVersionRequest)
             } else {
@@ -234,6 +297,10 @@ class WppHandshakeSession(var versionExchangeEnabled: Boolean) {
 
     private fun onAwaitCredentials(event: WppEvent): List<WppAction> = when {
         event is WppEvent.CredentialsReady -> credentialsBecameAvailable()
+        phoneStarted && event is WppEvent.MessageReceived && event.type == WppMessageType.START_REQUEST -> {
+            stage = WppStage.PHONE_START_PENDING
+            emptyList()
+        }
         event is WppEvent.MessageReceived && event.type == WppMessageType.INFO_REQUEST -> {
             pendingInfoRequest = true
             emptyList()
@@ -242,11 +309,42 @@ class WppHandshakeSession(var versionExchangeEnabled: Boolean) {
         else -> emptyList()
     }
 
+    private fun onPhoneStartPending(event: WppEvent): List<WppAction> = when {
+        event is WppEvent.CredentialsReady -> {
+            credentialsLatched = true
+            stage = WppStage.AWAIT_INFO_REQUEST
+            listOf(WppAction.SendStartResponse(WppStatus.SUCCESS))
+        }
+        // Still no credentials: "not yet" makes the phone ask again in 2 s rather than wait on us.
+        event is WppEvent.StageTimeout -> {
+            stage = WppStage.AWAIT_CREDENTIALS
+            listOf(WppAction.SendStartResponse(WppStatus.NOT_YET_STARTED))
+        }
+        // Tell the phone to stop asking before giving up ourselves.
+        event is WppEvent.CredentialsUnavailable ->
+            listOf(WppAction.SendStartResponse(WppStatus.WIFI_DISABLED)) + fail("no WiFi credentials to hand the phone")
+        else -> emptyList()
+    }
+
+    private fun onAwaitPhoneStart(event: WppEvent): List<WppAction> = when {
+        event is WppEvent.MessageReceived && event.type == WppMessageType.START_REQUEST -> {
+            stage = WppStage.AWAIT_INFO_REQUEST
+            listOf(WppAction.SendStartResponse(WppStatus.SUCCESS))
+        }
+        event is WppEvent.StageTimeout ->
+            fail("phone did not repeat its start request within ${PHONE_START_REPEAT_TIMEOUT_MS / 1000}s")
+        event is WppEvent.CredentialsUnavailable -> fail("WiFi credentials went away mid-handshake")
+        else -> emptyList()
+    }
+
     private fun onAwaitInfoRequest(event: WppEvent): List<WppAction> = when {
         event is WppEvent.MessageReceived && event.type == WppMessageType.INFO_REQUEST -> {
             stage = WppStage.SETTLING
             listOf(WppAction.SendInfoResponse)
         }
+        // The phone asked again before our answer reached it: the same answer again.
+        phoneStarted && event is WppEvent.MessageReceived && event.type == WppMessageType.START_REQUEST ->
+            listOf(WppAction.SendStartResponse(WppStatus.SUCCESS))
         event is WppEvent.MessageReceived && event.type == WppMessageType.START_RESPONSE ->
             if (isFailureStatus(event.status)) {
                 fail("phone rejected the projection endpoint (WifiStartResponse status=${event.status})")
@@ -297,6 +395,11 @@ class WppHandshakeSession(var versionExchangeEnabled: Boolean) {
 
     private fun credentialsBecameAvailable(): List<WppAction> {
         credentialsLatched = true
+        if (phoneStarted) {
+            // Nothing of ours goes out: the phone's next start request gets the endpoint.
+            stage = WppStage.AWAIT_PHONE_START
+            return emptyList()
+        }
         return if (pendingInfoRequest) {
             // It asked while the network was still coming up: answer both back to back rather
             // than wait for it to ask again.

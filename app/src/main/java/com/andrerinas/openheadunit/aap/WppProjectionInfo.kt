@@ -138,6 +138,29 @@ object WppProjectionInfo {
         return out.toByteArray()
     }
 
+    /**
+     * The payload of a head unit's Type 7 `WifiStartResponse`, the answer to a start request the phone
+     * sent itself (prototux/AARE, docs/research/gearhead-notes.md §3.2):
+     *
+     * ```
+     * WifiStartResponse { string ip_address = 1; int32 port = 2; int32 status = 3; }
+     * ```
+     *
+     * Built by hand because `wireless.proto` models the phone's acknowledgement, which has no port.
+     *
+     * @param ip the address the phone is to dial, or null to leave it out (with a non-success status).
+     * @param port the TCP port the phone is to dial, or null to leave it out.
+     * @param status a [WppStatus]; negative values are encoded as protobuf int32 (ten bytes).
+     */
+    fun encodeStartResponse(ip: String?, port: Int?, status: Int): ByteArray {
+        val out = ByteArrayOutputStream()
+        if (ip != null) writeStringField(out, 1, ip)
+        if (port != null) writeVarintField(out, 2, port)
+        writeTag(out, 3, WIRE_VARINT)
+        writeInt32(out, status)
+        return out.toByteArray()
+    }
+
     private fun writeStringField(out: ByteArrayOutputStream, field: Int, value: String) {
         val bytes = value.toByteArray(Charsets.UTF_8)
         writeTag(out, field, WIRE_LENGTH_DELIMITED)
@@ -162,5 +185,16 @@ object WppProjectionInfo {
             v = v ushr 7
         }
         out.write(v)
+    }
+
+    /** An int32 of either sign as protobuf encodes it: a negative one is sign-extended to 64 bits. */
+    private fun writeInt32(out: ByteArrayOutputStream, value: Int) {
+        if (value >= 0) return writeVarint(out, value)
+        var v = value.toLong()
+        while (v and 0x7FL.inv() != 0L) {
+            out.write(((v and 0x7F) or 0x80).toInt())
+            v = v ushr 7
+        }
+        out.write(v.toInt())
     }
 }

@@ -69,4 +69,36 @@ class WppProjectionInfoTest {
         assertEquals(4, parsed.major)
         assertEquals(listOf(5745L), parsed.unknownFields.getField(4).varintList)
     }
+
+    // --- the head unit's answer to a start request the phone sent itself ---------------------
+
+    @Test
+    fun `a successful start response carries the endpoint and a zero status`() {
+        val payload = WppProjectionInfo.encodeStartResponse("10.0.0.5", 30518, WppStatus.SUCCESS)
+        // 0a 08 "10.0.0.5" | 10 <30518> | 18 00
+        val expected = bytes(0x0a, 8) + "10.0.0.5".toByteArray() + bytes(0x10, 0xB6, 0xEE, 0x01, 0x18, 0)
+        assertArrayEquals(expected, payload)
+    }
+
+    @Test
+    fun `a negative status is a ten-byte int32 and nothing else goes with it`() {
+        val payload = WppProjectionInfo.encodeStartResponse(null, null, WppStatus.NOT_YET_STARTED)
+        // -6 as int32: fa ff ff ff ff ff ff ff ff 01
+        val expected = bytes(0x18, 0xFA, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01)
+        assertArrayEquals(expected, payload)
+    }
+
+    @Test
+    fun `the start response reads back with protobuf`() {
+        val payload = WppProjectionInfo.encodeStartResponse("192.168.43.1", 30518, WppStatus.SUCCESS)
+        val parsed = com.andrerinas.openheadunit.aap.protocol.proto.Wireless.WifiStartResponse.parseFrom(payload)
+        assertEquals("192.168.43.1", parsed.ipAddress)
+        assertEquals(0, parsed.status)
+        // The port is not in our schema (it models the phone's acknowledgement), so it reads as an unknown field.
+        assertEquals(listOf(30518L), parsed.unknownFields.getField(2).varintList)
+
+        val notYet = com.andrerinas.openheadunit.aap.protocol.proto.Wireless.WifiStartResponse
+            .parseFrom(WppProjectionInfo.encodeStartResponse(null, null, WppStatus.NOT_YET_STARTED))
+        assertEquals(-6, notYet.status)
+    }
 }

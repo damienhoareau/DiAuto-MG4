@@ -355,4 +355,103 @@ class WppHandshakeSessionTest {
         s.on(WppEvent.TcpSessionUp)
         assertNull("a finished handshake has no deadline", s.currentStageTimeoutMs())
     }
+
+    // --- started by the phone (Android Auto 18.0) -----------------------------------------------
+
+    /** A session for a phone that sent its own start request while held, with that request fed in. */
+    private fun phoneStartedSession(): WppHandshakeSession {
+        val s = WppHandshakeSession(versionExchangeEnabled = true, phoneStarted = true)
+        assertEquals("the version exchange already happened while held", emptyList<WppAction>(), s.on(WppEvent.SocketReady))
+        assertEquals(WppStage.AWAIT_CREDENTIALS, s.stage)
+        assertEquals(emptyList<WppAction>(), s.on(msg(WppMessageType.START_REQUEST)))
+        assertEquals(WppStage.PHONE_START_PENDING, s.stage)
+        return s
+    }
+
+    @Test
+    fun `credentials that land while the phone's request is pending answer it with the endpoint`() {
+        val s = phoneStartedSession()
+
+        assertEquals(listOf(WppAction.SendStartResponse(WppStatus.SUCCESS)), s.on(WppEvent.CredentialsReady))
+        assertEquals(WppStage.AWAIT_INFO_REQUEST, s.stage)
+        assertEquals(listOf(WppAction.SendInfoResponse), s.on(msg(WppMessageType.INFO_REQUEST)))
+        assertEquals(WppStage.SETTLING, s.stage)
+        assertEquals(listOf(WppAction.CompleteSuccess), s.on(WppEvent.TcpSessionUp))
+    }
+
+    @Test
+    fun `a phone-started session never sends a start request of its own`() {
+        val s = phoneStartedSession()
+        val all = s.on(WppEvent.CredentialsReady) + s.on(msg(WppMessageType.INFO_REQUEST))
+
+        assertFalse(WppAction.SendStartRequest in all)
+        assertFalse(WppAction.SendVersionRequest in all)
+    }
+
+    @Test
+    fun `without credentials in time the phone is told not yet, then gets the endpoint on its next request`() {
+        val s = phoneStartedSession()
+        assertEquals(WppHandshakeSession.PHONE_START_ANSWER_MS, s.currentStageTimeoutMs())
+
+        assertEquals(listOf(WppAction.SendStartResponse(WppStatus.NOT_YET_STARTED)), s.on(WppEvent.StageTimeout))
+        assertEquals(WppStage.AWAIT_CREDENTIALS, s.stage)
+
+        assertEquals(emptyList<WppAction>(), s.on(WppEvent.CredentialsReady))
+        assertEquals(WppStage.AWAIT_PHONE_START, s.stage)
+        assertEquals(WppHandshakeSession.PHONE_START_REPEAT_TIMEOUT_MS, s.currentStageTimeoutMs())
+
+        assertEquals(listOf(WppAction.SendStartResponse(WppStatus.SUCCESS)), s.on(msg(WppMessageType.START_REQUEST)))
+        assertEquals(WppStage.AWAIT_INFO_REQUEST, s.stage)
+    }
+
+    @Test
+    fun `a repeated start request while the credentials come up is held again`() {
+        val s = phoneStartedSession()
+        s.on(WppEvent.StageTimeout)
+
+        assertEquals(emptyList<WppAction>(), s.on(msg(WppMessageType.START_REQUEST)))
+        assertEquals(WppStage.PHONE_START_PENDING, s.stage)
+        assertEquals(listOf(WppAction.SendStartResponse(WppStatus.SUCCESS)), s.on(WppEvent.CredentialsReady))
+    }
+
+    @Test
+    fun `a phone that stops asking fails the session`() {
+        val s = phoneStartedSession()
+        s.on(WppEvent.StageTimeout)
+        s.on(WppEvent.CredentialsReady)
+
+        val actions = s.on(WppEvent.StageTimeout)
+
+        assertEquals(WppStage.FAILED, s.stage)
+        assertTrue(actions.single() is WppAction.Fail)
+    }
+
+    @Test
+    fun `no credentials at all tells the phone to stop asking before failing`() {
+        val s = phoneStartedSession()
+
+        val actions = s.on(WppEvent.CredentialsUnavailable)
+
+        assertEquals(WppAction.SendStartResponse(WppStatus.WIFI_DISABLED), actions.first())
+        assertTrue(actions.last() is WppAction.Fail)
+        assertEquals(WppStage.FAILED, s.stage)
+    }
+
+    @Test
+    fun `a start request repeated after the answer gets the same answer`() {
+        val s = phoneStartedSession()
+        s.on(WppEvent.CredentialsReady)
+
+        assertEquals(listOf(WppAction.SendStartResponse(WppStatus.SUCCESS)), s.on(msg(WppMessageType.START_REQUEST)))
+        assertEquals(WppStage.AWAIT_INFO_REQUEST, s.stage)
+    }
+
+    @Test
+    fun `a head-unit-started session ignores a start request from the phone`() {
+        val s = session(versionExchange = false)
+        s.on(WppEvent.SocketReady)
+
+        assertEquals(emptyList<WppAction>(), s.on(msg(WppMessageType.START_REQUEST)))
+        assertEquals(WppStage.AWAIT_CREDENTIALS, s.stage)
+    }
 }

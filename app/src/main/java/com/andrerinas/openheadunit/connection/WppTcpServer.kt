@@ -247,6 +247,8 @@ class WppTcpServer(
                     }
                 }
                 WppAction.SendPingResponse -> send(WppMessageType.PING_RESPONSE, source?.payload ?: ByteArray(0))
+                // Only a session created with phoneStarted emits it; this one never is.
+                is WppAction.SendStartResponse -> {}
                 WppAction.ExtendSettle -> {}
                 WppAction.CompleteSuccess -> {}
                 WppAction.ResumePoke -> {}

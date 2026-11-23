@@ -18,6 +18,7 @@ import com.andrerinas.openheadunit.aap.WppMessageType
 import com.andrerinas.openheadunit.aap.WppPhoneIdentity
 import com.andrerinas.openheadunit.aap.WppProjectionInfo
 import com.andrerinas.openheadunit.aap.WppStage
+import com.andrerinas.openheadunit.aap.WppStatus
 import com.andrerinas.openheadunit.utils.BluetoothHelper
 import com.andrerinas.openheadunit.aap.protocol.proto.Wireless
 import com.andrerinas.openheadunit.utils.AppLog
@@ -1017,24 +1018,6 @@ class NativeAaHandshakeManager(
                 return@withContext
             }
 
-            val macs = settings.autoStartBluetoothDeviceMacs
-            if (isLeftOut(device.address, macs)) {
-                // Not a phone the user wants started by itself: it is told the head unit is here and given the
-                // network and the endpoint to keep, and nothing more, so that it can offer the connection and
-                // reach the head unit over Wi-Fi when the user asks, as it does for any car that is not started
-                // from the phone.
-                abortedLocally = true
-                holdWithoutSession(socket, device.address)
-                return@withContext
-            }
-            if (!settings.autoStartBluetoothDevicesChosen && !macs.contains(device.address)) {
-                AppLog.i("NativeAA: Saving ${device.address} (${device.name}) to the list of auto-start devices.")
-                val newMacs = macs + device.address
-                settings.autoStartBluetoothDeviceMacs = newMacs
-                settings.autoStartBluetoothDeviceName = device.name ?: "Unknown Device"
-                com.andrerinas.openheadunit.utils.Settings.syncAutoStartBtMacsToDeviceStorage(context, newMacs)
-            }
-
             val input = DataInputStream(socket.inputStream)
             val output = socket.outputStream
 
@@ -1045,6 +1028,7 @@ class NativeAaHandshakeManager(
             // *wait* instead: read on a coroutine of its own and take messages from a channel,
             // which resumes on schedule whether or not the read ever returns. The reader itself is
             // still unreclaimable on such a stack; consecutiveHandshakeFailures bounds that.
+            // Started before the hold below, which reads the same channel and may hand it on.
             readerJob = scope.launch(Dispatchers.IO + CoroutineName("NativeAa-Reader-${device.address}")) {
                 try {
                     while (isActive) inbound.send(readProtobuf(input))
@@ -1053,6 +1037,32 @@ class NativeAaHandshakeManager(
                 } finally {
                     inbound.close()
                 }
+            }
+
+            val macs = settings.autoStartBluetoothDeviceMacs
+            // Whether the phone itself asked to start, while held (see WppHandshakeSession.phoneStarted).
+            var phoneStarted = false
+            if (isLeftOut(device.address, macs)) {
+                // Not a phone the user wants started by itself: it is told the head unit is here and given the
+                // network and the endpoint to keep, and nothing more, so that it can offer the connection and
+                // reach the head unit over Wi-Fi when the user asks, as it does for any car that is not started
+                // from the phone. When the user asks on the phone over Bluetooth instead, the phone sends its
+                // own start request and the session goes on below.
+                if (!holdWithoutSession(socket, device.address, inbound, output)) {
+                    abortedLocally = true
+                    return@withContext
+                }
+                phoneStarted = true
+                spokeToPhone = true
+                // The exchange proper starts now, not when the hold did: isHandshakeInFlight() measures from here.
+                ifOwner(socket) { handshakeStartedAt = SystemClock.elapsedRealtime() }
+            }
+            if (!settings.autoStartBluetoothDevicesChosen && !macs.contains(device.address)) {
+                AppLog.i("NativeAA: Saving ${device.address} (${device.name}) to the list of auto-start devices.")
+                val newMacs = macs + device.address
+                settings.autoStartBluetoothDeviceMacs = newMacs
+                settings.autoStartBluetoothDeviceName = device.name ?: "Unknown Device"
+                com.andrerinas.openheadunit.utils.Settings.syncAutoStartBtMacsToDeviceStorage(context, newMacs)
             }
 
             // --- everything below drives the WppHandshakeSession state machine ---
@@ -1091,6 +1101,21 @@ class NativeAaHandshakeManager(
                     WppAction.SendStartRequest -> {
                         AppLog.i("NativeAA: [TX] Sending WifiStartRequest (Type 1)")
                         sendWifiStartRequest(output, credIp, context.wirelessPort)
+                        spokeToPhone = true
+                    }
+                    is WppAction.SendStartResponse -> {
+                        val ok = action.status == WppStatus.SUCCESS
+                        AppLog.i(
+                            "NativeAA: [TX] Answering the phone's own WifiStartRequest with WifiStartResponse (Type 7), " +
+                                "status=${action.status}" + if (ok) ", endpoint $credIp:${context.wirelessPort}" else ""
+                        )
+                        sendProtobuf(
+                            output,
+                            WppProjectionInfo.encodeStartResponse(
+                                if (ok) credIp else null, if (ok) context.wirelessPort else null, action.status
+                            ),
+                            WppMessageType.START_RESPONSE,
+                        )
                         spokeToPhone = true
                     }
                     WppAction.SendInfoResponse -> {
@@ -1257,6 +1282,7 @@ class NativeAaHandshakeManager(
             versionFrequencyMhz = announcedFrequencyMhz(shared, credentials?.ip)
             urbanVersion = true
             session.versionExchangeEnabled = true
+            session.phoneStarted = phoneStarted
 
             // The version exchange opens the conversation, *before* the wait for credentials
             // rather than after it. The phone starts its own ~12 s first-message timer when it
@@ -1265,6 +1291,8 @@ class NativeAaHandshakeManager(
             // present" as far as Gearhead is concerned. Saying something first costs nothing and
             // buys the whole bring-up window.
             feed(WppEvent.SocketReady)
+            // The start request that ended the hold, now that the session can answer it.
+            if (phoneStarted) feed(WppEvent.MessageReceived(WppMessageType.START_REQUEST))
 
             AppLog.i("NativeAA: Phone connected. Current credentials state: SSID=${credentials?.ssid ?: "<null>"}, IP=${credentials?.ip ?: "<null>"}")
             // The phone cannot join the hotspot while the head unit is itself a Wi-Fi client, so the
@@ -1499,24 +1527,47 @@ class NativeAaHandshakeManager(
      * Keeps a phone on the line for [HOLD_MS] with only the version request sent and, once it has answered, the
      * setup info (network and WPP-over-TCP endpoint) for it to keep. Ends early when the phone closes, or when
      * the user starts a session from the car.
+     *
+     * Returns true when the phone sent its own start request (Android Auto 18.0, the user asked for wireless
+     * projection on the phone): the caller then goes on with the session on the same channel, still open. On
+     * false the caller closes the channel.
      */
-    private suspend fun holdWithoutSession(socket: BluetoothSocket, address: String) {
-        AppLog.i("NativeAA: $address is not in the auto-start list — announcing the head unit and holding, no session.")
+    private suspend fun holdWithoutSession(
+        socket: BluetoothSocket,
+        address: String,
+        inbound: Channel<ProtobufMessage>,
+        output: OutputStream,
+    ): Boolean {
+        AppLog.i("NativeAA: $address is not in the auto-start list — announcing the head unit and holding, no session " +
+            "unless the phone asks for one.")
         heldSocket = socket
-        val input = DataInputStream(socket.inputStream)
-        val output = socket.outputStream
         val shared = if (SharedWifiNetwork.probeEnabled()) {
             SharedWifiNetwork.current(context)?.takeIf { SharedWifiNetwork.isAllowed(context, it) }
         } else null
-        val reader = scope.launch(Dispatchers.IO + CoroutineName("NativeAa-Hold-$address")) {
-            try {
-                var setupSent = false
-                while (isActive) {
-                    val msg = readProtobuf(input)
-                    AppLog.i("NativeAA: [RX] Held phone sent Type ${msg.type} (Payload size: ${msg.payload.size})")
-                    if (msg.type == WppMessageType.VERSION_RESPONSE) logPhoneIdentity(msg)
-                    if (msg.type == WppMessageType.PING_REQUEST) sendProtobuf(output, msg.payload, WppMessageType.PING_RESPONSE)
-                    if (msg.type == WppMessageType.VERSION_RESPONSE && !setupSent && shared != null) {
+        try {
+            sendWifiVersionRequest(
+                output, shared?.ip ?: credentials?.ip?.takeIf { it.isNotEmpty() }, urbanVersion = true,
+                frequencyMhz = announcedFrequencyMhz(shared, credentials?.ip),
+            )
+            var setupSent = false
+            val deadline = SystemClock.elapsedRealtime() + HOLD_MS
+            while (SystemClock.elapsedRealtime() < deadline) {
+                // Polled, not awaited with a timeout: see tick() in handleHandshake.
+                val result = inbound.tryReceive()
+                val msg = result.getOrNull()
+                if (msg == null) {
+                    if (result.isClosed) {
+                        AppLog.d("NativeAA: Held phone's channel ended.")
+                        return false
+                    }
+                    delay(25)
+                    continue
+                }
+                AppLog.i("NativeAA: [RX] Held phone sent Type ${msg.type} (Payload size: ${msg.payload.size})")
+                if (msg.type == WppMessageType.VERSION_RESPONSE) logPhoneIdentity(msg)
+                when (msg.type) {
+                    WppMessageType.PING_REQUEST -> sendProtobuf(output, msg.payload, WppMessageType.PING_RESPONSE)
+                    WppMessageType.VERSION_RESPONSE -> if (!setupSent && shared != null) {
                         setupSent = true
                         val token = ByteArray(16).also { java.security.SecureRandom().nextBytes(it) }
                         AppLog.i("NativeAA: [TX] Sending WifiSetupInfo (Type 11) for '${shared.ssid}' with the endpoint ${shared.ip}:${wppTcpPort()}")
@@ -1526,21 +1577,17 @@ class NativeAaHandshakeManager(
                             WppMessageType.SETUP_INFO,
                         )
                     }
+                    WppMessageType.START_REQUEST -> {
+                        AppLog.i("NativeAA: PHONE-STARTED - $address sent its own WifiStartRequest: the user asked for " +
+                            "projection on the phone. Starting the session.")
+                        return true
+                    }
                 }
-            } catch (e: Exception) {
-                AppLog.d("NativeAA: Held phone's channel ended: ${e.message}")
             }
-        }
-        try {
-            sendWifiVersionRequest(
-                output, shared?.ip ?: credentials?.ip?.takeIf { it.isNotEmpty() }, urbanVersion = true,
-                frequencyMhz = announcedFrequencyMhz(shared, credentials?.ip),
-            )
-            withTimeoutOrNull(HOLD_MS) { reader.join() }
+            AppLog.i("NativeAA: Held $address for ${HOLD_MS / 1000}s without a start request — releasing it.")
+            return false
         } finally {
             if (heldSocket === socket) heldSocket = null
-            reader.cancel()
-            try { socket.close() } catch (_: Exception) {}
         }
     }
 
