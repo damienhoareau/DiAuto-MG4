@@ -1068,9 +1068,11 @@ class NativeAaHandshakeManager(
             var bssidOmitted = false
             // The address the phone is told to dial for WPP over TCP, or null when it is not offered.
             var tcpOfferIp: String? = null
-            // Whether the version request goes out as the Urban head unit sends it (4.2, always), with or
+            // Whether the version request goes out in the form the Urban head unit uses (WppProjectionInfo.TCP_MAJOR), with or
             // without the endpoint in it.
             var urbanVersion = false
+            // The frequency announced in the version request (see announcedFrequencyMhz), or null to leave it out.
+            var versionFrequencyMhz: Int? = null
 
             suspend fun runAction(action: WppAction, source: ProtobufMessage?) {
                 when (action) {
@@ -1082,7 +1084,7 @@ class NativeAaHandshakeManager(
                         } else {
                             AppLog.i("NativeAA: [TX] Sending WifiVersionRequest (Type 4) v${WppHandshakeSession.WPP_VERSION_MAJOR}.${WppHandshakeSession.WPP_VERSION_MINOR}")
                         }
-                        sendWifiVersionRequest(output, tcpIp, urbanVersion)
+                        sendWifiVersionRequest(output, tcpIp, urbanVersion, versionFrequencyMhz)
                         spokeToPhone = true
                     }
                     WppAction.SendStartRequest -> {
@@ -1251,6 +1253,7 @@ class NativeAaHandshakeManager(
             // Offered on the hotspot too, as the Urban head unit does: there the address is the hotspot's,
             // when it is already known. On a cold hotspot it is not yet, and the offer is left out.
             tcpOfferIp = shared?.ip ?: credentials?.ip?.takeIf { it.isNotEmpty() }
+            versionFrequencyMhz = announcedFrequencyMhz(shared, credentials?.ip)
             urbanVersion = true
             session.versionExchangeEnabled = true
 
@@ -1516,7 +1519,10 @@ class NativeAaHandshakeManager(
             }
         }
         try {
-            sendWifiVersionRequest(output, shared?.ip ?: credentials?.ip?.takeIf { it.isNotEmpty() }, urbanVersion = true)
+            sendWifiVersionRequest(
+                output, shared?.ip ?: credentials?.ip?.takeIf { it.isNotEmpty() }, urbanVersion = true,
+                frequencyMhz = announcedFrequencyMhz(shared, credentials?.ip),
+            )
             withTimeoutOrNull(HOLD_MS) { reader.join() }
         } finally {
             if (heldSocket === socket) heldSocket = null
@@ -1541,10 +1547,17 @@ class NativeAaHandshakeManager(
      *
      * The version numbers are a guess and known to be one; see [WppHandshakeSession].
      */
-    private fun sendWifiVersionRequest(output: OutputStream, tcpIp: String? = null, urbanVersion: Boolean = false) {
+    private fun sendWifiVersionRequest(
+        output: OutputStream,
+        tcpIp: String? = null,
+        urbanVersion: Boolean = false,
+        frequencyMhz: Int? = null,
+    ) {
         val payload = if (urbanVersion) {
             // Declares that this head unit can be dialed over the Wi-Fi the phone is on; see WppProjectionInfo.
-            WppProjectionInfo.encodeVersionRequest(WppProjectionInfo.TCP_MAJOR, WppProjectionInfo.TCP_MINOR, tcpIp, wppTcpPort())
+            WppProjectionInfo.encodeVersionRequest(
+                WppProjectionInfo.TCP_MAJOR, WppProjectionInfo.TCP_MINOR, tcpIp, wppTcpPort(), listOfNotNull(frequencyMhz)
+            )
         } else {
             Wireless.WifiVersionRequest.newBuilder()
                 .setMajor(WppHandshakeSession.WPP_VERSION_MAJOR)
@@ -1557,6 +1570,45 @@ class NativeAaHandshakeManager(
 
     /** The port the WPP-over-TCP listener is on (see [CarNetworkQuirks.autoWppTcpPort]). */
     private fun wppTcpPort(): Int = CarNetworkQuirks.autoWppTcpPort()
+
+    /**
+     * The frequency to announce in the version request, in MHz, for the network the phone is sent to: the shared
+     * Wi-Fi's when there is one (the station's own reading), otherwise the car hotspot's, read from the driver of
+     * the interface holding [hotspotIp] (Wireless Extensions, see [LegacyHotspotRadio]). Null when neither is
+     * known — a cold hotspot, or a driver that does not answer — and the field is then left out, as before.
+     *
+     * Without it a phone answers the version request with NO_SUPPORTED_CHANNELS (-8), the status long seen in
+     * our logs on exchanges that went on to succeed. LIVI sends it and gets no such answer.
+     */
+    private fun announcedFrequencyMhz(shared: SharedWifiNetwork.Network?, hotspotIp: String?): Int? {
+        shared?.frequencyMhz?.takeIf { it > 0 }?.let {
+            AppLog.i("NativeAA: Announcing the shared Wi-Fi's frequency, $it MHz, in the version request.")
+            return it
+        }
+        val ip = hotspotIp?.takeIf { it.isNotEmpty() } ?: run {
+            AppLog.i("NativeAA: No hotspot address yet — the version request goes out without a frequency.")
+            return null
+        }
+        val name = try {
+            java.net.NetworkInterface.getByInetAddress(java.net.InetAddress.getByName(ip))?.name
+        } catch (e: Exception) {
+            null
+        }
+        if (name == null) {
+            AppLog.i("NativeAA: No interface holds $ip — the version request goes out without a frequency.")
+            return null
+        }
+        // A driver that reports a channel instead of a frequency needs the band to say which; the two bands'
+        // channel numbers do not overlap, so trying both cannot pick the wrong one.
+        val five = LegacyHotspotRadio.read(name, "5 GHz")
+        val frequency = five.frequencyMHz ?: LegacyHotspotRadio.read(name, "2.4 GHz").frequencyMHz
+        if (frequency == null) {
+            AppLog.i("NativeAA: Hotspot $name frequency unreadable (${five.error ?: "no reading"}) — the version request goes out without one.")
+        } else {
+            AppLog.i("NativeAA: Announcing the hotspot's frequency, $frequency MHz ($name), in the version request.")
+        }
+        return frequency
+    }
 
     /**
      * Sends the credentials.

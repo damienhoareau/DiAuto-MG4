@@ -12,7 +12,9 @@ import java.io.ByteArrayOutputStream
  * WifiVersionRequest {
  *   int32 major = 1;                              // protocol version, 4.2 or later for WPP over TCP
  *   int32 minor = 2;
- *   ...                                           // fields 3 to 5: not used here
+ *   ...                                           // field 3: not used here
+ *   repeated int32 supported_channel_frequencies_mhz = 4;   // the Wi-Fi the phone will be sent to
+ *   ...                                           // field 5: not used here
  *   WifiProjectionProtocolInfo tcp = 6 {
  *     string ip_address = 1;                      // where to dial
  *     int32 tcp_port = 2;
@@ -30,13 +32,19 @@ import java.io.ByteArrayOutputStream
  */
 object WppProjectionInfo {
 
-    /** The first version the phone takes a WPP-over-TCP endpoint from without an allow list. */
-    const val TCP_MAJOR = 4
-    const val TCP_MINOR = 2
+    /**
+     * The version announced in every version request: 6.0, as LIVI announces it. It clears every gate known
+     * on the phone's side: 4.2 for taking the WPP-over-TCP endpoint without an allow list (the 4.2 the
+     * Urban head unit sends, and that this used to send), 4.5 for the setup info, 1.6 for the phone to
+     * describe itself (PhoneInfo, see WppPhoneIdentity).
+     */
+    const val TCP_MAJOR = 6
+    const val TCP_MINOR = 0
 
     /** Field numbers of the messages above. */
     private const val FIELD_MAJOR = 1
     private const val FIELD_MINOR = 2
+    private const val FIELD_FREQUENCIES = 4
     private const val FIELD_TCP = 6
     private const val FIELD_TCP_IP = 1
     private const val FIELD_TCP_PORT = 2
@@ -50,11 +58,22 @@ object WppProjectionInfo {
      * @param ip the address the phone is to dial, or null to leave the endpoint out (the plain version
      *   request that was sent before this existed).
      * @param port the TCP port the phone is to dial.
+     * @param frequenciesMhz the Wi-Fi frequencies the phone will be sent to, in MHz (field 4, repeated,
+     *   one varint each, as LIVI sends it: `supported_channel_frequencies_mhz`). A phone given none answers
+     *   the version request with NO_SUPPORTED_CHANNELS (-8). Empty leaves the field out; values that are
+     *   not positive are dropped.
      */
-    fun encodeVersionRequest(major: Int, minor: Int, ip: String?, port: Int): ByteArray {
+    fun encodeVersionRequest(
+        major: Int,
+        minor: Int,
+        ip: String?,
+        port: Int,
+        frequenciesMhz: List<Int> = emptyList(),
+    ): ByteArray {
         val out = ByteArrayOutputStream()
         writeVarintField(out, FIELD_MAJOR, major)
         writeVarintField(out, FIELD_MINOR, minor)
+        for (mhz in frequenciesMhz) if (mhz > 0) writeVarintField(out, FIELD_FREQUENCIES, mhz)
         if (ip != null) {
             val info = ByteArrayOutputStream()
             val address = ip.toByteArray(Charsets.UTF_8)

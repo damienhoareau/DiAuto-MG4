@@ -36,4 +36,37 @@ class WppProjectionInfoTest {
         val declared = payload[5].toInt() and 0xFF
         assertEquals(payload.size - 6, declared)
     }
+
+    // --- the frequencies the phone will be sent to (field 4) ----------------------------------
+
+    @Test
+    fun `a frequency goes in field 4 as a varint, as LIVI sends it`() {
+        // LIVI's reference bytes for 6.0 on channel 36: 08 06 10 00 20 bc 28
+        assertArrayEquals(
+            bytes(0x08, 6, 0x10, 0, 0x20, 0xBC, 0x28),
+            WppProjectionInfo.encodeVersionRequest(6, 0, null, 30517, listOf(5180)),
+        )
+    }
+
+    @Test
+    fun `the frequency comes before the endpoint, fields in order`() {
+        val payload = WppProjectionInfo.encodeVersionRequest(4, 2, "10.0.0.5", 30517, listOf(2437))
+        // 08 04 | 10 02 | 20 <2437 = 85 13> | 32 ...
+        assertEquals(listOf(0x08, 4, 0x10, 2, 0x20, 0x85, 0x13, 0x32), payload.take(8).map { it.toInt() and 0xFF })
+    }
+
+    @Test
+    fun `no frequency or a non-positive one leaves the request as it was`() {
+        val before = WppProjectionInfo.encodeVersionRequest(4, 2, "10.0.0.5", 30517)
+        assertArrayEquals(before, WppProjectionInfo.encodeVersionRequest(4, 2, "10.0.0.5", 30517, emptyList()))
+        assertArrayEquals(before, WppProjectionInfo.encodeVersionRequest(4, 2, "10.0.0.5", 30517, listOf(0)))
+    }
+
+    @Test
+    fun `the frequency reads back as field 4`() {
+        val payload = WppProjectionInfo.encodeVersionRequest(4, 2, "10.0.0.5", 30517, listOf(5745))
+        val parsed = com.andrerinas.openheadunit.aap.protocol.proto.Wireless.WifiVersionRequest.parseFrom(payload)
+        assertEquals(4, parsed.major)
+        assertEquals(listOf(5745L), parsed.unknownFields.getField(4).varintList)
+    }
 }
