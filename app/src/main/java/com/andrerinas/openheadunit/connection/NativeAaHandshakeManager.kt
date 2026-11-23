@@ -1040,19 +1040,20 @@ class NativeAaHandshakeManager(
             }
 
             val macs = settings.autoStartBluetoothDeviceMacs
-            // Whether the phone itself asked to start, while held (see WppHandshakeSession.phoneStarted).
-            var phoneStarted = false
+            // The shared Wi-Fi the phone asked to start on, while held (see WppHandshakeSession.phoneStarted);
+            // null when the session is not one the phone started.
+            var phoneStartedOn: SharedWifiNetwork.Network? = null
             if (isLeftOut(device.address, macs)) {
                 // Not a phone the user wants started by itself: it is told the head unit is here and given the
                 // network and the endpoint to keep, and nothing more, so that it can offer the connection and
                 // reach the head unit over Wi-Fi when the user asks, as it does for any car that is not started
-                // from the phone. When the user asks on the phone over Bluetooth instead, the phone sends its
-                // own start request and the session goes on below.
-                if (!holdWithoutSession(socket, device.address, inbound, output)) {
+                // from the phone. On the shared Wi-Fi, when the user asks on the phone over Bluetooth instead,
+                // the phone sends its own start request and the session goes on below, on that network.
+                phoneStartedOn = holdWithoutSession(socket, device.address, inbound, output)
+                if (phoneStartedOn == null) {
                     abortedLocally = true
                     return@withContext
                 }
-                phoneStarted = true
                 spokeToPhone = true
                 // The exchange proper starts now, not when the hold did: isHandshakeInFlight() measures from here.
                 ifOwner(socket) { handshakeStartedAt = SystemClock.elapsedRealtime() }
@@ -1273,16 +1274,19 @@ class NativeAaHandshakeManager(
             // Which network the phone is sent to has to be known before the version request goes out:
             // WPP over TCP is only offered for the shared Wi-Fi, where the phone and the car are on the
             // same network and the car's address on it is known.
-            val shared = if (SharedWifiNetwork.probeEnabled()) {
-                SharedWifiNetwork.current(context)?.takeIf { SharedWifiNetwork.shouldTry(context, it) }
-            } else null
+            // A session the phone started stays on the shared Wi-Fi it was started on, never the hotspot.
+            // shouldTry() is still called for its bookkeeping: a network that leads to no session is left alone.
+            val shared = phoneStartedOn?.also { SharedWifiNetwork.shouldTry(context, it) }
+                ?: if (SharedWifiNetwork.probeEnabled()) {
+                    SharedWifiNetwork.current(context)?.takeIf { SharedWifiNetwork.shouldTry(context, it) }
+                } else null
             // Offered on the hotspot too, as the Urban head unit does: there the address is the hotspot's,
             // when it is already known. On a cold hotspot it is not yet, and the offer is left out.
             tcpOfferIp = shared?.ip ?: credentials?.ip?.takeIf { it.isNotEmpty() }
             versionFrequencyMhz = announcedFrequencyMhz(shared, credentials?.ip)
             urbanVersion = true
             session.versionExchangeEnabled = true
-            session.phoneStarted = phoneStarted
+            session.phoneStarted = phoneStartedOn != null
 
             // The version exchange opens the conversation, *before* the wait for credentials
             // rather than after it. The phone starts its own ~12 s first-message timer when it
@@ -1292,7 +1296,7 @@ class NativeAaHandshakeManager(
             // buys the whole bring-up window.
             feed(WppEvent.SocketReady)
             // The start request that ended the hold, now that the session can answer it.
-            if (phoneStarted) feed(WppEvent.MessageReceived(WppMessageType.START_REQUEST))
+            if (phoneStartedOn != null) feed(WppEvent.MessageReceived(WppMessageType.START_REQUEST))
 
             AppLog.i("NativeAA: Phone connected. Current credentials state: SSID=${credentials?.ssid ?: "<null>"}, IP=${credentials?.ip ?: "<null>"}")
             // The phone cannot join the hotspot while the head unit is itself a Wi-Fi client, so the
@@ -1528,16 +1532,17 @@ class NativeAaHandshakeManager(
      * setup info (network and WPP-over-TCP endpoint) for it to keep. Ends early when the phone closes, or when
      * the user starts a session from the car.
      *
-     * Returns true when the phone sent its own start request (Android Auto 18.0, the user asked for wireless
-     * projection on the phone): the caller then goes on with the session on the same channel, still open. On
-     * false the caller closes the channel.
+     * On the shared Wi-Fi only, the phone may send its own start request (Android Auto 18.0, the user asked for
+     * wireless projection on the phone): that network is then returned, and the caller goes on with the session
+     * on it, on the same channel, still open. Anywhere else the request is ignored, as it always was. On null
+     * the caller closes the channel.
      */
     private suspend fun holdWithoutSession(
         socket: BluetoothSocket,
         address: String,
         inbound: Channel<ProtobufMessage>,
         output: OutputStream,
-    ): Boolean {
+    ): SharedWifiNetwork.Network? {
         AppLog.i("NativeAA: $address is not in the auto-start list — announcing the head unit and holding, no session " +
             "unless the phone asks for one.")
         heldSocket = socket
@@ -1558,7 +1563,7 @@ class NativeAaHandshakeManager(
                 if (msg == null) {
                     if (result.isClosed) {
                         AppLog.d("NativeAA: Held phone's channel ended.")
-                        return false
+                        return null
                     }
                     delay(25)
                     continue
@@ -1577,15 +1582,18 @@ class NativeAaHandshakeManager(
                             WppMessageType.SETUP_INFO,
                         )
                     }
-                    WppMessageType.START_REQUEST -> {
+                    WppMessageType.START_REQUEST -> if (shared != null) {
                         AppLog.i("NativeAA: PHONE-STARTED - $address sent its own WifiStartRequest: the user asked for " +
-                            "projection on the phone. Starting the session.")
-                        return true
+                            "projection on the phone. Starting the session on the shared Wi-Fi '${shared.ssid}'.")
+                        return shared
+                    } else {
+                        AppLog.i("NativeAA: $address sent its own WifiStartRequest, ignored: phone-started sessions " +
+                            "are only for the shared Wi-Fi, and the car is not on one it may use.")
                     }
                 }
             }
             AppLog.i("NativeAA: Held $address for ${HOLD_MS / 1000}s without a start request — releasing it.")
-            return false
+            return null
         } finally {
             if (heldSocket === socket) heldSocket = null
         }
