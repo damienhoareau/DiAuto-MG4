@@ -89,15 +89,43 @@ internal class AapAudio(
     private fun mediaGain(): Float = (1.0f + (mediaVolumeOffset / 100.0f)).coerceIn(0.0f, 2.0f)
 
     /**
-     * The phone may play without ever asking for the focus (after a play key sent from the car, as
-     * seen on the MG4), so the player is never muted for lack of it: only the level is applied, and
-     * the missing focus is logged.
+     * The phone may play without ever asking for the focus (after a play key sent from the car, or
+     * when it resumes by itself, as seen on the MG4). The player is never muted for lack of it, but
+     * playing is not enough there: the car only routes the Android Auto source to the speakers for
+     * the holder of the system media focus, so the stream was decoded and played into silence. The
+     * media focus is then taken here, as if the phone had asked for it (see [takeMediaFocusUnasked]).
      */
     private fun applyMediaOutput() {
         val track = audioDecoder.getTrack(Channel.ID_AUD) ?: return
         val allowed = phoneHasGain || transMediaFocus != null || assistantFocus != null
-        if (!allowed) AppLog.i("AapAudio: media is playing without the audio focus, playing anyway")
+        if (!allowed) {
+            AppLog.i("AapAudio: media is playing without the audio focus - taking the media focus for it")
+            takeMediaFocusUnasked()
+        }
         track.setVolume(mediaGain())
+    }
+
+    /**
+     * Takes the system media focus for a phone that plays without having asked for it: the same request
+     * the phone's GAIN makes (USAGE_MEDIA, Android Auto car source), and the phone is told it has the
+     * focus, so that a later loss (the radio, a call) reaches it as a pause, as for any media gain.
+     * Does nothing when the media focus is already held or before Android 8.
+     */
+    private fun takeMediaFocusUnasked() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val granted = synchronized(focusLock) {
+            if (mediaFocus != null) return
+            val request = stockRequest(AudioManager.AUDIOFOCUS_GAIN, stockMediaAttributes(), mediaFocusListener)
+            val result = grab(request, "media (unasked)")
+            if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+                mediaFocus = request
+                phoneHasGain = true
+                true
+            } else {
+                false
+            }
+        }
+        if (granted) focusNotifier?.invoke(Control.AudioFocusNotification.AudioFocusStateType.STATE_GAIN)
     }
 
     /** The audio channels the phone is playing on: the stock app's isMediaPlaying and isGuidancePlaying. */
