@@ -7,6 +7,7 @@ import com.andrerinas.openheadunit.aap.WppEvent
 import com.andrerinas.openheadunit.aap.WppFraming
 import com.andrerinas.openheadunit.aap.WppHandshakeSession
 import com.andrerinas.openheadunit.aap.WppMessageType
+import com.andrerinas.openheadunit.aap.WppPhoneIdentity
 import com.andrerinas.openheadunit.aap.WppProjectionInfo
 import com.andrerinas.openheadunit.aap.protocol.proto.Wireless
 import com.andrerinas.openheadunit.ssl.ConscryptInitializer
@@ -215,10 +216,15 @@ class WppTcpServer(
         fun run(action: WppAction, source: Frame?) {
             when (action) {
                 WppAction.SendVersionRequest -> {
+                    // The phone reached us over the shared Wi-Fi: announce its frequency, as over Bluetooth
+                    // (see NativeAaHandshakeManager.announcedFrequencyMhz). Left out when not on one.
+                    val frequency = SharedWifiNetwork.current(context)?.frequencyMhz?.takeIf { it > 0 }
+                    AppLog.i("WppTcp: version request v${WppProjectionInfo.TCP_MAJOR}.${WppProjectionInfo.TCP_MINOR}, " +
+                        if (frequency != null) "frequency $frequency MHz" else "no frequency (not on a shared Wi-Fi)")
                     send(
                         WppMessageType.VERSION_REQUEST,
                         WppProjectionInfo.encodeVersionRequest(
-                            WppProjectionInfo.TCP_MAJOR, WppProjectionInfo.TCP_MINOR, localIp, port
+                            WppProjectionInfo.TCP_MAJOR, WppProjectionInfo.TCP_MINOR, localIp, port, listOfNotNull(frequency)
                         )
                     )
                 }
@@ -355,6 +361,10 @@ class WppTcpServer(
                 WppMessageType.VERSION_RESPONSE -> {
                     val v = Wireless.WifiVersionResponse.parseFrom(frame.payload)
                     AppLog.i("WppTcp: [RX] WifiVersionResponse v${v.major}.${v.minor} status=${if (v.hasStatus()) v.status else "-"}")
+                    WppPhoneIdentity.parse(frame.payload)?.let { id ->
+                        AppLog.i(if (id.isEmpty()) "WppTcp: [RX] The phone's version response carries no identity."
+                            else "WppTcp: [RX] Phone identity: ${id.describe()}")
+                    }
                 }
                 WppMessageType.CONNECT_STATUS -> {
                     val s = Wireless.WifiConnectStatus.parseFrom(frame.payload)
